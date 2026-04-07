@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#4bee74",
+                    "error-dim": "#a70138",
+                    "on-surface-variant": "#585781",
+                    "primary-dim": "#003cd3",
+                    "tertiary-container": "#e291ff",
+                    "primary": "#0846ed",
+                    "secondary-fixed": "#5cfd80",
+                    "primary-container": "#859aff",
+                    "tertiary-dim": "#782b96",
+                    "inverse-primary": "#6d88ff",
+                    "on-tertiary-fixed-variant": "#5e0b7e",
+                    "on-primary": "#f2f1ff",
+                    "on-tertiary-fixed": "#2d003f",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-surface": "#0a082f",
+                    "secondary": "#006a28",
+                    "tertiary-fixed-dim": "#d483f2",
+                    "on-surface": "#2b2a51",
+                    "surface-dim": "#d2d0ff",
+                    "surface-container-high": "#e2dfff",
+                    "secondary-container": "#5cfd80",
+                    "inverse-on-surface": "#9a99c6",
+                    "on-secondary-fixed-variant": "#006827",
+                    "error-container": "#f74b6d",
+                    "secondary-dim": "#005d22",
+                    "tertiary": "#8539a3",
+                    "surface-tint": "#0846ed",
+                    "on-primary-fixed-variant": "#00207e",
+                    "tertiary-fixed": "#e291ff",
+                    "outline": "#74739e",
+                    "on-error-container": "#510017",
+                    "on-tertiary-container": "#530070",
+                    "on-secondary": "#cfffce",
+                    "outline-variant": "#aba9d7",
+                    "surface-bright": "#f9f5ff",
+                    "surface": "#f9f5ff",
+                    "on-primary-fixed": "#000000",
+                    "on-error": "#ffefef",
+                    "surface-variant": "#dcd9ff",
+                    "surface-container-highest": "#dcd9ff",
+                    "on-tertiary": "#ffedff",
+                    "primary-fixed": "#859aff",
+                    "primary-fixed-dim": "#718bff",
+                    "on-background": "#2b2a51",
+                    "surface-container": "#e9e5ff",
+                    "on-secondary-fixed": "#004819",
+                    "error": "#b41340",
+                    "on-secondary-container": "#005d22",
+                    "on-primary-container": "#001867",
+                    "surface-container-low": "#f2efff",
+                    "background": "#f9f5ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #f9f5ff;
+            color: #2b2a51;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .editorial-shadow {
+            shadow: 0 40px 40px rgba(43, 42, 81, 0.06);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f9f5ff]/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="close-up portrait of a friendly professional man in a bright modern office with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZ4UJ4SoC1H0UnsST5VSa7SL9n1cWe55RGHvFvh4xqMjOIQas7DWS5V8BpC6ZuWF3vMUpoUumRksM-AwvKT1HQHs_uwMzpvkPqUsYfxbfvFwSk9vX52q3ocGYnCheiNweEKnIeD46n2pYUgL22D3B82sdQkIFrtPPAQARMbZ3Q8ITxdxOtmZ_eDW68MkcGeRy-s-xelJZyYaPKflxL7GUCb14YBE6y3rp4pgBMYGj_qAzcDa4aUJZ5u-se55Q1x9rDPwRo8CPDCcwl"/>
+</div>
+<h1 class="font-['Manrope'] font-bold text-xl tracking-tight text-[#0846ed] dark:text-[#859aff]">Rewards Tracker</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-[#585781] hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-7xl mx-auto space-y-10">
+<!-- Hero Summary Section -->
+<section class="relative overflow-hidden rounded-xl p-8 bg-gradient-to-br from-primary via-primary-dim to-tertiary-dim text-on-primary">
+<div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<p class="font-label text-sm font-semibold uppercase tracking-widest opacity-80 mb-2">Total Rewards Value</p>
+<h2 class="font-headline text-6xl md:text-7xl font-extrabold tracking-tighter">$4,582</h2>
+<div class="mt-4 flex items-center gap-2">
+<span class="flex items-center bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold">
+<span class="material-symbols-outlined text-sm mr-1" data-icon="trending_up">trending_up</span>
+                            +12.4% this month
+                        </span>
+</div>
+</div>
+<div class="flex -space-x-4">
+<div class="w-16 h-16 rounded-full border-4 border-primary-dim bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="flight">flight</span>
+</div>
+<div class="w-16 h-16 rounded-full border-4 border-primary-dim bg-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="restaurant">restaurant</span>
+</div>
+<div class="w-16 h-16 rounded-full border-4 border-primary-dim bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed" data-icon="shopping_bag">shopping_bag</span>
+</div>
+</div>
+</div>
+<!-- Decorative shapes -->
+<div class="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+<div class="absolute bottom-[-20%] left-[10%] w-48 h-48 bg-tertiary/20 rounded-full blur-2xl"></div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+<!-- My Wallet Section (Left Column) -->
+<div class="lg:col-span-4 space-y-6">
+<div class="flex items-center justify-between px-2">
+<h3 class="font-headline text-2xl font-bold tracking-tight">My Wallet</h3>
+<button class="text-primary font-semibold text-sm hover:underline">Manage</button>
+</div>
+<div class="space-y-4">
+<!-- Card 1: Sapphire Luxury -->
+<div class="aspect-[1.58/1] rounded-lg p-6 bg-gradient-to-tr from-[#1a1a2e] to-primary text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-3xl opacity-80" data-icon="contactless">contactless</span>
+<p class="font-headline font-bold text-lg tracking-widest italic">SAPPHIRE</p>
+</div>
+<div>
+<p class="font-label text-xs opacity-60 mb-1">Current Balance</p>
+<p class="font-headline text-2xl font-bold tracking-tight">$2,840.00</p>
+</div>
+<div class="absolute -right-12 -bottom-12 w-40 h-40 bg-white/5 rounded-full"></div>
+</div>
+<!-- Card 2: Emerald Green -->
+<div class="aspect-[1.58/1] rounded-lg p-6 bg-gradient-to-tr from-secondary-dim to-secondary text-on-secondary shadow-lg relative overflow-hidden flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-3xl opacity-80" data-icon="eco">eco</span>
+<p class="font-headline font-bold text-lg tracking-widest italic">ECO-PLUS</p>
+</div>
+<div>
+<p class="font-label text-xs opacity-60 mb-1">Current Balance</p>
+<p class="font-headline text-2xl font-bold tracking-tight">$1,242.00</p>
+</div>
+</div>
+<!-- Card 3: Amethyst Lifestyle -->
+<div class="aspect-[1.58/1] rounded-lg p-6 bg-gradient-to-tr from-tertiary-dim to-tertiary text-on-tertiary shadow-lg relative overflow-hidden flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-3xl opacity-80" data-icon="star">star</span>
+<p class="font-headline font-bold text-lg tracking-widest italic">ELITE</p>
+</div>
+<div>
+<p class="font-label text-xs opacity-60 mb-1">Current Balance</p>
+<p class="font-headline text-2xl font-bold tracking-tight">$500.00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Upcoming Expiring Benefits (Right Column) -->
+<div class="lg:col-span-8 space-y-6">
+<div class="flex items-center justify-between px-2">
+<h3 class="font-headline text-2xl font-bold tracking-tight">Expiring Benefits</h3>
+<div class="flex gap-2">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<p class="text-error font-bold text-sm">3 Ending Soon</p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Benefit 1: Travel -->
+<div class="bg-surface-container-lowest rounded-lg p-6 flex flex-col justify-between h-full group hover:shadow-[0_20px_40px_rgba(43,42,81,0.06)] transition-all border-l-8 border-primary">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary-container/20 p-3 rounded-xl">
+<span class="material-symbols-outlined text-primary" data-icon="flight_takeoff">flight_takeoff</span>
+</div>
+<span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Travel</span>
+</div>
+<div>
+<h4 class="font-headline text-xl font-bold mb-1">Lounge Access Pass</h4>
+<p class="text-on-surface-variant text-sm mb-4">Valid at 450+ International Airports worldwide.</p>
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-error text-sm" data-icon="timer">timer</span>
+<p class="text-error text-xs font-bold">Expires in 2 days</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-primary text-on-primary py-3 rounded-full font-bold text-xs hover:opacity-90 active:scale-95 transition-all">Action</button>
+<button class="p-3 bg-surface-container-low rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="history">history</span>
+</button>
+</div>
+</div>
+<!-- Benefit 2: Dining -->
+<div class="bg-surface-container-lowest rounded-lg p-6 flex flex-col justify-between h-full group hover:shadow-[0_20px_40px_rgba(43,42,81,0.06)] transition-all border-l-8 border-secondary">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-secondary-container/20 p-3 rounded-xl">
+<span class="material-symbols-outlined text-secondary" data-icon="restaurant">restaurant</span>
+</div>
+<span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Dining</span>
+</div>
+<div>
+<h4 class="font-headline text-xl font-bold mb-1">$150 Bistro Credit</h4>
+<p class="text-on-surface-variant text-sm mb-4">Redeemable at any Michelin-starred partner.</p>
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-error text-sm" data-icon="timer">timer</span>
+<p class="text-error text-xs font-bold">Expires in 5 days</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-secondary text-on-secondary py-3 rounded-full font-bold text-xs hover:opacity-90 active:scale-95 transition-all">Action</button>
+<button class="p-3 bg-surface-container-low rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+</button>
+</div>
+</div>
+<!-- Benefit 3: Shopping -->
+<div class="bg-surface-container-lowest rounded-lg p-6 flex flex-col justify-between h-full group hover:shadow-[0_20px_40px_rgba(43,42,81,0.06)] transition-all border-l-8 border-tertiary md:col-span-2">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div class="flex-1">
+<div class="flex items-center gap-4 mb-3">
+<div class="bg-tertiary-container/20 p-3 rounded-xl">
+<span class="material-symbols-outlined text-tertiary" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<span class="bg-tertiary/10 text-tertiary px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">Luxury</span>
+</div>
+<h4 class="font-headline text-2xl font-bold mb-1">Personal Stylist Session</h4>
+<p class="text-on-surface-variant text-sm">Complimentary 2-hour shopping session at Nordstrom or Saks.</p>
+</div>
+<div class="flex flex-col items-center md:items-end gap-4 min-w-[200px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-sm" data-icon="timer">timer</span>
+<p class="text-error text-xs font-bold uppercase">Final Week</p>
+</div>
+<div class="flex gap-3 w-full">
+<button class="flex-1 bg-tertiary text-on-tertiary py-3 px-6 rounded-full font-bold text-xs hover:opacity-90 transition-all">Action</button>
+<button class="px-4 py-3 bg-surface-container-low text-on-surface-variant rounded-full font-bold text-xs hover:bg-surface-container-high transition-colors">Snooze</button>
+<button class="px-4 py-3 bg-surface-container-low text-on-surface-variant rounded-full font-bold text-xs hover:bg-surface-container-high transition-colors">Mark Used</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Extra Rewards Section: Bento Grid -->
+<section class="space-y-6">
+<h3 class="font-headline text-2xl font-bold tracking-tight px-2">Discover New Perks</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 h-[400px]">
+<div class="col-span-2 row-span-2 bg-primary-container/20 rounded-xl relative overflow-hidden p-8 flex flex-col justify-end">
+<img alt="Luxury Travel" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" data-alt="Modern luxury bus interior with plush leather seats and panoramic windows overlooking a scenic mountain road" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDoWfxqMvIZdZM5X8eOaqYO8wjoIGwsmecPDSHEgyV_xtlRJ0vJlqIYR-rZLvzLNMFBE0TSFZIrofbQsO9720jvghMSm1Hhw4v2Z0NpRHyMhNmqVSSrdY7ZquFENlmnYe4cShgVYAe-6PIuqeDT8WKoT5GNUw736Djn3mCioyoHD4GGmzLpDWsxqjJTCDLkRf2cMc-UaorUVQwAxtvuKWnbC_EUuhPc5PDuyF7sgoR_3atQ57-dagmMMW7d3bfERezPDj-U9pM-8RcO"/>
+<div class="relative z-10">
+<h4 class="font-headline text-3xl font-extrabold text-primary-dim mb-2 leading-none">Luxury Coach<br/>Transfers</h4>
+<p class="text-primary-dim font-bold text-sm">Unlock with 500 Points</p>
+</div>
+</div>
+<div class="bg-secondary-container/20 rounded-xl p-6 flex flex-col justify-between border border-secondary/10">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="spa">spa</span>
+<div>
+<h5 class="font-bold text-lg">Spa Day</h5>
+<p class="text-xs text-on-surface-variant">20% off all treatments</p>
+</div>
+</div>
+<div class="bg-tertiary-container/20 rounded-xl p-6 flex flex-col justify-between border border-tertiary/10">
+<span class="material-symbols-outlined text-tertiary text-3xl" data-icon="movie">movie</span>
+<div>
+<h5 class="font-bold text-lg">Cinema Elite</h5>
+<p class="text-xs text-on-surface-variant">Unlimited popcorn</p>
+</div>
+</div>
+<div class="col-span-2 bg-surface-container-high rounded-xl p-6 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="redeem">redeem</span>
+</div>
+<div>
+<h5 class="font-bold">Refer a Friend</h5>
+<p class="text-xs text-on-surface-variant">Get $50 per referral</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full font-bold text-sm">Invite</button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-50 rounded-t-[3rem] shadow-[0_-4px_40px_rgba(43,42,81,0.06)]">
+<a class="flex flex-col items-center justify-center bg-[#f2efff] dark:bg-[#0846ed]/20 text-[#0846ed] dark:text-[#859aff] rounded-[2rem] px-5 py-2 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="redeem">redeem</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Benefits</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="calendar_today">calendar_today</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Settings</span>
+</a>
+</nav>
+</body></html>

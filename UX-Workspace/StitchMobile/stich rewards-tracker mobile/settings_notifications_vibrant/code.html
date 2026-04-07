@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings &amp; Notifications - Rewards Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#4bee74",
+                        "error-dim": "#a70138",
+                        "on-surface-variant": "#585781",
+                        "primary-dim": "#003cd3",
+                        "tertiary-container": "#e291ff",
+                        "primary": "#0846ed",
+                        "secondary-fixed": "#5cfd80",
+                        "primary-container": "#859aff",
+                        "tertiary-dim": "#782b96",
+                        "inverse-primary": "#6d88ff",
+                        "on-tertiary-fixed-variant": "#5e0b7e",
+                        "on-primary": "#f2f1ff",
+                        "on-tertiary-fixed": "#2d003f",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-surface": "#0a082f",
+                        "secondary": "#006a28",
+                        "tertiary-fixed-dim": "#d483f2",
+                        "on-surface": "#2b2a51",
+                        "surface-dim": "#d2d0ff",
+                        "surface-container-high": "#e2dfff",
+                        "secondary-container": "#5cfd80",
+                        "inverse-on-surface": "#9a99c6",
+                        "on-secondary-fixed-variant": "#006827",
+                        "error-container": "#f74b6d",
+                        "secondary-dim": "#005d22",
+                        "tertiary": "#8539a3",
+                        "surface-tint": "#0846ed",
+                        "on-primary-fixed-variant": "#00207e",
+                        "tertiary-fixed": "#e291ff",
+                        "outline": "#74739e",
+                        "on-error-container": "#510017",
+                        "on-tertiary-container": "#530070",
+                        "on-secondary": "#cfffce",
+                        "outline-variant": "#aba9d7",
+                        "surface-bright": "#f9f5ff",
+                        "surface": "#f9f5ff",
+                        "on-primary-fixed": "#000000",
+                        "on-error": "#ffefef",
+                        "surface-variant": "#dcd9ff",
+                        "surface-container-highest": "#dcd9ff",
+                        "on-tertiary": "#ffedff",
+                        "primary-fixed": "#859aff",
+                        "primary-fixed-dim": "#718bff",
+                        "on-background": "#2b2a51",
+                        "surface-container": "#e9e5ff",
+                        "on-secondary-fixed": "#004819",
+                        "error": "#b41340",
+                        "on-secondary-container": "#005d22",
+                        "on-primary-container": "#001867",
+                        "surface-container-low": "#f2efff",
+                        "background": "#f9f5ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f9f5ff]/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="User Profile" data-alt="Portrait of a professional man in high-key lighting, soft lavender studio background, clean aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBs8Okp0PCEXlDsJr1z7c7t6ta1gROWz-yFBunV7a5RlpLx78xEcl3Zb_Cd3or_3yYkZ4LspvwInulVG61bd-hHzwZTMmuAQTS3e0Flgs4s8VQt8BpOe-l4FqoglQrtUBa6tCddYMD2buCDY2CBC6CRx_Z3uW0qHFMutb9EjFUtLB3SRb2GK-PDExRtgVngAyVUqCpErWkson3aett9ZxIu2lnufrsxW3rEw5ik-NAQu5FWsESPKArIYtQKeDM1CKt54GMUyBx1Fai5"/>
+</div>
+<h1 class="font-headline font-bold text-xl tracking-tight text-[#0846ed]">Rewards Tracker</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-[#0846ed] text-2xl hover:opacity-80 transition-opacity active:scale-95 duration-200">notifications</button>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-4xl mx-auto space-y-12">
+<!-- Header Section -->
+<section class="space-y-2">
+<h2 class="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Settings</h2>
+<p class="font-body text-on-surface-variant text-lg">Personalize your kinetic reward journey</p>
+</section>
+<!-- Bento Settings Grid -->
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6">
+<!-- Communication Preferences Card (Large) -->
+<div class="md:col-span-4 bg-surface-container-low rounded-xl p-8 space-y-8 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-9xl">mail</span>
+</div>
+<h3 class="font-headline text-2xl font-bold">Communication Preferences</h3>
+<div class="space-y-6 relative z-10">
+<!-- Toggle 1: Primary Color -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary-container/30 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">alternate_email</span>
+</div>
+<div>
+<p class="font-semibold text-lg">Email Notifications</p>
+<p class="text-on-surface-variant text-sm">Weekly summary and reward alerts</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-8 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Toggle 2: Secondary Color -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-secondary-container/30 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sms</span>
+</div>
+<div>
+<p class="font-semibold text-lg">SMS Alerts</p>
+<p class="text-on-surface-variant text-sm">Real-time point redemption updates</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-8 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-secondary"></div>
+</label>
+</div>
+<!-- Toggle 3: Tertiary Color -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-tertiary-container/30 rounded-lg flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">campaign</span>
+</div>
+<div>
+<p class="font-semibold text-lg">Marketing &amp; Offers</p>
+<p class="text-on-surface-variant text-sm">Exclusive partner deals and perks</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-14 h-8 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Calendar Integration Card -->
+<div class="md:col-span-2 bg-gradient-to-br from-primary to-primary-dim rounded-xl p-8 flex flex-col justify-between text-on-primary shadow-xl">
+<div class="space-y-4">
+<span class="material-symbols-outlined text-4xl">event_upcoming</span>
+<h3 class="font-headline text-2xl font-bold leading-tight">Sync Your Success</h3>
+<p class="text-on-primary/80 text-sm">Export your upcoming reward expirations and benefit cycles directly to your calendar.</p>
+</div>
+<button class="mt-8 group relative w-full overflow-hidden rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-6 py-4 transition-all hover:bg-white/20 active:scale-95">
+<div class="flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">download</span>
+<span class="font-semibold text-sm tracking-wide uppercase">Export .ICS File</span>
+</div>
+</button>
+</div>
+<!-- Security Card -->
+<div class="md:col-span-3 bg-surface-container-lowest rounded-xl p-8 flex flex-col justify-between border border-outline-variant/15 hover:shadow-lg transition-shadow">
+<div class="space-y-4">
+<div class="w-14 h-14 bg-error-container/20 rounded-full flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-3xl">security</span>
+</div>
+<h3 class="font-headline text-xl font-bold">Security &amp; Privacy</h3>
+<p class="text-on-surface-variant text-sm">Manage 2FA, session history, and data encryption settings to keep your rewards safe.</p>
+</div>
+<div class="mt-6 flex items-center text-primary font-bold text-sm cursor-pointer group">
+<span>Manage Privacy</span>
+<span class="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+<!-- Category Management -->
+<div class="md:col-span-3 bg-surface-container-low rounded-xl p-8">
+<h3 class="font-headline text-xl font-bold mb-6">Smart Categories</h3>
+<div class="flex flex-wrap gap-3">
+<span class="px-4 py-2 bg-primary-container/20 text-primary rounded-full text-xs font-bold border border-primary/10">Travel Perks</span>
+<span class="px-4 py-2 bg-secondary-container/20 text-secondary rounded-full text-xs font-bold border border-secondary/10">Cashback Plus</span>
+<span class="px-4 py-2 bg-tertiary-container/20 text-tertiary rounded-full text-xs font-bold border border-tertiary/10">Luxury Stays</span>
+<span class="px-4 py-2 bg-surface-container-highest text-on-surface-variant rounded-full text-xs font-bold">+ Add More</span>
+</div>
+<div class="mt-8 p-4 bg-white rounded-lg flex items-center gap-4 border border-outline-variant/10">
+<div class="w-10 h-10 bg-surface-container flex items-center justify-center rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">auto_awesome</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">
+                        AI curation is <span class="text-secondary font-bold">active</span>. We're tailoring your benefits based on spending.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Danger Zone -->
+<section class="pt-8 border-t border-outline-variant/20">
+<div class="bg-red-50/50 dark:bg-red-900/10 rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-red-100 dark:border-red-900/30">
+<div class="text-center md:text-left">
+<h3 class="font-headline text-xl font-bold text-error">Account Deactivation</h3>
+<p class="text-on-surface-variant text-sm">Permanently delete your profile and all accumulated reward history.</p>
+</div>
+<button class="px-8 py-3 rounded-full border-2 border-error text-error font-bold hover:bg-error hover:text-white transition-colors active:scale-95">
+                    Deactivate Account
+                </button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-50 rounded-t-xl shadow-[0_-4px_40px_rgba(43,42,81,0.06)]">
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label text-[10px] font-semibold tracking-wide uppercase mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">redeem</span>
+<span class="font-label text-[10px] font-semibold tracking-wide uppercase mt-1">Benefits</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] dark:text-slate-400 px-5 py-2 hover:bg-[#f9f5ff] dark:hover:bg-slate-800 transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-label text-[10px] font-semibold tracking-wide uppercase mt-1">Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#f2efff] dark:bg-[#0846ed]/20 text-[#0846ed] dark:text-[#859aff] rounded-[2rem] px-5 py-2 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label text-[10px] font-semibold tracking-wide uppercase mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

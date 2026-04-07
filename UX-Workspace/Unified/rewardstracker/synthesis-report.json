@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-04-07T06:17:21.440Z",
+  "project": "rewardstracker",
+  "figmaPages": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/Figma/rewardstracker/pages",
+  "stitchDesktopDir": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchDesktop/rewardstracker",
+  "stitchMobileDir": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchMobile/rewardstracker",
+  "outputDir": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/Unified/rewardstracker",
+  "analysisPath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/Unified/rewardstracker/UX-ANALYSIS.md",
+  "pages": [
+    {
+      "file": "AddCard.tsx",
+      "phase": "paired",
+      "stitchDesktopPath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchDesktop/rewardstracker/card_benefits_reminders/code.html",
+      "stitchDesktopFound": true,
+      "stitchMobilePath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchMobile/rewardstracker/card_benefits_reminders/code.html",
+      "stitchMobileFound": true
+    },
+    {
+      "file": "AdminScraper.tsx",
+      "phase": "paired",
+      "stitchDesktopPath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchDesktop/rewardstracker/benefits_calendar/code.html",
+      "stitchDesktopFound": true,
+      "stitchMobilePath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchMobile/rewardstracker/benefits_calendar/code.html",
+      "stitchMobileFound": true
+    },
+    {
+      "file": "Dashboard.tsx",
+      "phase": "paired",
+      "stitchDesktopPath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchDesktop/rewardstracker/user_dashboard_vibrant/code.html",
+      "stitchDesktopFound": true,
+      "stitchMobilePath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchMobile/rewardstracker/user_dashboard_vibrant/code.html",
+      "stitchMobileFound": true
+    },
+    {
+      "file": "Settings.tsx",
+      "phase": "paired",
+      "stitchDesktopPath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchDesktop/rewardstracker/settings_notifications_vibrant/code.html",
+      "stitchDesktopFound": true,
+      "stitchMobilePath": "/Users/zubairnizami/Projects/Multi LLM talk/UX-Workspace/StitchMobile/rewardstracker/settings_notifications_vibrant/code.html",
+      "stitchMobileFound": true
+    }
+  ]
+}

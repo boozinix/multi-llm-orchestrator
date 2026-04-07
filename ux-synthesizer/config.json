@@ -1,0 +1,15 @@
+{
+  "workspaceRoot": "../UX-Workspace",
+  "figmaSubdir": "Figma",
+  "stitchDesktopSubdir": "StitchDesktop",
+  "stitchMobileSubdir": "StitchMobile",
+  "unifiedSubdir": "Unified",
+  "figmaPagesSubpath": "pages",
+  "openaiModel": "gpt-4o",
+  "analysisTemperature": 0.4,
+  "temperature": 0.3,
+  "maxCompareChars": 70000,
+  "maxAnalysisInSynthesisChars": 5000,
+  "styleReferencePage": "Dashboard.tsx",
+  "envFiles": [".env.local", "../.env.local"]
+}

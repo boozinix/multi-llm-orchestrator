@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#dae2fd",
+                    "on-secondary-fixed-variant": "#005236",
+                    "surface-tint": "#d0bcff",
+                    "on-surface": "#dae2fd",
+                    "surface-container-high": "#222a3d",
+                    "surface-container-highest": "#2d3449",
+                    "on-secondary-container": "#00311f",
+                    "primary": "#d0bcff",
+                    "inverse-on-surface": "#283044",
+                    "tertiary": "#c6c5cf",
+                    "on-tertiary-fixed-variant": "#46464e",
+                    "on-tertiary-container": "#282931",
+                    "surface-bright": "#31394d",
+                    "secondary": "#4edea3",
+                    "surface-variant": "#2d3449",
+                    "error": "#ffb4ab",
+                    "tertiary-container": "#909099",
+                    "surface-container-lowest": "#060e20",
+                    "background": "#0b1326",
+                    "on-secondary-fixed": "#002113",
+                    "on-error": "#690005",
+                    "on-secondary": "#003824",
+                    "error-container": "#93000a",
+                    "outline-variant": "#494454",
+                    "surface-dim": "#0b1326",
+                    "primary-fixed-dim": "#d0bcff",
+                    "primary-fixed": "#e9ddff",
+                    "on-primary-fixed-variant": "#5516be",
+                    "secondary-fixed-dim": "#4edea3",
+                    "primary-container": "#a078ff",
+                    "on-tertiary-fixed": "#1a1b22",
+                    "on-background": "#dae2fd",
+                    "surface": "#0b1326",
+                    "on-tertiary": "#2f3038",
+                    "surface-container": "#171f33",
+                    "on-primary": "#3c0091",
+                    "outline": "#958ea0",
+                    "tertiary-fixed": "#e3e1ec",
+                    "secondary-fixed": "#6ffbbe",
+                    "tertiary-fixed-dim": "#c6c5cf",
+                    "inverse-primary": "#6d3bd7",
+                    "on-primary-container": "#340080",
+                    "secondary-container": "#00a572",
+                    "on-primary-fixed": "#23005c",
+                    "surface-container-low": "#131b2e",
+                    "on-surface-variant": "#cbc3d7",
+                    "on-error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"],
+                    "mono": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .mono-text { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel {
+            background: rgba(45, 52, 73, 0.4);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30">
+<!-- SideNavBar (from JSON) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#131b2e] flex flex-col h-full p-4 z-50">
+<div class="mb-8 px-2">
+<h1 class="text-xl font-bold text-[#dae2fd] tracking-tighter">Multibot Pro</h1>
+<p class="text-xs font-mono text-[#8B5CF6] uppercase tracking-widest mt-1">Orchestrator</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#94a3b8] font-['Inter'] font-medium tracking-tight hover:bg-[#222a3d] transition-colors rounded-lg group scale-95 active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined">chat</span>
+                Chat
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#94a3b8] font-['Inter'] font-medium tracking-tight hover:bg-[#222a3d] transition-colors rounded-lg group scale-95 active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined">history</span>
+                History
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#94a3b8] font-['Inter'] font-medium tracking-tight hover:bg-[#222a3d] transition-colors rounded-lg group scale-95 active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined">key</span>
+                API Keys
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 bg-[#222a3d] text-[#d0bcff] rounded-lg font-['Inter'] font-medium tracking-tight scale-95 active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto space-y-4">
+<div class="bg-[#222a3d] p-4 rounded-xl">
+<p class="text-xs text-[#94a3b8] mb-2 font-mono">8/10 runs used</p>
+<div class="h-1.5 w-full bg-[#131b2e] rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[80%] shadow-[0_0_8px_rgba(208,188,255,0.4)]"></div>
+</div>
+</div>
+<div class="pt-4 border-t border-outline-variant/10 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-[#94a3b8] font-medium hover:text-[#dae2fd] transition-colors text-sm" href="#">
+<span class="material-symbols-outlined text-lg">help</span>
+                    Help
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-[#94a3b8] font-medium hover:text-[#dae2fd] transition-colors text-sm" href="#">
+<span class="material-symbols-outlined text-lg">logout</span>
+                    Sign Out
+                </a>
+</div>
+</div>
+</aside>
+<!-- TopNavBar (from JSON) -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] flex justify-between items-center px-8 h-16 ml-64 bg-[#0b1326]/80 backdrop-blur-xl z-40 shadow-2xl shadow-[#060e20]/50">
+<div class="flex items-center gap-4">
+<h2 class="font-['Inter'] font-semibold text-on-surface">Orchestrator</h2>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<span class="text-sm text-on-surface-variant/70 font-mono tracking-tight">/system/api-config</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="px-4 py-1.5 text-sm font-semibold text-primary border border-primary/20 rounded-full hover:bg-primary/5 transition-all duration-300">
+                Multi-Synthesis
+            </button>
+<button class="px-4 py-1.5 text-sm font-semibold bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300">
+                New Chat
+            </button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-on-surface border border-outline-variant/20">
+<span class="material-symbols-outlined text-lg">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-24 px-8 pb-12 min-h-screen">
+<div class="max-w-5xl mx-auto space-y-10">
+<!-- Header Section -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface mb-2">System Configuration &amp; Provider Settings</h1>
+<p class="text-on-surface-variant max-w-xl">Configure your upstream intelligence providers and monitor real-time orchestration throughput across the global network.</p>
+</div>
+<div class="flex gap-3">
+<div class="px-4 py-2 bg-surface-container-low rounded-xl flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+<span class="text-sm font-mono text-secondary">Global Sync: Active</span>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Usage Dashboard Bento Card -->
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-surface-container-low rounded-3xl p-6 flex flex-col gap-6">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-semibold text-lg">Daily Usage</h3>
+<p class="text-xs font-mono text-on-surface-variant">Session: #ORTH-992</p>
+</div>
+<span class="material-symbols-outlined text-primary">data_thresholding</span>
+</div>
+<div class="relative py-12 flex justify-center">
+<!-- Circular Progress Simulation -->
+<div class="relative w-40 h-40 rounded-full border-[12px] border-surface-container-highest flex flex-col items-center justify-center">
+<span class="text-4xl font-extrabold tracking-tighter">80%</span>
+<span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Runs Exhausted</span>
+<svg class="absolute -top-3 -left-3 w-46 h-46 transform -rotate-90">
+<circle class="text-primary/20" cx="92" cy="92" fill="transparent" r="80" stroke="currentColor" stroke-width="12"></circle>
+<circle cx="92" cy="92" fill="transparent" r="80" stroke="url(#usage-gradient)" stroke-dasharray="502" stroke-dashoffset="100" stroke-linecap="round" stroke-width="12"></circle>
+<defs>
+<lineargradient id="usage-gradient" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="var(--tw-gradient-from)"></stop>
+<stop offset="100%" stop-color="var(--tw-gradient-to)"></stop>
+</lineargradient>
+</defs>
+</svg>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Successful Syntheses</span>
+<span class="font-mono text-secondary">08</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Remaining Quota</span>
+<span class="font-mono text-primary">02</span>
+</div>
+<div class="h-[1px] bg-outline-variant/10"></div>
+<button class="w-full py-3 rounded-xl bg-surface-container-high hover:bg-surface-bright transition-all text-sm font-semibold flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">bolt</span>
+                                Upgrade Orchestration Tier
+                            </button>
+</div>
+</div>
+<!-- Technical Meta Card -->
+<div class="bg-gradient-to-br from-surface-container-low to-surface-container-lowest rounded-3xl p-6 border border-primary/5">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary text-lg">memory</span>
+<span class="text-xs font-mono uppercase tracking-widest text-on-surface-variant">Core Engine Status</span>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-mono">
+<span class="text-on-surface-variant/60">LATENCY (P99)</span>
+<span>142ms</span>
+</div>
+<div class="flex justify-between text-xs font-mono">
+<span class="text-on-surface-variant/60">TTL-O</span>
+<span>0.8s</span>
+</div>
+</div>
+</div>
+</div>
+<!-- API Provider Settings -->
+<div class="lg:col-span-2 space-y-4">
+<!-- Provider: OpenAI -->
+<div class="bg-surface-container-low rounded-3xl p-6 transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center border border-outline-variant/20 overflow-hidden">
+<img alt="OpenAI Logo" class="w-8 h-8" data-alt="Abstract geometric logo for OpenAI with dark blue and violet tones in a minimalist modern style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbrNfYxXVIwx7p9zFgdSK3BAYOAEl5eNuN_9t4mA5qOXdSn68gP9-tWwqbifir9qr2Cn3ZDaEaqeTHQDTmdd_9q-Yuwsr9UJRRPvZ5u_GnJQbnuCTd50wmXXsUXwkFNRRdYESxcltm8s5AFYPaE91hIiSN-GUXKCBtFMDBC2f6o0Yf5lO8TPOVPPoPwtsUERX4oZZm5z0_KkGczj-dnh9QKZY3MjjucTXtMsztaR4n1C9kBtAh15a1u4GNS2kmp9G1ZxNArG4dceM"/>
+</div>
+<div>
+<h4 class="text-lg font-bold">OpenAI</h4>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-xs text-secondary font-medium">Connected</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-mono text-on-surface-variant uppercase mb-1">Last Synthesis</p>
+<p class="text-xs font-mono">2 mins ago</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="group relative">
+<label class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider mb-1.5 block px-1">API Authentication Key</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3 font-mono text-sm tracking-widest text-on-surface focus:ring-1 focus:ring-primary/40 transition-all" readonly="" type="password" value="sk-proj-782348923472394872394823"/>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Provider: Anthropic (Error State) -->
+<div class="bg-surface-container-low rounded-3xl p-6 border border-error/10 bg-gradient-to-r from-surface-container-low to-error/5">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center border border-error/20 overflow-hidden">
+<img alt="Anthropic Logo" class="w-8 h-8" data-alt="Abstract geometric logo for Anthropic with earthy terracotta and deep charcoal tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwDhh-HKYAR1AfTFwGukOHFagOMgbl71RyP4iB7FTptXQUCKe3gUnUD9H9zne03ZHETddGTyr9BnYLFiRYuV6Y9kLGDvjtYDZOiyRN6bw-izu51kvYflHc1ODx8OjF7G47wSH4mD8YJlEFCtDKeFg0oJ1khDrIdBoMGTaohuoOlq3hJ6Sgt20uU8xhhuugO88D1UlNsDGwcUnH0asBYrk2ZJYJChFojH5w5x-0uIQx0Y3BHiVrpCXqcOjo2mAtTgscENVnkCc1LzY"/>
+</div>
+<div>
+<h4 class="text-lg font-bold">Anthropic</h4>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="text-xs text-error font-medium">Key Required</span>
+</div>
+</div>
+</div>
+<div class="bg-error/10 px-3 py-1 rounded-full border border-error/20">
+<p class="text-[10px] font-bold text-error uppercase">Connection Failed</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="group relative">
+<label class="text-[10px] font-mono text-error uppercase tracking-wider mb-1.5 block px-1">Missing Authentication Token</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border border-error/20 rounded-xl px-4 py-3 font-mono text-sm text-on-surface focus:ring-1 focus:ring-error transition-all placeholder:text-on-surface-variant/30" placeholder="Enter Claude-3-Opus enabled key..." type="text"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1 bg-error text-on-error text-xs font-bold rounded-lg hover:scale-105 active:scale-95 transition-all">
+                                        Connect
+                                    </button>
+</div>
+<p class="text-[11px] text-error/80 mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">info</span>
+                                    Invalid key format detected. Please verify your Anthropic console.
+                                </p>
+</div>
+</div>
+</div>
+<!-- Provider: Google Vertex -->
+<div class="bg-surface-container-low rounded-3xl p-6 transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center border border-outline-variant/20 overflow-hidden">
+<img alt="Google Vertex Logo" class="w-8 h-8" data-alt="Abstract geometric logo for Google Vertex with vibrant blue, yellow, and red highlights on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQjo345B7Ay7si_lCjDfJaz_RXzrzz1Cp3TlPeiFI5BfjilTeMumGScQHhSugXhjYBYBLWZZQ-s-leXcR0Q9G3CuSIL2tHxR8X5hgaFR5HjhBVNiq6RMfyCZAoqpK0UnaJJe6TXRZqPm8w02uAfOenZdHPgJIiIuseVUsu7ZWinx2JWcuEKTbIRXayafkLKXN1NXozXMHaMcFOyUquGhY5rNIV0pXkd7d6r32YPSudYE8JN8vTqQwUL1YC2SHez4UZNDfIGQ_qr_U"/>
+</div>
+<div>
+<h4 class="text-lg font-bold">Google Vertex AI</h4>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-xs text-secondary font-medium">Connected</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-mono text-on-surface-variant uppercase mb-1">Project ID</p>
+<p class="text-xs font-mono">orth-vtx-102</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="group relative">
+<label class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider mb-1.5 block px-1">Service Account JSON</label>
+<div class="relative">
+<div class="w-full bg-surface-container-lowest border-none rounded-xl px-4 py-3 font-mono text-sm text-on-surface flex items-center justify-between">
+<span class="text-on-surface-variant/50">••••••••••••••••.json</span>
+<div class="flex gap-2">
+<button class="p-1.5 text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Action Bar (Floating UI) -->
+<div class="flex justify-center pt-8">
+<div class="glass-panel px-8 py-4 rounded-full border border-outline-variant/20 flex items-center gap-8 shadow-2xl">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="text-sm font-semibold tracking-tight">3 Engines Standby</span>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant/20"></div>
+<div class="flex gap-4">
+<button class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Discard Changes</button>
+<button class="px-6 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-bold rounded-full shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
+                            Save Configuration
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Background Decorative Elements -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[100px]"></div>
+</div>
+</body></html>

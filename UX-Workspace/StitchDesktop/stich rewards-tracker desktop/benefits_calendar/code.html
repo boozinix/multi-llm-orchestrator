@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#4bee74",
+                    "error-dim": "#a70138",
+                    "on-surface-variant": "#585781",
+                    "primary-dim": "#003cd3",
+                    "tertiary-container": "#e291ff",
+                    "primary": "#0846ed",
+                    "secondary-fixed": "#5cfd80",
+                    "primary-container": "#859aff",
+                    "tertiary-dim": "#782b96",
+                    "inverse-primary": "#6d88ff",
+                    "on-tertiary-fixed-variant": "#5e0b7e",
+                    "on-primary": "#f2f1ff",
+                    "on-tertiary-fixed": "#2d003f",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-surface": "#0a082f",
+                    "secondary": "#006a28",
+                    "tertiary-fixed-dim": "#d483f2",
+                    "on-surface": "#2b2a51",
+                    "surface-dim": "#d2d0ff",
+                    "surface-container-high": "#e2dfff",
+                    "secondary-container": "#5cfd80",
+                    "inverse-on-surface": "#9a99c6",
+                    "on-secondary-fixed-variant": "#006827",
+                    "error-container": "#f74b6d",
+                    "secondary-dim": "#005d22",
+                    "tertiary": "#8539a3",
+                    "surface-tint": "#0846ed",
+                    "on-primary-fixed-variant": "#00207e",
+                    "tertiary-fixed": "#e291ff",
+                    "outline": "#74739e",
+                    "on-error-container": "#510017",
+                    "on-tertiary-container": "#530070",
+                    "on-secondary": "#cfffce",
+                    "outline-variant": "#aba9d7",
+                    "surface-bright": "#f9f5ff",
+                    "surface": "#f9f5ff",
+                    "on-primary-fixed": "#000000",
+                    "on-error": "#ffefef",
+                    "surface-variant": "#dcd9ff",
+                    "surface-container-highest": "#dcd9ff",
+                    "on-tertiary": "#ffedff",
+                    "primary-fixed": "#859aff",
+                    "primary-fixed-dim": "#718bff",
+                    "on-background": "#2b2a51",
+                    "surface-container": "#e9e5ff",
+                    "on-secondary-fixed": "#004819",
+                    "error": "#b41340",
+                    "on-secondary-container": "#005d22",
+                    "on-primary-container": "#001867",
+                    "surface-container-low": "#f2efff",
+                    "background": "#f9f5ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f9f5ff]/80 backdrop-blur-xl flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-primary-container flex items-center justify-center">
+<img alt="User profile" data-alt="close-up portrait of a professional woman with a friendly expression in a brightly lit modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChbfgB9d-sa58fwbK9fe85zfag4GM9s7wWW1cn-PEf9K84mEPQPyPXEp3GezT854nlWLe2Q-dTHDDX_TgVH-34IINaHK81WFSngQtFvJezYxCdIDAHq96Xjjpbrt2W1ziEPa3-RrJso6MWCtW-QCuD0fq3il2jIIrKf6X6oYSWgeJsKKOQOXCY4t0oWL_f3fUqVz-miySvKjdXA9Rvaw-cDMgBHWjryMXzpEzhqCdBMhz852fkvsIZaszhROtcSa5F7gyNGekYSy_X"/>
+</div>
+<h1 class="font-['Manrope'] font-bold text-xl tracking-tight text-[#0846ed]">Rewards Tracker</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-[#0846ed] hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto space-y-8">
+<!-- Hero Section: Editorial Calendar Display -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<div class="lg:col-span-4 space-y-4 pt-4">
+<p class="text-primary font-bold tracking-widest uppercase text-xs">Expirations</p>
+<h2 class="text-4xl font-extrabold tracking-tighter text-on-surface leading-none">September 2024</h2>
+<p class="text-on-surface-variant text-lg leading-relaxed">Keep track of your premium perks. Don't let your hard-earned rewards vanish.</p>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span> Travel
+                    </span>
+<span class="px-4 py-1.5 bg-secondary/10 text-secondary rounded-full text-xs font-bold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Growth
+                    </span>
+<span class="px-4 py-1.5 bg-tertiary/10 text-tertiary rounded-full text-xs font-bold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span> Luxury
+                    </span>
+</div>
+</div>
+<!-- Calendar Bento Card -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-[0_4px_40px_rgba(43,42,81,0.06)] p-8">
+<div class="grid grid-cols-7 gap-y-6 text-center">
+<!-- Day Labels -->
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sun</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Mon</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Tue</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Wed</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Thu</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Fri</div>
+<div class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sat</div>
+<!-- Calendar Days (Partial grid for Sept 2024 starting on Sunday) -->
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">1</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">2</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">3</span>
+<div class="flex gap-1 absolute bottom-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+</div>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">4</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">5</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">6</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">7</span>
+<div class="flex gap-1 absolute bottom-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+</div>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">8</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">9</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">10</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">11</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">12</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors bg-primary text-white rounded-full">
+<span class="text-sm font-bold">13</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold text-on-surface">14</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">15</span>
+<div class="flex gap-1 absolute bottom-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+</div>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">16</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">17</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">18</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">19</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">20</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">21</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">22</span>
+<div class="flex gap-1 absolute bottom-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+</div>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">23</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">24</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">25</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">26</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">27</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">28</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">29</span>
+</div>
+<div class="aspect-square flex flex-col items-center justify-center relative group cursor-pointer hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="text-sm font-semibold">30</span>
+</div>
+<div class="aspect-square flex items-center justify-center text-on-surface-variant/30">
+<span class="text-sm font-semibold">1</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Expiring This Month List -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="text-2xl font-bold tracking-tight">Expiring This Month</h3>
+<button class="text-primary font-semibold text-sm hover:underline">View All</button>
+</div>
+<div class="space-y-4">
+<!-- Benefit Item 1: Travel -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 rounded-lg p-5 flex flex-wrap md:flex-nowrap items-center justify-between gap-4">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-lg bg-white shadow-sm flex flex-col items-center justify-center border-l-4 border-primary">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">Sept</span>
+<span class="text-xl font-extrabold text-on-surface">03</span>
+</div>
+<div>
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">Travel Reward</span>
+<h4 class="text-lg font-bold text-on-surface">Lounge Access Pass</h4>
+<p class="text-on-surface-variant text-sm">Priority Pass • Single Entry</p>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2.5 bg-primary text-white rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-transform">
+                            Use Now
+                        </button>
+<button class="w-11 h-11 flex items-center justify-center bg-white rounded-full text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="alarm">alarm</span>
+</button>
+</div>
+</div>
+<!-- Benefit Item 2: Luxury -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 rounded-lg p-5 flex flex-wrap md:flex-nowrap items-center justify-between gap-4">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-lg bg-white shadow-sm flex flex-col items-center justify-center border-l-4 border-tertiary">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">Sept</span>
+<span class="text-xl font-extrabold text-on-surface">07</span>
+</div>
+<div>
+<span class="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">Exclusive Perk</span>
+<h4 class="text-lg font-bold text-on-surface">Wine Tasting Voucher</h4>
+<p class="text-on-surface-variant text-sm">Napa Valley Estates • Member Perk</p>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2.5 bg-tertiary text-white rounded-full font-bold text-sm shadow-lg shadow-tertiary/20 hover:scale-105 active:scale-95 transition-transform">
+                            Use Now
+                        </button>
+<button class="w-11 h-11 flex items-center justify-center bg-white rounded-full text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="alarm_on" data-weight="fill" style="font-variation-settings: 'FILL' 1;">alarm_on</span>
+</button>
+</div>
+</div>
+<!-- Benefit Item 3: Growth -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 rounded-lg p-5 flex flex-wrap md:flex-nowrap items-center justify-between gap-4">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-lg bg-white shadow-sm flex flex-col items-center justify-center border-l-4 border-secondary">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">Sept</span>
+<span class="text-xl font-extrabold text-on-surface">15</span>
+</div>
+<div>
+<span class="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">Growth Benefit</span>
+<h4 class="text-lg font-bold text-on-surface">Skillshare 3-Month Membership</h4>
+<p class="text-on-surface-variant text-sm">Professional Development Tier</p>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2.5 bg-secondary text-white rounded-full font-bold text-sm shadow-lg shadow-secondary/20 hover:scale-105 active:scale-95 transition-transform">
+                            Use Now
+                        </button>
+<button class="w-11 h-11 flex items-center justify-center bg-white rounded-full text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="alarm">alarm</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Promotional Bento Section -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
+<div class="relative overflow-hidden rounded-xl bg-primary h-64 flex items-end p-8 group">
+<img alt="Travel" class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay group-hover:scale-110 transition-transform duration-700" data-alt="a luxury airplane cabin interior with ambient blue lighting and premium leather seats in soft focus" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsqC5zK_Gkq_qQ121TdQV0IrKN-ulACzKEuDogYnWwVg4cejzmje8GWls8kXgBZ_CzGgMFyyQzJve96dqhhoqd_U3qMxarK7B0TxPEYP3y1dZkUbubQBVwKbGRIrEcjjsyXAkxg9h31hHfvfRCRk7IpiPfQF6i1zEiHJq15ZCjn49movXVCyazF5qwjoWJ65AszYS9e1xvkpgwU5HFnepZ_8rJGlZXrF-cpSfC00-yU3Sc3v9PAyxGIBFOdq-dhDy1hQhmMAV9RPnd"/>
+<div class="relative z-10 space-y-2">
+<h5 class="text-white text-2xl font-extrabold tracking-tight">Planning a trip?</h5>
+<p class="text-primary-container font-medium">Redeem your flight credits before year-end.</p>
+<button class="mt-4 px-6 py-2 bg-white text-primary rounded-full text-sm font-bold">Explore Trips</button>
+</div>
+</div>
+<div class="bg-surface-container-highest rounded-xl p-8 flex flex-col justify-center space-y-4">
+<div class="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<h5 class="text-on-surface text-xl font-bold tracking-tight leading-tight">Sync with Apple Calendar?</h5>
+<p class="text-on-surface-variant text-sm leading-relaxed">Never miss an expiration again by syncing your reward dates directly with your device's calendar.</p>
+<button class="w-full py-3 bg-on-surface text-white rounded-full font-bold text-sm">Connect Calendar</button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 backdrop-blur-xl z-50 rounded-t-[3rem] shadow-[0_-4px_40px_rgba(43,42,81,0.06)]">
+<a class="flex flex-col items-center justify-center text-[#585781] px-5 py-2 hover:bg-[#f9f5ff] transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] px-5 py-2 hover:bg-[#f9f5ff] transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="redeem">redeem</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Benefits</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#f2efff] text-[#0846ed] rounded-[2rem] px-5 py-2 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="calendar_today" data-weight="fill" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Calendar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#585781] px-5 py-2 hover:bg-[#f9f5ff] transition-colors active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-semibold tracking-wide uppercase">Settings</span>
+</a>
+</nav>
+</body></html>

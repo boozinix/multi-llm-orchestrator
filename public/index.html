@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-LLM Talk</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1115;
+        --panel: #171a21;
+        --border: #2a3140;
+        --text: #e8eaed;
+        --muted: #9aa3b2;
+        --accent: #6c9eff;
+        --err: #ff8a8a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0 0 0.35rem;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin: 0 0 1.5rem;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 0.75rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        font-size: 0.95rem;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+      }
+      button {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #243047, #1b2230);
+        color: var(--text);
+        padding: 0.55rem 1rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      button.primary {
+        border-color: #3d5a9e;
+        background: linear-gradient(180deg, #2f4f9c, #243a78);
+      }
+      .pill {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .pill.bad {
+        border-color: #6b3a3a;
+        color: var(--err);
+      }
+      .pill.ok {
+        border-color: #2f5c3f;
+        color: #9dffb0;
+      }
+      section {
+        margin-top: 1.75rem;
+      }
+      section h2 {
+        font-size: 1rem;
+        margin: 0 0 0.5rem;
+        font-weight: 600;
+      }
+      pre {
+        margin: 0;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.88rem;
+      }
+      .error {
+        color: var(--err);
+      }
+      .grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+      @media (min-width: 720px) {
+        .grid.cols {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Multi-LLM Talk</h1>
+      <p class="sub">
+        Runs your question across Gemini, ChatGPT, Claude, and Perplexity in the browser (Playwright), then chains refinements. No API keys.
+      </p>
+
+      <div id="sessions" class="row" aria-live="polite"></div>
+
+      <label for="q">Your question</label>
+      <textarea id="q" placeholder="Ask something…"></textarea>
+      <div class="row">
+        <button type="button" class="primary" id="run">Run pipeline</button>
+        <span class="pill" id="state">Idle</span>
+      </div>
+
+      <section>
+        <h2>Final answer</h2>
+        <pre id="final">—</pre>
+      </section>
+
+      <section class="grid cols">
+        <div>
+          <h2>Phase A (first answers)</h2>
+          <pre id="phaseA">—</pre>
+        </div>
+        <div>
+          <h2>Refinement chain</h2>
+          <pre id="refine">—</pre>
+        </div>
+      </section>
+
+      <section>
+        <h2>Raw JSON</h2>
+        <pre id="raw">—</pre>
+      </section>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const runBtn = $("run");
+      const state = $("state");
+
+      async function loadSessions() {
+        try {
+          const r = await fetch("/api/session-status");
+          const j = await r.json();
+          const el = $("sessions");
+          el.innerHTML = "";
+          const frag = document.createDocumentFragment();
+          for (const [id, ok] of Object.entries(j.sessions || {})) {
+            const span = document.createElement("span");
+            span.className = "pill " + (ok ? "ok" : "bad");
+            span.textContent = id + (ok ? " ✓" : " (login needed)");
+            frag.appendChild(span);
+          }
+          el.appendChild(frag);
+        } catch {
+          $("sessions").textContent = "Could not load session status.";
+        }
+      }
+
+      runBtn.addEventListener("click", async () => {
+        const question = $("q").value.trim();
+        if (!question) return;
+        runBtn.disabled = true;
+        state.textContent = "Running… (browser automation can take several minutes)";
+        $("final").textContent = "…";
+        $("phaseA").textContent = "…";
+        $("refine").textContent = "…";
+        $("raw").textContent = "…";
+        try {
+          const res = await fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            $("final").innerHTML =
+              '<span class="error">' + (data.error || res.statusText) + "</span>";
+            $("raw").textContent = JSON.stringify(data, null, 2);
+            return;
+          }
+          $("final").textContent = data.finalAnswer || "";
+          $("phaseA").textContent = JSON.stringify(
+            { baseModel: data.baseModel, answers: data.phaseA?.answers, errors: data.phaseA?.errors },
+            null,
+            2
+          );
+          $("refine").textContent = JSON.stringify(data.refinements || [], null, 2);
+          $("raw").textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          $("final").innerHTML =
+            '<span class="error">' + (e && e.message ? e.message : String(e)) + "</span>";
+        } finally {
+          runBtn.disabled = false;
+          state.textContent = "Idle";
+        }
+      });
+
+      loadSessions();
+    </script>
+  </body>
+</html>

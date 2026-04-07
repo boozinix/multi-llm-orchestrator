@@ -1,0 +1,6 @@
+{
+  "Dashboard.tsx": "user_dashboard_vibrant",
+  "AddCard.tsx": "card_benefits_reminders",
+  "AdminScraper.tsx": "benefits_calendar",
+  "Settings.tsx": "settings_notifications_vibrant"
+}

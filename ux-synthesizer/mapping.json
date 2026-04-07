@@ -1,0 +1,10 @@
+{
+  "_comment": "Optional default mapping when a project has no Figma/<project>/mapping.json. Prefer per-project mapping.json beside pages.",
+  "Dashboard.tsx": "dashboard_net_worth_overview",
+  "Accounts.tsx": "accounts_all_connections",
+  "Assets.tsx": "assets_real_estate_vehicles",
+  "Bills.tsx": "bills_payment_schedule",
+  "Liabilities.tsx": "liabilities_debt_tracking",
+  "Transactions.tsx": "transactions_activity_log",
+  "Settings.tsx": null
+}

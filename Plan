@@ -1,0 +1,207 @@
+Complete Build Plan: Multi-LLM Orchestrator Chat App
+
+You're building MultiBot Orchestrator — a personal chat app that runs prompts through multiple LLMs (Anthropic, OpenAI, Google, DeepSeek, Grok, Kimi, etc.), merges them into super-answers, supports conversation history, and lets users input their own API keys so you pay nothing. MVP first, user auth/keys later.
+Step 1: Sign Up & Prep (30 mins)
+
+Do this first on your own:
+
+    API Keys (free):
+
+        Anthropic: console.anthropic.com → API Keys → Create Key.
+
+        OpenAI: platform.openai.com → API Keys → Create Key.
+
+        Google Gemini: aistudio.google.com/app/apikey → Create Key.
+
+        DeepSeek: platform.deepseek.com/api_keys → Create Key.
+
+        xAI Grok: console.x.ai → API Keys → Create Key.
+
+        Kimi: moonshot.ai (or provider like DeepInfra) → Get API key.
+
+    Cursor: Download cursor.com, sign up, create new project folder multibot-orchestrator.
+
+    Optional gateways (for MVP simplicity):
+
+        LiteLLM (recommended, free self-host): pip install litellm, or use proxy.
+
+        OpenRouter (managed): openrouter.ai → Free account, $10 credits.
+
+Save keys securely in .env later.
+Step 2: MVP Architecture (Core Product)
+
+Tech Stack (Cursor-friendly):
+
+    Frontend: Next.js 15 + React + Tailwind + shadcn/ui.
+
+    Backend: Next.js API routes + LiteLLM for model calls.
+
+    Database: SQLite (via drizzle-orm) for conversations.
+
+    State: Zustand for chat history.
+
+    Auth: None for MVP (local only).
+
+Key Features:
+
+    Provider/model selector (3 slots: Bot 1, Bot 2, Bot 3).
+
+    Drag-drop flow editor (1→2→3 or custom).
+
+    Chat interface with history.
+
+    Toggle: Quick (single model) vs Super (multi-model).
+
+    Settings: Paste API keys.
+
+Data Flow:
+
+text
+User Prompt → [Selected Models in Flow Order] → Merge Prompt → Final Answer
+Follow-up: History + New Prompt → Same Flow → New Final Answer
+
+Step 3: Cursor Build Instructions
+
+Copy-paste this entire prompt into Cursor Composer (Cmd+K in Cursor):
+
+text
+Build me "MultiBot Orchestrator" — a Next.js chat app for multi-LLM orchestration.
+
+REQUIREMENTS:
+1. Next.js 15 + TypeScript + Tailwind + shadcn/ui + Zustand + Drizzle + SQLite.
+2. 3 chatbot slots: Anthropic, OpenAI, Google (expandable). Each with model dropdown (e.g. Claude Sonnet, GPT-4o, Gemini Pro).
+3. Drag-drop flow canvas: reorder bots (Bot1 → Bot2 → Bot3).
+4. Chat UI like ChatGPT: input box, history, toggle "Quick (1 model)" vs "Super (all models)".
+5. Settings page: input API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.).
+6. Backend: /api/chat → uses LiteLLM to call models with conversation history.
+7. DB: conversations table (id, messages JSON, flow JSON).
+8. Prompts:
+   - Individual: "Answer: {prompt}"
+   - Merge: "Here are answers from {models}: {outputs}. Merge into one best answer."
+   - Follow-up: "History: {history}. New question: {prompt}. Answer fully."
+
+USE LiteLLM:
+npm i litellm @litellm/types
+Env vars for keys.
+
+Start with npx create-next-app@latest multibot --ts --tailwind --app --src-dir --eslint
+Add shadcn: npx shadcn-ui@latest init
+
+Make it look pro, mobile-friendly. No auth for MVP.
+
+Cursor will generate the full app. Review, run npm i, npm run dev.
+Step 4: Key Prompts for Logic
+
+Paste these into Claude Code / Cursor for refinements:
+1. Individual Model Prompt
+
+text
+You are {model_name}. Answer the user query directly and completely.
+
+Query: {user_prompt}
+Context: {conversation_history_summary}
+
+Respond concisely but thoroughly.
+
+2. Merge/Synthesis Prompt (for Super Mode)
+
+text
+You are the final synthesizer. Merge these model outputs into ONE superior answer.
+
+Bot 1 ({model1}): {output1}
+Bot 2 ({model2}): {output2}
+Bot 3 ({model3}): {output3}
+
+Context: {conversation_history}
+
+Rules:
+- Preserve unique insights from ALL bots.
+- Fix gaps, contradictions, weak points.
+- Make it coherent, comprehensive, no gaps.
+- Output ONLY the final merged answer.
+
+Final Answer:
+
+3. Quick Mode Prompt (Single Model Follow-up)
+
+text
+You are {selected_model}. Continue this conversation.
+
+History: {conversation_history}
+New question: {user_prompt}
+
+Answer naturally, using prior context.
+
+4. Flow Orchestrator Logic (Backend Code Snippet)
+
+typescript
+// In /api/chat/route.ts
+import { Litellm } from "@litellm/litellm";
+
+async function runFlow(prompt: string, history: Message[], flow: string[]) {
+  let outputs = {};
+  for (const model of flow) {
+    const response = await completion({
+      model,
+      messages: [...history, {role: "user", content: prompt}],
+      apiKey: process.env[`${provider(model)}_API_KEY`],
+    });
+    outputs[model] = response.choices[0].message.content;
+  }
+  // Run merge prompt with outputs
+  return mergePrompt(outputs, history, prompt);
+}
+
+Step 5: MVP Launch Steps (1 hour)
+
+    Run app: npm run dev → localhost:3000.
+
+    Add keys: Settings → Paste your API keys.
+
+    Test:
+
+        Select 3 bots + models.
+
+        Set flow: Bot1 → Bot2 → Bot3.
+
+        Chat: "Build a fintech app" → See super answer.
+
+        Follow-up: Toggle Quick vs Super.
+
+    Deploy: Vercel (free) → vercel --prod.
+
+Step 6: Future: User API Keys + Auth (Week 2)
+
+Extend with Clerk/Auth.js:
+
+text
+Add Clerk auth. Users get settings page to input THEIR OWN API keys.
+App stores keys encrypted per-user.
+Orchestrator uses user-provided keys, you pay $0.
+
+LiteLLM Config (handles all providers):
+
+text
+Providers: anthropic/*, openai/*, google/gemini*, deepseek/*, xai/grok*, groq/*, etc. [web:96][web:99][web:104]
+User pastes key → app sets env dynamically.
+
+Step 7: Cost Optimization Prompts
+
+History Summarizer Prompt (to cut token costs):
+
+text
+Summarize this conversation into 200 words max. Keep key facts, decisions, open questions.
+
+History: {full_history}
+
+Summary:
+
+Total Timeline
+
+    Day 1: Cursor builds MVP (2 hrs).
+
+    Day 2: Test, tweak prompts, deploy.
+
+    Week 2: User auth + keys.
+
+This is fully executable. Start with Cursor prompt above — it will generate 90% of the code. Ping me for refinements!
