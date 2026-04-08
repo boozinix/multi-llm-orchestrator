@@ -9,26 +9,59 @@ function normalizeOrigin(input: string): string {
   }
 }
 
+/** Every hostname the edge saw for this request (Vercel may send several in X-Forwarded-Host). */
+function collectRequestHosts(req: NextRequest): string[] {
+  const out: string[] = [];
+  const xf = req.headers.get("x-forwarded-host");
+  if (xf) {
+    for (const part of xf.split(",")) {
+      const h = part.trim();
+      if (h) out.push(h);
+    }
+  }
+  const host = req.headers.get("host")?.trim();
+  if (host) out.push(host);
+  return [...new Set(out)];
+}
+
 /**
  * Origins implied by how the request reached this deployment (Vercel custom domain,
  * preview URL, etc.). Edge `nextUrl` can disagree with the browser's `Origin` header;
  * `Host` / `X-Forwarded-Host` reflect the URL the user actually hit.
  */
 function requestPublicOrigins(req: NextRequest): string[] {
-  const hostHeader = req.headers.get("host")?.trim() ?? "";
-  const xfHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ?? "";
+  const hosts = collectRequestHosts(req);
   const proto =
     req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
     (req.nextUrl.hostname === "localhost" || req.nextUrl.hostname === "127.0.0.1"
       ? "http"
       : "https");
 
-  const hosts = [...new Set([xfHost, hostHeader].filter(Boolean))];
-  const fromHeaders = hosts
-    .map((h) => normalizeOrigin(`${proto}://${h}`))
-    .filter(Boolean);
+  const origins = new Set<string>();
+  for (const h of hosts) {
+    const primary = normalizeOrigin(`${proto}://${h}`);
+    if (primary) origins.add(primary);
+    // Wrong x-forwarded-proto (http behind TLS) would miss https://… — add https for non-local hosts.
+    const isLocal =
+      h.startsWith("localhost:") ||
+      h === "localhost" ||
+      h.startsWith("127.0.0.1:") ||
+      h === "127.0.0.1";
+    if (proto === "http" && !isLocal) {
+      const asHttps = normalizeOrigin(`https://${h}`);
+      if (asHttps) origins.add(asHttps);
+    }
+  }
   const next = normalizeOrigin(req.nextUrl.origin);
-  return [...new Set([...(next ? [next] : []), ...fromHeaders])];
+  if (next) origins.add(next);
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    const o = normalizeOrigin(`https://${vercelUrl}`);
+    if (o) origins.add(o);
+  }
+
+  return [...origins];
 }
 
 function configuredAllowedOrigins(req: NextRequest): string[] {
