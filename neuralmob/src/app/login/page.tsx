@@ -20,7 +20,14 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: { error?: string } = {};
+      try {
+        data = raw ? (JSON.parse(raw) as { error?: string }) : {};
+      } catch {
+        setError(res.ok ? "Invalid response from server" : `Server error (${res.status})`);
+        return;
+      }
       if (!res.ok) {
         setError(data.error ?? "Could not continue");
       } else {
