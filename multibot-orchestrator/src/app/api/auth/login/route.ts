@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, isAllowedEmail, normalizeEmail } from "@/lib/auth";
+import { AUTH_COOKIE_NAME, isValidEmail, normalizeEmail } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const email = typeof body.email === "string" ? normalizeEmail(body.email) : "";
+  const raw = typeof body.email === "string" ? body.email : "";
+  const email = normalizeEmail(raw);
 
-  if (!email) {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
-  }
-
-  if (!isAllowedEmail(email)) {
-    return NextResponse.json({ error: "Unauthorized email" }, { status: 401 });
+  if (!email || !isValidEmail(raw)) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
   }
 
   const response = NextResponse.json({ ok: true });

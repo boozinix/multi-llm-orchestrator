@@ -3,7 +3,6 @@ export function hasAnyProviderEnvKey(): boolean {
   return Boolean(
     process.env.OPENAI_API_KEY?.trim() ||
       process.env.ANTHROPIC_API_KEY?.trim() ||
-      process.env.GEMINI_API_KEY?.trim() ||
       process.env.XAI_API_KEY?.trim() ||
       process.env.DEEPSEEK_API_KEY?.trim() ||
       process.env.OPENROUTER_API_KEY?.trim()
@@ -21,7 +20,6 @@ export function resolvePassthroughApiKey(clientKey: string): string {
     process.env.OPENROUTER_API_KEY?.trim() ||
     process.env.OPENAI_API_KEY?.trim() ||
     process.env.ANTHROPIC_API_KEY?.trim() ||
-    process.env.GEMINI_API_KEY?.trim() ||
     process.env.XAI_API_KEY?.trim() ||
     process.env.DEEPSEEK_API_KEY?.trim() ||
     ""

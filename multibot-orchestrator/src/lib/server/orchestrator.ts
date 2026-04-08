@@ -5,10 +5,11 @@ import {
   buildStagedMergeUserPrompt,
   buildQuickModeSystemPrompt,
 } from "../prompts";
+import type { UserProviderKeys } from "../provider-keys";
 import type { FlowConfig, ModelConfig, BotRunOutput, HistoryMessage } from "../types";
 
 export interface OrchestratorInput {
-  apiKey: string;
+  providerKeys: UserProviderKeys;
   flow: FlowConfig;
   models: ModelConfig;
   prompt: string;
@@ -21,9 +22,9 @@ export interface OrchestratorResult {
 }
 
 export async function runQuickOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
-  const { apiKey, flow, models, prompt, history } = input;
+  const { providerKeys, flow, models, prompt, history } = input;
   const model = models[flow.primarySlot];
-  const output = await callModel(apiKey, model, buildQuickModeSystemPrompt(), history, prompt);
+  const output = await callModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt);
   return {
     finalAnswer: output,
     botOutputs: [{ slotId: flow.primarySlot, model, output }],
@@ -31,7 +32,7 @@ export async function runQuickOrchestrator(input: OrchestratorInput): Promise<Or
 }
 
 export async function runSuperOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
-  const { apiKey, flow, models, prompt, history } = input;
+  const { providerKeys, flow, models, prompt, history } = input;
 
   const enabledSlots = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
 
@@ -43,7 +44,7 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   const results = await Promise.all(
     enabledSlots.map(async (slotId) => {
       const model = models[slotId];
-      const output = await callModel(apiKey, model, buildIndividualSystemPrompt(), history, prompt);
+      const output = await callModel(providerKeys, model, buildIndividualSystemPrompt(), history, prompt);
       return { slotId, model, output } as BotRunOutput;
     })
   );
@@ -64,23 +65,23 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   if (hasMerge12 && hasMerge123) {
     // Staged merge: (bot1+bot2), then + bot3
     const combined12 = await callModel(
-      apiKey, models.synth, buildMergeSystemPrompt(), [],
+      providerKeys, models.synth, buildMergeSystemPrompt(), [],
       buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
     );
     finalAnswer = await callModel(
-      apiKey, models.synth, buildMergeSystemPrompt(), [],
+      providerKeys, models.synth, buildMergeSystemPrompt(), [],
       buildStagedMergeUserPrompt(combined12, bot3Out, prompt)
     );
   } else if (hasMerge12 && !hasMerge123) {
     // Merge bot1+bot2 only; if bot3 exists fold it in at the end
     const combined12 = await callModel(
-      apiKey, models.synth, buildMergeSystemPrompt(), [],
+      providerKeys, models.synth, buildMergeSystemPrompt(), [],
       buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
     );
     if (bot3Out) {
       // bot3 exists but merge123 is off — still fold in via a final merge
       finalAnswer = await callModel(
-        apiKey, models.synth, buildMergeSystemPrompt(), [],
+        providerKeys, models.synth, buildMergeSystemPrompt(), [],
         buildStagedMergeUserPrompt(combined12, bot3Out, prompt)
       );
     } else {
@@ -89,11 +90,11 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   } else if (!hasMerge12 && hasMerge123 && bot1Out && bot3Out) {
     // Skip merge12, go straight to merge with bot3
     const left = bot2Out ? await callModel(
-      apiKey, models.synth, buildMergeSystemPrompt(), [],
+      providerKeys, models.synth, buildMergeSystemPrompt(), [],
       buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
     ) : bot1Out;
     finalAnswer = await callModel(
-      apiKey, models.synth, buildMergeSystemPrompt(), [],
+      providerKeys, models.synth, buildMergeSystemPrompt(), [],
       buildStagedMergeUserPrompt(left, bot3Out, prompt)
     );
   } else {
@@ -105,7 +106,7 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
       const combined = allOutputs.reduce(async (accPromise, curr, i) => {
         const acc = await accPromise;
         if (i === 0) return curr;
-        return callModel(apiKey, models.synth, buildMergeSystemPrompt(), [], buildStagedMergeUserPrompt(acc, curr, prompt));
+        return callModel(providerKeys, models.synth, buildMergeSystemPrompt(), [], buildStagedMergeUserPrompt(acc, curr, prompt));
       }, Promise.resolve(allOutputs[0]));
       finalAnswer = await combined;
     }

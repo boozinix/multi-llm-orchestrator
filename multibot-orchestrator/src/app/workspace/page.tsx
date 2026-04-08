@@ -124,23 +124,23 @@ function SideNav({
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.role === "user") {
     return (
-      <div className="flex gap-4 max-w-3xl mx-auto">
-        <div className="w-8 h-8 rounded-lg bg-[#222a3d] flex-shrink-0 flex items-center justify-center">
-          <span className="material-symbols-outlined text-sm text-[#cbc3d7]">person</span>
+      <div className="flex gap-3 sm:gap-4 max-w-3xl mx-auto px-0.5">
+        <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-[#222a3d] flex-shrink-0 flex items-center justify-center">
+          <span className="material-symbols-outlined text-[#cbc3d7] text-lg sm:text-base">person</span>
         </div>
-        <div>
-          <p className="text-[#dae2fd] leading-relaxed">{msg.content}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-[#dae2fd] leading-relaxed text-base sm:text-[15px]">{msg.content}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-4 max-w-3xl mx-auto">
-      <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 4px 12px rgba(208,188,255,0.2)" }}>
-        <span className="material-symbols-outlined text-sm text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+    <div className="flex gap-3 sm:gap-4 max-w-3xl mx-auto px-0.5">
+      <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 4px 12px rgba(208,188,255,0.2)" }}>
+        <span className="material-symbols-outlined text-[#340080] text-lg sm:text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
       </div>
-      <div className="space-y-4 flex-1">
+      <div className="space-y-3 sm:space-y-4 flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-widest text-[#d0bcff] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>
             Orchestrator
@@ -151,8 +151,8 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             </span>
           )}
         </div>
-        <div className="bg-[#131b2e] p-6 rounded-2xl space-y-4 border border-[#494454]/10">
-          <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+        <div className="bg-[#131b2e] p-4 sm:p-6 rounded-2xl space-y-3 sm:space-y-4 border border-[#494454]/10">
+          <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">{msg.content}</p>
 
           {msg.botOutputs && msg.botOutputs.length > 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-[#494454]/10">
@@ -191,7 +191,7 @@ function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p:
   const { models, setModel } = useSettingsStore();
 
   return (
-    <section className="w-80 bg-[#131b2e] overflow-y-auto p-5 hidden lg:flex flex-col gap-6">
+    <section className="w-full lg:w-80 lg:min-w-[20rem] bg-[#131b2e] overflow-y-auto p-4 sm:p-5 flex flex-col gap-5 lg:gap-6 min-h-0">
 
       {/* Live flow diagram */}
       <div>
@@ -390,7 +390,7 @@ function SynthModelSelector() {
 export default function WorkspacePage() {
   const router = useRouter();
   const { conversations, activeConversationId, messages, flow, isLoading, setConversations, setActiveConversation, setMessages, appendMessage, setFlow, setLoading, removeConversation } = useChatStore();
-  const { openRouterKey, models } = useSettingsStore();
+  const { providerKeys, models } = useSettingsStore();
 
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
@@ -398,8 +398,12 @@ export default function WorkspacePage() {
   const [streamingStatus, setStreamingStatus] = useState("");
   const [streamingPreview, setStreamingPreview] = useState("");
   const [mobileTab, setMobileTab] = useState<"chat" | "flow">("chat");
+  const [showcaseMode, setShowcaseMode] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastConversationIdRef = useRef<string | null>(null);
 
   const loadUsage = useCallback(async () => {
     try {
@@ -433,13 +437,42 @@ export default function WorkspacePage() {
   useEffect(() => {
     loadConversations();
     loadUsage();
+    fetch("/api/showcase")
+      .then((r) => r.json())
+      .then((d: { showcase?: boolean }) => setShowcaseMode(Boolean(d.showcase)))
+      .catch(() => setShowcaseMode(false));
   }, [loadConversations, loadUsage]);
 
+  /** Stick to bottom only if the user is already near the bottom; always jump when switching chats. */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingPreview, streamingStatus, isLoading]);
+    const convChanged = lastConversationIdRef.current !== activeConversationId;
+    lastConversationIdRef.current = activeConversationId;
+
+    const scrollToEnd = (behavior: ScrollBehavior) => {
+      messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
+    };
+
+    if (convChanged) {
+      scrollToEnd("auto");
+      return;
+    }
+
+    const root = messagesScrollRef.current;
+    if (!root) {
+      scrollToEnd("auto");
+      return;
+    }
+
+    const thresholdPx = 140;
+    const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
+    if (fromBottom <= thresholdPx) {
+      const streaming = Boolean(isLoading && (streamingPreview || streamingStatus));
+      scrollToEnd(streaming ? "auto" : "smooth");
+    }
+  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading]);
 
   async function selectConversation(id: string) {
+    setHistoryOpen(false);
     setActiveConversation(id);
     try {
       const res = await fetch(`/api/conversations/${id}`);
@@ -478,10 +511,9 @@ export default function WorkspacePage() {
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
+    if (showcaseMode) return;
     const trimmed = prompt.trim();
     if (!trimmed || isLoading) return;
-
-    const trimmedKey = typeof openRouterKey === "string" ? openRouterKey.trim() : "";
 
     setError("");
     setStreamingPreview("");
@@ -509,7 +541,7 @@ export default function WorkspacePage() {
         },
         body: JSON.stringify({
           conversationId: activeConversationId ?? undefined,
-          apiKey: trimmedKey,
+          providerKeys,
           prompt: trimmed,
           flow,
           stream: true,
@@ -654,16 +686,68 @@ export default function WorkspacePage() {
   const enabledCount = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0b1326]">
+    <div className="flex min-h-[100dvh] lg:h-screen lg:min-h-0 overflow-hidden bg-[#0b1326]">
       <button
         type="button"
         onClick={handleResetLimits}
-        className="fixed bottom-24 lg:bottom-4 left-4 z-[70] px-3 py-2 rounded-xl text-[11px] font-mono bg-[#222a3d] text-[#ffb4ab] border border-[#ffb4ab]/25 hover:bg-[#2d3449] transition-colors shadow-lg"
+        className="fixed left-3 z-[70] px-3 py-2.5 rounded-xl text-[11px] font-mono bg-[#222a3d] text-[#ffb4ab] border border-[#ffb4ab]/25 hover:bg-[#2d3449] transition-colors shadow-lg bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-4"
         title="Clears today’s run/API counters in SQLite (remove this button later)"
       >
         Reset limits
       </button>
       {/* Sidebar — desktop only */}
+      {historyOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60] flex">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+            aria-label="Close menu"
+            onClick={() => setHistoryOpen(false)}
+          />
+          <aside className="relative w-[min(100%,20rem)] max-w-[85vw] bg-[#131b2e] h-full shadow-2xl flex flex-col border-r border-[#494454]/25 safe-top safe-bottom">
+            <div className="flex items-center justify-between p-4 border-b border-[#494454]/15">
+              <span className="font-bold text-[#dae2fd]">History</span>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                className="min-h-10 min-w-10 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
+                aria-label="Close"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                newChat();
+                setHistoryOpen(false);
+              }}
+              className="mx-3 mt-3 min-h-12 rounded-xl bg-[#222a3d] text-[#d0bcff] text-sm font-semibold border border-[#d0bcff]/15"
+            >
+              New chat
+            </button>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              {conversations.length === 0 && <p className="text-xs text-[#94a3b8] px-2 py-4">No chats yet</p>}
+              {conversations.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => void selectConversation(c.id)}
+                  className={`w-full min-h-12 text-left px-3 py-2.5 rounded-xl text-sm transition-colors truncate ${
+                    activeConversationId === c.id ? "bg-[#222a3d] text-[#dae2fd]" : "text-[#94a3b8] hover:bg-[#222a3d]/80"
+                  }`}
+                >
+                  {c.title}
+                </button>
+              ))}
+            </div>
+            <div className="p-3 border-t border-[#494454]/15 text-[10px] text-[#cbc3d7]/60 font-mono">
+              {usage.runs}/10 runs · {usage.apiCalls}/30 API
+            </div>
+          </aside>
+        </div>
+      )}
+
       <div className="hidden lg:flex">
         <SideNav
           conversations={conversations}
@@ -679,53 +763,74 @@ export default function WorkspacePage() {
       {/* Main area */}
       <div className="flex flex-1 lg:ml-64 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-4 lg:px-8 h-14 lg:h-16 bg-[#0b1326]/80 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0">
-          {/* Mobile: show menu icon */}
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-[#dae2fd] hidden lg:block">Orchestrator</span>
-            <span className="font-semibold text-[#dae2fd] lg:hidden">Multibot Pro</span>
+        <header className="flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8 min-h-14 py-2 lg:py-0 lg:h-16 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="lg:hidden min-h-11 min-w-11 shrink-0 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
+              aria-label="Open history"
+            >
+              <span className="material-symbols-outlined text-[22px]">menu</span>
+            </button>
+            <span className="font-semibold text-[#dae2fd] hidden lg:block truncate">Orchestrator</span>
+            <span className="font-semibold text-[#dae2fd] lg:hidden text-sm truncate">Multibot</span>
             <div className="h-4 w-[1px] bg-[#494454]/30 hidden lg:block" />
             <span className="hidden lg:block text-[11px] text-[#cbc3d7] bg-[#222a3d] px-2 py-0.5 rounded" style={{ fontFamily: "JetBrains Mono, monospace" }}>
               v2.0.0-stable
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Mobile flow toggle */}
-            <div className="flex lg:hidden gap-1 bg-[#222a3d] rounded-lg p-1">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex lg:hidden gap-0.5 bg-[#222a3d] rounded-xl p-1">
               <button
+                type="button"
                 onClick={() => setMobileTab("chat")}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${mobileTab === "chat" ? "bg-[#131b2e] text-[#d0bcff]" : "text-[#94a3b8]"}`}
+                className={`min-h-9 px-3 rounded-lg text-xs font-semibold transition-colors ${mobileTab === "chat" ? "bg-[#131b2e] text-[#d0bcff]" : "text-[#94a3b8]"}`}
               >
                 Chat
               </button>
               <button
+                type="button"
                 onClick={() => setMobileTab("flow")}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${mobileTab === "flow" ? "bg-[#131b2e] text-[#d0bcff]" : "text-[#94a3b8]"}`}
+                className={`min-h-9 px-3 rounded-lg text-xs font-semibold transition-colors ${mobileTab === "flow" ? "bg-[#131b2e] text-[#d0bcff]" : "text-[#94a3b8]"}`}
               >
                 Flow
               </button>
             </div>
             <button
+              type="button"
               onClick={newChat}
-              className="hidden lg:flex px-4 py-1.5 bg-[#222a3d] rounded-lg text-sm font-semibold text-[#d0bcff] border border-[#d0bcff]/20 hover:bg-[#31394d] transition-all"
+              className="hidden lg:flex px-4 py-2 min-h-10 bg-[#222a3d] rounded-xl text-sm font-semibold text-[#d0bcff] border border-[#d0bcff]/20 hover:bg-[#31394d] transition-all"
             >
               New Chat
             </button>
             <button
+              type="button"
               onClick={() => router.push("/settings")}
-              className="w-8 h-8 rounded-full bg-[#2d3449] flex items-center justify-center"
+              className="min-h-11 min-w-11 rounded-xl bg-[#2d3449] flex items-center justify-center"
+              aria-label="Settings"
             >
-              <span className="material-symbols-outlined text-[#d0bcff]">account_circle</span>
+              <span className="material-symbols-outlined text-[#d0bcff] text-[22px]">key</span>
             </button>
           </div>
         </header>
+
+        {showcaseMode && (
+          <div className="flex-shrink-0 mx-3 sm:mx-4 lg:mx-8 mt-2 mb-1 px-3 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-xs sm:text-sm leading-snug">
+            <span className="font-semibold">Showcase</span>
+            <span className="text-amber-100/80"> — UI-only demo; chat disabled.</span>
+          </div>
+        )}
 
         {/* Content area */}
         <div className="flex flex-1 overflow-hidden">
           {/* Chat column */}
           <section className={`flex-1 flex flex-col relative border-r border-[#494454]/5 ${mobileTab === "flow" ? "hidden lg:flex" : "flex"}`}>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 pb-48">
+            <div
+              ref={messagesScrollRef}
+              className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8 pb-[calc(12rem+env(safe-area-inset-bottom))] lg:pb-48"
+            >
               {messages.length === 0 && !isLoading && (
                 <div className="flex flex-col items-center justify-center h-full text-center py-20">
                   <div className="w-16 h-16 rounded-2xl mb-6 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 8px 24px rgba(208,188,255,0.2)" }}>
@@ -780,7 +885,10 @@ export default function WorkspacePage() {
             </div>
 
             {/* Input area */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6" style={{ background: "linear-gradient(to top, #0b1326 60%, transparent)" }}>
+            <div
+              className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-6"
+              style={{ background: "linear-gradient(to top, #0b1326 70%, transparent)" }}
+            >
               <div className="max-w-4xl mx-auto space-y-3">
                 {/* Model quick-select row */}
                 <div className="flex flex-wrap items-center gap-2">
@@ -808,7 +916,9 @@ export default function WorkspacePage() {
                     <span className="material-symbols-outlined text-[#ffb4ab] text-base mt-0.5 flex-shrink-0">error</span>
                     <p className="text-[#ffb4ab] text-sm">
                       {error}
-                      {(error.toLowerCase().includes("api key") || error.toLowerCase().includes("settings")) && (
+                      {(error.toLowerCase().includes("api key") ||
+                        error.toLowerCase().includes("settings") ||
+                        error.toLowerCase().includes("missing")) && (
                         <button
                           onClick={() => router.push("/settings")}
                           className="ml-2 underline text-[#d0bcff] hover:text-white transition-colors"
@@ -829,23 +939,25 @@ export default function WorkspacePage() {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask anything..."
+                        placeholder={showcaseMode ? "Showcase: chat disabled…" : "Ask anything…"}
                         rows={1}
-                        className="flex-1 bg-transparent border-none outline-none text-[#dae2fd] placeholder:text-[#cbc3d7]/50 py-3 resize-none text-sm"
+                        disabled={showcaseMode}
+                        className="flex-1 bg-transparent border-none outline-none text-[#dae2fd] placeholder:text-[#cbc3d7]/50 py-3 resize-none text-base sm:text-sm disabled:opacity-50 min-h-[48px]"
                         style={{ fontFamily: "Inter, sans-serif", maxHeight: "200px" }}
                       />
                       <button
                         type="submit"
-                        disabled={isLoading || !prompt.trim()}
-                        className="rounded-xl px-4 py-3 font-bold text-sm flex items-center gap-2 transition-all active:scale-95 disabled:opacity-40 flex-shrink-0 shadow-lg"
+                        disabled={showcaseMode || isLoading || !prompt.trim()}
+                        className="rounded-xl min-h-12 min-w-12 sm:min-w-0 sm:px-4 py-3 font-bold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] disabled:opacity-40 flex-shrink-0 shadow-lg"
                         style={{
                           background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
                           color: "#340080",
                           boxShadow: "0 4px 16px rgba(208,188,255,0.2)",
                         }}
+                        aria-label={flow.mode === "super" ? "Run orchestration" : "Send message"}
                       >
-                        <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                        <span className="hidden sm:inline">{flow.mode === "super" ? `Synthesize` : "Ask"}</span>
+                        <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                        <span className="hidden sm:inline">{flow.mode === "super" ? "Run" : "Ask"}</span>
                       </button>
                     </div>
                     <div className="flex items-center gap-4 px-4 py-1.5 border-t border-[#494454]/10">
@@ -868,27 +980,30 @@ export default function WorkspacePage() {
       </div>
 
       {/* Mobile sidebar overlay */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-[#494454]/10 bg-[#131b2e] z-50">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-[#494454]/10 bg-[#131b2e]/95 backdrop-blur-md z-50 safe-bottom pt-1">
         <button
+          type="button"
           onClick={() => router.push("/workspace")}
-          className="flex-1 flex flex-col items-center py-2 text-[#d0bcff]"
+          className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#d0bcff]"
         >
-          <span className="material-symbols-outlined text-xl">chat</span>
-          <span className="text-[10px] mt-0.5">Chat</span>
+          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+          <span className="text-[10px] font-medium">Chat</span>
         </button>
         <button
+          type="button"
           onClick={() => router.push("/settings")}
-          className="flex-1 flex flex-col items-center py-2 text-[#94a3b8]"
+          className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]"
         >
-          <span className="material-symbols-outlined text-xl">settings</span>
-          <span className="text-[10px] mt-0.5">Settings</span>
+          <span className="material-symbols-outlined text-2xl">key</span>
+          <span className="text-[10px] font-medium">Keys</span>
         </button>
         <button
+          type="button"
           onClick={handleSignOut}
-          className="flex-1 flex flex-col items-center py-2 text-[#94a3b8]"
+          className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]"
         >
-          <span className="material-symbols-outlined text-xl">logout</span>
-          <span className="text-[10px] mt-0.5">Sign Out</span>
+          <span className="material-symbols-outlined text-2xl">logout</span>
+          <span className="text-[10px] font-medium">Out</span>
         </button>
       </div>
     </div>
@@ -913,7 +1028,7 @@ function ModelPill({
     <button
       type="button"
       onClick={() => onToggle(!enabled)}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
+      className={`flex items-center gap-1.5 min-h-10 px-3 py-2 rounded-full text-[11px] sm:text-[11px] font-medium transition-all active:scale-[0.98] ${
         enabled
           ? "bg-[#222a3d] border border-[#d0bcff]/20 text-[#dae2fd]"
           : "bg-[#131b2e] border border-[#494454]/20 text-[#94a3b8]"

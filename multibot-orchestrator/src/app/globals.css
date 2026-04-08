@@ -126,3 +126,22 @@ select option {
   background-color: #171f33;
   color: #dae2fd;
 }
+
+/* Mobile: notch / home indicator */
+.safe-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.pb-mobile-nav {
+  padding-bottom: max(5.5rem, env(safe-area-inset-bottom) + 4.25rem);
+}
+
+@media (min-width: 1024px) {
+  .pb-mobile-nav {
+    padding-bottom: 1.5rem;
+  }
+}

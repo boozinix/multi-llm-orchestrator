@@ -6,6 +6,7 @@ import {
   buildStagedMergeUserPrompt,
   buildQuickModeSystemPrompt,
 } from "../prompts";
+import type { UserProviderKeys } from "../provider-keys";
 import type { BotRunOutput, FlowConfig, HistoryMessage, ModelConfig } from "../types";
 
 export type StreamPhase =
@@ -24,7 +25,7 @@ export type StreamEvent =
   | { type: "phase_end"; phase: StreamPhase; text: string };
 
 interface StreamInput {
-  apiKey: string;
+  providerKeys: UserProviderKeys;
   flow: FlowConfig;
   models: ModelConfig;
   prompt: string;
@@ -59,14 +60,14 @@ export async function runQuickOrchestratorStream(
   input: StreamInput,
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[] }> {
-  const { apiKey, flow, models, prompt, history } = input;
+  const { providerKeys, flow, models, prompt, history } = input;
   const model = models[flow.primarySlot];
   const label = `Quick — ${modelLabel(model)}`;
   emit({ type: "status", message: `Starting ${label}…` });
   const text = await runPhase(
     "quick",
     label,
-    streamModel(apiKey, model, buildQuickModeSystemPrompt(), history, prompt),
+    streamModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt),
     emit
   );
   return {
@@ -79,7 +80,7 @@ export async function runSuperOrchestratorStream(
   input: StreamInput,
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[] }> {
-  const { apiKey, flow, models, prompt, history } = input;
+  const { providerKeys, flow, models, prompt, history } = input;
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
 
@@ -97,7 +98,7 @@ export async function runSuperOrchestratorStream(
     const text = await runPhase(
       slotId,
       label,
-      streamModel(apiKey, model, buildIndividualSystemPrompt(), history, prompt),
+      streamModel(providerKeys, model, buildIndividualSystemPrompt(), history, prompt),
       emit
     );
     const trimmed = text.trim();
@@ -120,7 +121,7 @@ export async function runSuperOrchestratorStream(
       "merge12",
       "Merge Bot 1 + 2",
       streamModel(
-        apiKey,
+        providerKeys,
         models.synth,
         buildMergeSystemPrompt(),
         [],
@@ -134,7 +135,7 @@ export async function runSuperOrchestratorStream(
         "merge123",
         "Final synthesis",
         streamModel(
-          apiKey,
+          providerKeys,
           models.synth,
           buildMergeSystemPrompt(),
           [],
@@ -149,7 +150,7 @@ export async function runSuperOrchestratorStream(
       "merge12",
       "Merge Bot 1 + 2",
       streamModel(
-        apiKey,
+        providerKeys,
         models.synth,
         buildMergeSystemPrompt(),
         [],
@@ -164,7 +165,7 @@ export async function runSuperOrchestratorStream(
           "merge123",
           "Final synthesis",
           streamModel(
-            apiKey,
+            providerKeys,
             models.synth,
             buildMergeSystemPrompt(),
             [],
@@ -184,7 +185,7 @@ export async function runSuperOrchestratorStream(
         "merge12",
         "Combine Bot 1 + 2",
         streamModel(
-          apiKey,
+          providerKeys,
           models.synth,
           buildMergeSystemPrompt(),
           [],
@@ -198,13 +199,13 @@ export async function runSuperOrchestratorStream(
       await runPhase(
         "merge123",
         "Final synthesis",
-        streamModel(
-          apiKey,
-          models.synth,
-          buildMergeSystemPrompt(),
-          [],
-          buildStagedMergeUserPrompt(left.trim(), bot3Out, prompt)
-        ),
+          streamModel(
+            providerKeys,
+            models.synth,
+            buildMergeSystemPrompt(),
+            [],
+            buildStagedMergeUserPrompt(left.trim(), bot3Out, prompt)
+          ),
         emit
       )
     ).trim();
@@ -220,7 +221,7 @@ export async function runSuperOrchestratorStream(
           "merge_chain",
           `Synthesis step ${i}`,
           streamModel(
-            apiKey,
+            providerKeys,
             models.synth,
             buildMergeSystemPrompt(),
             [],

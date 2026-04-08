@@ -15,12 +15,27 @@ import {
 import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
 import { runQuickOrchestratorStream, runSuperOrchestratorStream } from "@/lib/server/orchestrator-stream";
 import type { StreamEvent } from "@/lib/server/orchestrator-stream";
-import { hasAnyProviderEnvKey, resolvePassthroughApiKey } from "@/lib/server/api-keys";
+import { isShowcaseMode } from "@/lib/server/showcase";
+import {
+  findMissingProviderKeys,
+  formatMissingKeysMessage,
+  normalizeProviderKeys,
+} from "@/lib/provider-keys";
 import type { HistoryMessage } from "@/lib/types";
 
 const chatSchema = z.object({
   conversationId: z.preprocess((v) => (typeof v === "string" ? v : undefined), z.string().optional()),
-  apiKey: z.preprocess((v) => (v == null ? "" : String(v)), z.string()),
+  /** @deprecated Use providerKeys.openrouter */
+  apiKey: z.preprocess((v) => (v == null ? "" : String(v)), z.string()).optional(),
+  providerKeys: z
+    .object({
+      openai: z.string().optional(),
+      anthropic: z.string().optional(),
+      xai: z.string().optional(),
+      deepseek: z.string().optional(),
+      openrouter: z.string().optional(),
+    })
+    .optional(),
   prompt: z.preprocess((v) => (v == null ? "" : String(v)), z.string().min(1, "Prompt cannot be empty")),
   flow: z.record(z.string(), z.unknown()).optional(),
   models: z.record(z.string(), z.preprocess((v) => (v == null ? "" : String(v)), z.string())).optional(),
@@ -40,23 +55,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
   }
 
-  const clientKey = parsed.data.apiKey;
-  const apiKey = resolvePassthroughApiKey(clientKey);
   const { prompt, conversationId: inputConvId, stream: wantsStream } = parsed.data;
   const useStream = wantsStream !== false;
 
-  if (!apiKey && !hasAnyProviderEnvKey()) {
-    return NextResponse.json(
-      {
-        error:
-          "No API keys configured. Add keys in multibot-orchestrator/.env.local (OPENAI_API_KEY, GEMINI_API_KEY, etc.) or paste a key in Settings.",
-      },
-      { status: 400 }
-    );
+  const showcaseMsg =
+    "Showcase mode: this deployment is UI-only. LLM calls are disabled. Set SHOWCASE_MODE=0 and add API keys to run models.";
+
+  if (isShowcaseMode()) {
+    if (useStream) {
+      const encoder = new TextEncoder();
+      const sse = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "error", message: showcaseMsg, showcase: true })}\n\n`)
+          );
+          controller.close();
+        },
+      });
+      return new Response(sse, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+    return NextResponse.json({ error: showcaseMsg, showcase: true }, { status: 403 });
   }
 
   const flow = normalizeFlowConfig(parsed.data.flow as Record<string, unknown>);
   const models = normalizeModelConfig(parsed.data.models as Record<string, string>);
+
+  let providerKeys = normalizeProviderKeys(parsed.data.providerKeys);
+  const legacy = typeof parsed.data.apiKey === "string" ? parsed.data.apiKey.trim() : "";
+  if (!providerKeys.openrouter && legacy) {
+    providerKeys = { ...providerKeys, openrouter: legacy };
+  }
+
+  const missing = findMissingProviderKeys(flow, models, providerKeys);
+  if (missing.length > 0) {
+    return NextResponse.json({ error: formatMissingKeysMessage(missing) }, { status: 400 });
+  }
+
   const apiCallsNeeded = estimateApiCalls(flow);
 
   const reserved = reserveDailyUsage(1, apiCallsNeeded);
@@ -86,7 +126,7 @@ export async function POST(req: NextRequest) {
     .slice(-12)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  const orchestratorInput = { apiKey, flow, models, prompt, history };
+  const orchestratorInput = { providerKeys, flow, models, prompt, history };
 
   if (useStream) {
     const encoder = new TextEncoder();

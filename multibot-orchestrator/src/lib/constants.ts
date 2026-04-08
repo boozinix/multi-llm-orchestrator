@@ -1,38 +1,40 @@
 import type { FlowConfig, ModelConfig } from "./types";
 
+/** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
 export const OPENROUTER_MODELS = [
-  // OpenAI
-  { value: "openai/o4-mini", label: "OpenAI o4 Mini (latest reasoning)" },
-  { value: "openai/o3", label: "OpenAI o3 (reasoning)" },
-  { value: "openai/o3-mini", label: "OpenAI o3 Mini" },
-  { value: "openai/gpt-4.1", label: "GPT-4.1" },
-  { value: "openai/gpt-4o", label: "GPT-4o" },
-  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
   // Anthropic
-  { value: "anthropic/claude-3-7-sonnet", label: "Claude 3.7 Sonnet" },
-  { value: "anthropic/claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
-  { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku" },
-  // Google Gemini
-  { value: "google/gemini-2.5-pro-preview", label: "Gemini 2.5 Pro (latest preview)" },
-  { value: "google/gemini-2.5-flash-preview", label: "Gemini 2.5 Flash (latest preview)" },
-  { value: "google/gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
-  { value: "google/gemini-2.0-flash-lite-001", label: "Gemini 2.0 Flash Lite" },
-  // xAI Grok
-  { value: "x-ai/grok-3", label: "Grok 3" },
-  { value: "x-ai/grok-3-mini", label: "Grok 3 Mini" },
-  { value: "x-ai/grok-2-1212", label: "Grok 2" },
+  { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5 — 🥇 Flagship" },
+  { value: "anthropic/claude-opus-4", label: "Claude 4 Opus — 🧠 Deep reasoning" },
+  { value: "anthropic/claude-haiku-3-5", label: "Claude 3.5 Haiku — ⚡ Fast/cheap merge" },
+  // OpenAI
+  { value: "openai/gpt-5", label: "GPT-5 — 🥇 Flagship" },
+  { value: "openai/gpt-5.1", label: "GPT-5.1 — 🔁 Latest iteration" },
+  { value: "openai/gpt-4.1", label: "GPT-4.1 — 🔒 Reliable fallback" },
+  // xAI
+  { value: "x-ai/grok-3", label: "Grok 3 — 🥇 Flagship" },
+  { value: "x-ai/grok-3-mini", label: "Grok 3 Mini — ⚡ Fast" },
+  // Google
+  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro — 🥇 Flagship" },
+  { value: "google/gemini-2.5-pro-preview", label: "Gemini 2.5 Pro — 🔒 Stable fallback" },
+  { value: "google/gemini-2.5-flash-preview", label: "Gemini 2.5 Flash — ⚡ Fast/cheap merge" },
   // DeepSeek
-  { value: "deepseek/deepseek-reasoner", label: "DeepSeek Reasoner" },
-  { value: "deepseek/deepseek-chat-v3-0324", label: "DeepSeek V3 (Mar 2025)" },
-  { value: "deepseek/deepseek-chat", label: "DeepSeek Chat" },
+  { value: "deepseek/deepseek-chat", label: "DeepSeek V3 — 💰 Cheap + analytical" },
+  { value: "deepseek/deepseek-reasoner", label: "DeepSeek Reasoner — 🧮 Math/logic specialist" },
+  // Alibaba (Qwen)
+  { value: "qwen/qwen3-235b-a22b", label: "Qwen 3 235B — 🌏 Chinese diversity" },
+  { value: "qwen/qwen3-30b-a3b", label: "Qwen 3 30B — ⚡ Cheap Qwen fast" },
+  // Moonshot
+  { value: "moonshotai/kimi-k2", label: "Kimi K2 — 🧮 Best math/agentic" },
+  // Mistral
+  { value: "mistralai/mistral-large-3", label: "Mistral Large 3 — 🇪🇺 EU/multilingual" },
+  { value: "mistralai/mistral-small-3.1", label: "Mistral Small 3.1 — ⚡ Fast EU fallback" },
 ];
 
 export const DEFAULT_MODELS: ModelConfig = {
-  bot1: "openai/gpt-4o",
-  bot2: "anthropic/claude-3-5-sonnet",
-  bot3: "google/gemini-2.0-flash-001",
-  synth: "openai/gpt-4o",
+  bot1: "openai/gpt-5",
+  bot2: "anthropic/claude-sonnet-4-5",
+  bot3: "google/gemini-3.1-pro-preview",
+  synth: "anthropic/claude-haiku-3-5",
 };
 
 export const DEFAULT_FLOW: FlowConfig = {
@@ -59,38 +61,30 @@ export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefine
   };
 }
 
+const ALLOWED_MODEL_VALUES = new Set(OPENROUTER_MODELS.map((m) => m.value));
+
 export function normalizeModelConfig(input: Partial<ModelConfig> | null | undefined): ModelConfig {
   const d = DEFAULT_MODELS;
   if (!input) return { ...d };
+  const pick = (v: string | undefined, fallback: string) =>
+    v && typeof v === "string" && ALLOWED_MODEL_VALUES.has(v) ? v : fallback;
   return {
-    bot1: input.bot1 && typeof input.bot1 === "string" ? input.bot1 : d.bot1,
-    bot2: input.bot2 && typeof input.bot2 === "string" ? input.bot2 : d.bot2,
-    bot3: input.bot3 && typeof input.bot3 === "string" ? input.bot3 : d.bot3,
-    synth: input.synth && typeof input.synth === "string" ? input.synth : d.synth,
+    bot1: pick(input.bot1, d.bot1),
+    bot2: pick(input.bot2, d.bot2),
+    bot3: pick(input.bot3, d.bot3),
+    synth: pick(input.synth, d.synth),
   };
 }
 
 export const GROUPED_MODELS = [
-  {
-    group: "OpenAI",
-    models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("openai/")),
-  },
-  {
-    group: "Anthropic",
-    models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("anthropic/")),
-  },
-  {
-    group: "Google Gemini",
-    models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("google/")),
-  },
-  {
-    group: "xAI Grok",
-    models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("x-ai/")),
-  },
-  {
-    group: "DeepSeek",
-    models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("deepseek/")),
-  },
+  { group: "Anthropic", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("anthropic/")) },
+  { group: "OpenAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("openai/")) },
+  { group: "xAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("x-ai/")) },
+  { group: "Google", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("google/")) },
+  { group: "DeepSeek", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("deepseek/")) },
+  { group: "Alibaba (Qwen)", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("qwen/")) },
+  { group: "Moonshot", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("moonshotai/")) },
+  { group: "Mistral", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("mistralai/")) },
 ];
 
 export function modelLabel(value: string): string {

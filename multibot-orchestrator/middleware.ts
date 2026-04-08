@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, isAllowedEmail } from "@/lib/auth";
+import { AUTH_COOKIE_NAME, isValidEmail } from "@/lib/auth";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
@@ -9,8 +9,8 @@ export function middleware(req: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
   if (isPublic) return NextResponse.next();
 
-  const email = req.cookies.get(AUTH_COOKIE_NAME)?.value;
-  const authed = email && isAllowedEmail(email);
+  const raw = req.cookies.get(AUTH_COOKIE_NAME)?.value?.trim() ?? "";
+  const authed = raw.length > 0 && isValidEmail(raw);
 
   if (!authed) {
     if (pathname.startsWith("/api/")) {
