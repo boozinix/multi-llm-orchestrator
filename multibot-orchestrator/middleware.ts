@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, isValidEmail } from "@/lib/auth";
+import { isAllowedRequestOrigin } from "@/lib/server/request-origin";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
@@ -13,6 +14,9 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/api/") &&
     (req.method === "POST" || req.method === "PUT" || req.method === "PATCH")
   ) {
+    if (!isAllowedRequestOrigin(req)) {
+      return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+    }
     const raw = req.headers.get("content-length");
     if (raw) {
       const n = parseInt(raw, 10);

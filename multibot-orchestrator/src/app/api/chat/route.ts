@@ -23,6 +23,7 @@ import {
 } from "@/lib/provider-keys";
 import type { HistoryMessage } from "@/lib/types";
 import { clientSafeModelError } from "@/lib/server/client-safe-error";
+import { hitRateLimit } from "@/lib/server/rate-limit";
 
 const KEY_FIELD = z.preprocess(
   (v) => (v == null ? "" : String(v).trim()),
@@ -57,6 +58,15 @@ const chatSchema = z.object({
 export async function POST(req: NextRequest) {
   const email = await requireSessionEmail();
   if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = hitRateLimit(`chat:${email}:${ip}`, 20, 5 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many chat requests. Please wait a minute and try again." },
+      { status: 429 }
+    );
+  }
 
   const body = await req.json().catch(() => ({}));
   const parsed = chatSchema.safeParse(body);

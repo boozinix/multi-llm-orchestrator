@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, isValidEmail, normalizeEmail } from "@/lib/auth";
+import { hitRateLimit } from "@/lib/server/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = hitRateLimit(`login:${ip}`, 10, 10 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many login attempts. Please try again soon." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const raw = typeof body.email === "string" ? body.email : "";
   const email = normalizeEmail(raw);

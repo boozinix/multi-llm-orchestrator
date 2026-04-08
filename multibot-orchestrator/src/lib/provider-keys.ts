@@ -37,6 +37,14 @@ export function normalizeProviderKeys(input: unknown): UserProviderKeys {
   };
 }
 
+function isByokOnlyMode(): boolean {
+  const raw = (process.env.BYOK_ONLY ?? "").trim().toLowerCase();
+  if (raw === "1" || raw === "true" || raw === "yes") return true;
+  if (raw === "0" || raw === "false" || raw === "no") return false;
+  // Safe production default: use user-provided keys only unless explicitly disabled.
+  return process.env.NODE_ENV === "production";
+}
+
 /** Map model id (e.g. openai/gpt-5) to which user key bucket is required. */
 export function providerForModelId(modelId: string): ProviderName {
   const prefix = modelId.split("/")[0];
@@ -63,6 +71,7 @@ export function providerForModelId(modelId: string): ProviderName {
 export function resolvedKeyForProvider(keys: UserProviderKeys, provider: ProviderName): string {
   const u = keys[provider]?.trim() ?? "";
   if (u) return u;
+  if (isByokOnlyMode()) return "";
   switch (provider) {
     case "openai":
       return process.env.OPENAI_API_KEY?.trim() ?? "";

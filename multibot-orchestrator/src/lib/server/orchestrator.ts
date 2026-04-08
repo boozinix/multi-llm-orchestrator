@@ -21,6 +21,25 @@ export interface OrchestratorResult {
   botOutputs: BotRunOutput[];
 }
 
+const MODEL_CALL_TIMEOUT_MS = Number(process.env.MODEL_CALL_TIMEOUT_MS ?? 45000);
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  if (!Number.isFinite(ms) || ms <= 0) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 async function safeCallModel(
   input: OrchestratorInput,
   model: string,
@@ -29,7 +48,11 @@ async function safeCallModel(
   userPrompt: string
 ): Promise<string | null> {
   try {
-    return await callModel(input.providerKeys, model, systemPrompt, history, userPrompt);
+    return await withTimeout(
+      callModel(input.providerKeys, model, systemPrompt, history, userPrompt),
+      MODEL_CALL_TIMEOUT_MS,
+      model
+    );
   } catch (err) {
     console.warn(`[orchestrator] skipping failed model ${model}:`, err);
     return null;
@@ -49,7 +72,11 @@ async function safeMerge(input: OrchestratorInput, left: string, right: string):
 export async function runQuickOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
   const { providerKeys, flow, models, prompt, history } = input;
   const model = models[flow.primarySlot];
-  const output = await callModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt);
+  const output = await withTimeout(
+    callModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt),
+    MODEL_CALL_TIMEOUT_MS,
+    model
+  );
   return {
     finalAnswer: output,
     botOutputs: [{ slotId: flow.primarySlot, model, output }],

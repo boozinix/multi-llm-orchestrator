@@ -32,6 +32,25 @@ interface StreamInput {
   history: HistoryMessage[];
 }
 
+const STREAM_PHASE_TIMEOUT_MS = Number(process.env.STREAM_PHASE_TIMEOUT_MS ?? 45000);
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  if (!Number.isFinite(ms) || ms <= 0) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 async function tryRunPhase(
   phase: StreamPhase,
   label: string,
@@ -39,7 +58,7 @@ async function tryRunPhase(
   emit: (e: StreamEvent) => void
 ): Promise<string | null> {
   try {
-    return await runPhase(phase, label, gen, emit);
+    return await withTimeout(runPhase(phase, label, gen, emit), STREAM_PHASE_TIMEOUT_MS, label);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "model call failed";
     emit({ type: "status", message: `${label} failed, skipping. (${msg})` });
@@ -79,11 +98,15 @@ export async function runQuickOrchestratorStream(
   const model = models[flow.primarySlot];
   const label = `Quick — ${modelLabel(model)}`;
   emit({ type: "status", message: `Starting ${label}…` });
-  const text = await runPhase(
-    "quick",
-    label,
-    streamModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt),
-    emit
+  const text = await withTimeout(
+    runPhase(
+      "quick",
+      label,
+      streamModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt),
+      emit
+    ),
+    STREAM_PHASE_TIMEOUT_MS,
+    label
   );
   return {
     finalAnswer: text.trim(),
