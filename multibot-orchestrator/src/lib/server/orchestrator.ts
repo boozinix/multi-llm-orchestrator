@@ -21,6 +21,31 @@ export interface OrchestratorResult {
   botOutputs: BotRunOutput[];
 }
 
+async function safeCallModel(
+  input: OrchestratorInput,
+  model: string,
+  systemPrompt: string,
+  history: HistoryMessage[],
+  userPrompt: string
+): Promise<string | null> {
+  try {
+    return await callModel(input.providerKeys, model, systemPrompt, history, userPrompt);
+  } catch (err) {
+    console.warn(`[orchestrator] skipping failed model ${model}:`, err);
+    return null;
+  }
+}
+
+async function safeMerge(input: OrchestratorInput, left: string, right: string): Promise<string | null> {
+  return safeCallModel(
+    input,
+    input.models.synth,
+    buildMergeSystemPrompt(),
+    [],
+    buildStagedMergeUserPrompt(left, right, input.prompt)
+  );
+}
+
 export async function runQuickOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
   const { providerKeys, flow, models, prompt, history } = input;
   const model = models[flow.primarySlot];
@@ -32,7 +57,7 @@ export async function runQuickOrchestrator(input: OrchestratorInput): Promise<Or
 }
 
 export async function runSuperOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
-  const { providerKeys, flow, models, prompt, history } = input;
+  const { flow, models, prompt, history } = input;
 
   const enabledSlots = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
 
@@ -40,18 +65,23 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
     throw new Error("No bot slots enabled");
   }
 
-  // Parallel fan-out to all enabled bots
-  const results = await Promise.all(
-    enabledSlots.map(async (slotId) => {
-      const model = models[slotId];
-      const output = await callModel(providerKeys, model, buildIndividualSystemPrompt(), history, prompt);
-      return { slotId, model, output } as BotRunOutput;
-    })
-  );
-
-  const botOutputs = results;
+  const botOutputs: BotRunOutput[] = [];
   const outputMap: Record<string, string> = {};
-  for (const r of results) outputMap[r.slotId] = r.output;
+
+  // Graceful fan-out: if one bot fails (credits, timeout, etc.), continue others.
+  for (const slotId of enabledSlots) {
+    const model = models[slotId];
+    const output = await safeCallModel(input, model, buildIndividualSystemPrompt(), history, prompt);
+    if (!output) continue;
+    const trimmed = output.trim();
+    if (!trimmed) continue;
+    botOutputs.push({ slotId, model, output: trimmed });
+    outputMap[slotId] = trimmed;
+  }
+
+  if (botOutputs.length === 0) {
+    throw new Error("All enabled model calls failed. Check provider keys/credits and try again.");
+  }
 
   const bot1Out = outputMap["bot1"];
   const bot2Out = outputMap["bot2"];
@@ -63,52 +93,40 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   const hasMerge123 = flow.merge123Enabled && bot3Out;
 
   if (hasMerge12 && hasMerge123) {
-    // Staged merge: (bot1+bot2), then + bot3
-    const combined12 = await callModel(
-      providerKeys, models.synth, buildMergeSystemPrompt(), [],
-      buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
-    );
-    finalAnswer = await callModel(
-      providerKeys, models.synth, buildMergeSystemPrompt(), [],
-      buildStagedMergeUserPrompt(combined12, bot3Out, prompt)
-    );
-  } else if (hasMerge12 && !hasMerge123) {
-    // Merge bot1+bot2 only; if bot3 exists fold it in at the end
-    const combined12 = await callModel(
-      providerKeys, models.synth, buildMergeSystemPrompt(), [],
-      buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
-    );
-    if (bot3Out) {
-      // bot3 exists but merge123 is off — still fold in via a final merge
-      finalAnswer = await callModel(
-        providerKeys, models.synth, buildMergeSystemPrompt(), [],
-        buildStagedMergeUserPrompt(combined12, bot3Out, prompt)
-      );
+    const combined12 = await safeMerge(input, bot1Out, bot2Out);
+    if (combined12) {
+      const merged123 = await safeMerge(input, combined12, bot3Out);
+      finalAnswer = merged123 ?? combined12;
     } else {
-      finalAnswer = combined12;
+      finalAnswer = bot1Out;
+      if (bot2Out) finalAnswer = bot2Out;
+      if (bot3Out) finalAnswer = bot3Out;
+    }
+  } else if (hasMerge12 && !hasMerge123) {
+    const combined12 = await safeMerge(input, bot1Out, bot2Out);
+    if (bot3Out) {
+      if (!combined12) {
+        finalAnswer = bot3Out;
+      } else {
+        finalAnswer = (await safeMerge(input, combined12, bot3Out)) ?? combined12;
+      }
+    } else {
+      finalAnswer = combined12 ?? bot1Out ?? bot2Out;
     }
   } else if (!hasMerge12 && hasMerge123 && bot1Out && bot3Out) {
-    // Skip merge12, go straight to merge with bot3
-    const left = bot2Out ? await callModel(
-      providerKeys, models.synth, buildMergeSystemPrompt(), [],
-      buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt)
-    ) : bot1Out;
-    finalAnswer = await callModel(
-      providerKeys, models.synth, buildMergeSystemPrompt(), [],
-      buildStagedMergeUserPrompt(left, bot3Out, prompt)
-    );
+    const left = bot2Out ? (await safeMerge(input, bot1Out, bot2Out)) ?? bot1Out : bot1Out;
+    finalAnswer = (await safeMerge(input, left, bot3Out)) ?? left;
   } else {
-    // No merges: use synthesis model to combine all available outputs
     const allOutputs = Object.values(outputMap);
     if (allOutputs.length === 1) {
       finalAnswer = allOutputs[0];
     } else {
-      const combined = allOutputs.reduce(async (accPromise, curr, i) => {
-        const acc = await accPromise;
-        if (i === 0) return curr;
-        return callModel(providerKeys, models.synth, buildMergeSystemPrompt(), [], buildStagedMergeUserPrompt(acc, curr, prompt));
-      }, Promise.resolve(allOutputs[0]));
-      finalAnswer = await combined;
+      let acc = allOutputs[0];
+      for (let i = 1; i < allOutputs.length; i++) {
+        const merged = await safeMerge(input, acc, allOutputs[i]);
+        if (merged) acc = merged;
+      }
+      finalAnswer = acc;
     }
   }
 

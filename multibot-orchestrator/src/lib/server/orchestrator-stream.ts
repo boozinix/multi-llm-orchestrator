@@ -32,6 +32,21 @@ interface StreamInput {
   history: HistoryMessage[];
 }
 
+async function tryRunPhase(
+  phase: StreamPhase,
+  label: string,
+  gen: AsyncGenerator<string, void, unknown>,
+  emit: (e: StreamEvent) => void
+): Promise<string | null> {
+  try {
+    return await runPhase(phase, label, gen, emit);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "model call failed";
+    emit({ type: "status", message: `${label} failed, skipping. (${msg})` });
+    return null;
+  }
+}
+
 async function collectStream(
   gen: AsyncGenerator<string, void, unknown>,
   phase: StreamPhase,
@@ -95,15 +110,21 @@ export async function runSuperOrchestratorStream(
     const n = i + 1;
     const label = `Bot ${n} — ${modelLabel(model)}`;
     emit({ type: "status", message: `${label}…` });
-    const text = await runPhase(
+    const text = await tryRunPhase(
       slotId,
       label,
       streamModel(providerKeys, model, buildIndividualSystemPrompt(), history, prompt),
       emit
     );
+    if (!text) continue;
     const trimmed = text.trim();
+    if (!trimmed) continue;
     outputMap[slotId] = trimmed;
     botOutputs.push({ slotId, model, output: trimmed });
+  }
+
+  if (botOutputs.length === 0) {
+    throw new Error("All enabled model calls failed. Check keys/credits and try again.");
   }
 
   const bot1Out = outputMap.bot1;
@@ -117,7 +138,7 @@ export async function runSuperOrchestratorStream(
 
   if (hasMerge12 && hasMerge123) {
     emit({ type: "status", message: "Merging Bot 1 + Bot 2 (streaming)…" });
-    const combined12 = await runPhase(
+    const combined12 = await tryRunPhase(
       "merge12",
       "Merge Bot 1 + 2",
       streamModel(
@@ -129,9 +150,11 @@ export async function runSuperOrchestratorStream(
       ),
       emit
     );
-    emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-    finalAnswer = (
-      await runPhase(
+    if (!combined12) {
+      finalAnswer = bot3Out;
+    } else {
+      emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
+      const merged123 = await tryRunPhase(
         "merge123",
         "Final synthesis",
         streamModel(
@@ -142,11 +165,12 @@ export async function runSuperOrchestratorStream(
           buildStagedMergeUserPrompt(combined12.trim(), bot3Out, prompt)
         ),
         emit
-      )
-    ).trim();
+      );
+      finalAnswer = merged123?.trim() || combined12.trim();
+    }
   } else if (hasMerge12 && !hasMerge123) {
     emit({ type: "status", message: "Merging Bot 1 + Bot 2 (streaming)…" });
-    const combined12 = await runPhase(
+    const combined12 = await tryRunPhase(
       "merge12",
       "Merge Bot 1 + 2",
       streamModel(
@@ -159,9 +183,11 @@ export async function runSuperOrchestratorStream(
       emit
     );
     if (bot3Out) {
-      emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-      finalAnswer = (
-        await runPhase(
+      if (!combined12) {
+        finalAnswer = bot3Out;
+      } else {
+        emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
+        const merged123 = await tryRunPhase(
           "merge123",
           "Final synthesis",
           streamModel(
@@ -172,16 +198,17 @@ export async function runSuperOrchestratorStream(
             buildStagedMergeUserPrompt(combined12.trim(), bot3Out, prompt)
           ),
           emit
-        )
-      ).trim();
+        );
+        finalAnswer = merged123?.trim() || combined12.trim();
+      }
     } else {
-      finalAnswer = combined12.trim();
+      finalAnswer = combined12?.trim() || bot1Out || bot2Out || "";
     }
   } else if (!hasMerge12 && hasMerge123 && bot1Out && bot3Out) {
     let left = bot1Out;
     if (bot2Out) {
       emit({ type: "status", message: "Combining Bot 1 + 2 before Bot 3…" });
-      left = await runPhase(
+      const maybeLeft = await tryRunPhase(
         "merge12",
         "Combine Bot 1 + 2",
         streamModel(
@@ -193,22 +220,22 @@ export async function runSuperOrchestratorStream(
         ),
         emit
       );
+      if (maybeLeft?.trim()) left = maybeLeft.trim();
     }
     emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-    finalAnswer = (
-      await runPhase(
-        "merge123",
-        "Final synthesis",
-          streamModel(
-            providerKeys,
-            models.synth,
-            buildMergeSystemPrompt(),
-            [],
-            buildStagedMergeUserPrompt(left.trim(), bot3Out, prompt)
-          ),
-        emit
-      )
-    ).trim();
+    const merged123 = await tryRunPhase(
+      "merge123",
+      "Final synthesis",
+      streamModel(
+        providerKeys,
+        models.synth,
+        buildMergeSystemPrompt(),
+        [],
+        buildStagedMergeUserPrompt(left.trim(), bot3Out, prompt)
+      ),
+      emit
+    );
+    finalAnswer = merged123?.trim() || left.trim();
   } else {
     const all = Object.values(outputMap).filter(Boolean) as string[];
     if (all.length === 1) {
@@ -217,7 +244,7 @@ export async function runSuperOrchestratorStream(
       emit({ type: "status", message: "Synthesizing multiple answers…" });
       let acc = all[0];
       for (let i = 1; i < all.length; i++) {
-        acc = await runPhase(
+        const merged = await tryRunPhase(
           "merge_chain",
           `Synthesis step ${i}`,
           streamModel(
@@ -229,6 +256,7 @@ export async function runSuperOrchestratorStream(
           ),
           emit
         );
+        if (merged?.trim()) acc = merged.trim();
       }
       finalAnswer = acc.trim();
     }

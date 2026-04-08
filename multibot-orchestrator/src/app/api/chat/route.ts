@@ -22,21 +22,30 @@ import {
   normalizeProviderKeys,
 } from "@/lib/provider-keys";
 import type { HistoryMessage } from "@/lib/types";
+import { clientSafeModelError } from "@/lib/server/client-safe-error";
+
+const KEY_FIELD = z.preprocess(
+  (v) => (v == null ? "" : String(v).trim()),
+  z.string().max(2048, "API key field too long")
+);
 
 const chatSchema = z.object({
-  conversationId: z.preprocess((v) => (typeof v === "string" ? v : undefined), z.string().optional()),
+  conversationId: z.preprocess((v) => (typeof v === "string" ? v : undefined), z.string().max(128).optional()),
   /** @deprecated Use providerKeys.openrouter */
-  apiKey: z.preprocess((v) => (v == null ? "" : String(v)), z.string()).optional(),
+  apiKey: z.preprocess((v) => (v == null ? "" : String(v)), z.string().max(2048)).optional(),
   providerKeys: z
     .object({
-      openai: z.string().optional(),
-      anthropic: z.string().optional(),
-      xai: z.string().optional(),
-      deepseek: z.string().optional(),
-      openrouter: z.string().optional(),
+      openai: KEY_FIELD.optional(),
+      anthropic: KEY_FIELD.optional(),
+      xai: KEY_FIELD.optional(),
+      deepseek: KEY_FIELD.optional(),
+      openrouter: KEY_FIELD.optional(),
     })
     .optional(),
-  prompt: z.preprocess((v) => (v == null ? "" : String(v)), z.string().min(1, "Prompt cannot be empty")),
+  prompt: z.preprocess(
+    (v) => (v == null ? "" : String(v)),
+    z.string().min(1, "Prompt cannot be empty").max(100_000, "Prompt is too long (max 100k characters)")
+  ),
   flow: z.record(z.string(), z.unknown()).optional(),
   models: z.record(z.string(), z.preprocess((v) => (v == null ? "" : String(v)), z.string())).optional(),
   stream: z
@@ -155,8 +164,7 @@ export async function POST(req: NextRequest) {
             botOutputs: result.botOutputs,
           });
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Model call failed";
-          send({ type: "error", message: msg });
+          send({ type: "error", message: clientSafeModelError(err) });
         } finally {
           controller.close();
         }
@@ -180,8 +188,7 @@ export async function POST(req: NextRequest) {
       result = await runSuperOrchestrator(orchestratorInput);
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Model call failed";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json({ error: clientSafeModelError(err) }, { status: 502 });
   }
 
   addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);

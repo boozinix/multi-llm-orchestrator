@@ -10,6 +10,42 @@ import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "
 
 const BOT_SLOTS = ["bot1", "bot2", "bot3"] as const;
 
+type StreamBlock = {
+  phase: string;
+  label: string;
+  text: string;
+};
+
+function phaseAccentClass(phase: string): string {
+  if (phase === "bot1") return "border-[#8b5cf6]/40 bg-[#8b5cf6]/10";
+  if (phase === "bot2") return "border-[#06b6d4]/40 bg-[#06b6d4]/10";
+  if (phase === "bot3") return "border-[#22c55e]/40 bg-[#22c55e]/10";
+  if (phase.startsWith("merge")) return "border-[#f59e0b]/40 bg-[#f59e0b]/10";
+  return "border-[#494454]/20 bg-[#131b2e]";
+}
+
+function CopyTextButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        } catch {
+          /* ignore clipboard errors */
+        }
+      }}
+      className="text-[10px] font-mono px-2 py-1 rounded-md border border-[#494454]/25 text-[#cbc3d7] hover:text-[#d0bcff] hover:border-[#d0bcff]/35 transition-colors"
+      title={label}
+    >
+      {copied ? "Copied" : label}
+    </button>
+  );
+}
+
 function SideNav({
   conversations,
   activeId,
@@ -128,7 +164,10 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-[#222a3d] flex-shrink-0 flex items-center justify-center">
           <span className="material-symbols-outlined text-[#cbc3d7] text-lg sm:text-base">person</span>
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex justify-end">
+            <CopyTextButton text={msg.content} label="Copy prompt" />
+          </div>
           <p className="text-[#dae2fd] leading-relaxed text-base sm:text-[15px]">{msg.content}</p>
         </div>
       </div>
@@ -152,15 +191,24 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           )}
         </div>
         <div className="bg-[#131b2e] p-4 sm:p-6 rounded-2xl space-y-3 sm:space-y-4 border border-[#494454]/10">
-          <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">{msg.content}</p>
-
           {msg.botOutputs && msg.botOutputs.length > 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-[#494454]/10">
-              {msg.botOutputs.map((bot) => (
-                <BotOutputCard key={bot.slotId} bot={bot} />
-              ))}
+            <div className="space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/70 font-mono">Bot Answers</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {msg.botOutputs.map((bot) => (
+                  <BotOutputCard key={bot.slotId} bot={bot} />
+                ))}
+              </div>
             </div>
           )}
+
+          <div className="pt-2 border-t border-[#494454]/10 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-widest text-[#d0bcff] font-mono">Final Answer</p>
+              <CopyTextButton text={msg.content} label="Copy final" />
+            </div>
+            <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">{msg.content}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -170,12 +218,24 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 function BotOutputCard({ bot }: { bot: BotRunOutput }) {
   const [expanded, setExpanded] = useState(false);
   const label = modelLabel(bot.model);
+  const slot = bot.slotId;
+  const slotAccent =
+    slot === "bot1"
+      ? "border-[#8b5cf6]/35 bg-[#8b5cf6]/10"
+      : slot === "bot2"
+        ? "border-[#06b6d4]/35 bg-[#06b6d4]/10"
+        : "border-[#22c55e]/35 bg-[#22c55e]/10";
 
   return (
-    <div className="p-3 bg-[#171f33] rounded-xl border border-[#494454]/5">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
-        <span className="text-[10px] text-[#cbc3d7] uppercase" style={{ fontFamily: "JetBrains Mono, monospace" }}>{label}</span>
+    <div className={`p-3 rounded-xl border ${slotAccent}`}>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
+          <span className="text-[10px] text-[#cbc3d7] uppercase" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+            {slot.toUpperCase()} · {label}
+          </span>
+        </div>
+        <CopyTextButton text={bot.output} label="Copy" />
       </div>
       <p className={`text-xs text-[#dae2fd]/70 ${expanded ? "" : "line-clamp-3"}`}>{bot.output}</p>
       {bot.output.length > 200 && (
@@ -400,6 +460,8 @@ export default function WorkspacePage() {
   const [mobileTab, setMobileTab] = useState<"chat" | "flow">("chat");
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showLocalReset, setShowLocalReset] = useState(false);
+  const [streamBlocks, setStreamBlocks] = useState<StreamBlock[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -441,6 +503,10 @@ export default function WorkspacePage() {
       .then((r) => r.json())
       .then((d: { showcase?: boolean }) => setShowcaseMode(Boolean(d.showcase)))
       .catch(() => setShowcaseMode(false));
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      setShowLocalReset(h === "localhost" || h === "127.0.0.1");
+    }
   }, [loadConversations, loadUsage]);
 
   /** Stick to bottom only if the user is already near the bottom; always jump when switching chats. */
@@ -518,6 +584,7 @@ export default function WorkspacePage() {
     setError("");
     setStreamingPreview("");
     setStreamingStatus("Starting…");
+    setStreamBlocks([]);
     setLoading(true);
     setPrompt("");
 
@@ -566,6 +633,7 @@ export default function WorkspacePage() {
         setMessages(messagesSnapshot);
         setStreamingPreview("");
         setStreamingStatus("");
+        setStreamBlocks([]);
         return;
       }
 
@@ -574,6 +642,7 @@ export default function WorkspacePage() {
         setMessages(messagesSnapshot);
         setStreamingPreview("");
         setStreamingStatus("");
+        setStreamBlocks([]);
         return;
       }
 
@@ -600,11 +669,23 @@ export default function WorkspacePage() {
         const typ = evt.type as string;
         if (typ === "status") setStreamingStatus(String(evt.message ?? ""));
         if (typ === "phase_start") {
+          const phase = String(evt.phase ?? "");
           const label = String(evt.label ?? "");
-          setStreamingPreview((p) => (p ? `${p}\n\n` : "") + `── ${label} ──\n\n`);
+          setStreamBlocks((prev) => {
+            if (prev.some((b) => b.phase === phase)) return prev;
+            return [...prev, { phase, label, text: "" }];
+          });
         }
         if (typ === "token") {
+          const phase = String(evt.phase ?? "");
           const delta = String(evt.delta ?? "");
+          setStreamBlocks((prev) => {
+            const idx = prev.findIndex((b) => b.phase === phase);
+            if (idx === -1) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], text: next[idx].text + delta };
+            return next;
+          });
           setStreamingPreview((p) => p + delta);
         }
         if (typ === "error") {
@@ -659,6 +740,7 @@ export default function WorkspacePage() {
 
       setStreamingPreview("");
       setStreamingStatus("");
+      setStreamBlocks([]);
       loadConversations();
       loadUsage();
     } catch (err) {
@@ -666,6 +748,7 @@ export default function WorkspacePage() {
       setMessages(messagesSnapshot);
       setStreamingPreview("");
       setStreamingStatus("");
+      setStreamBlocks([]);
     } finally {
       setLoading(false);
     }
@@ -686,15 +769,17 @@ export default function WorkspacePage() {
   const enabledCount = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
 
   return (
-    <div className="flex min-h-[100dvh] lg:h-screen lg:min-h-0 overflow-hidden bg-[#0b1326]">
-      <button
-        type="button"
-        onClick={handleResetLimits}
-        className="fixed left-3 z-[70] px-3 py-2.5 rounded-xl text-[11px] font-mono bg-[#222a3d] text-[#ffb4ab] border border-[#ffb4ab]/25 hover:bg-[#2d3449] transition-colors shadow-lg bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-4"
-        title="Clears today’s run/API counters in SQLite (remove this button later)"
-      >
-        Reset limits
-      </button>
+    <div className="flex h-[100dvh] overflow-hidden bg-[#0b1326] overscroll-none">
+      {showLocalReset && (
+        <button
+          type="button"
+          onClick={handleResetLimits}
+          className="fixed left-3 z-[70] px-3 py-2.5 rounded-xl text-[11px] font-mono bg-[#222a3d] text-[#ffb4ab] border border-[#ffb4ab]/25 hover:bg-[#2d3449] transition-colors shadow-lg bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-4"
+          title="Clears today’s run/API counters in SQLite"
+        >
+          Reset limits
+        </button>
+      )}
       {/* Sidebar — desktop only */}
       {historyOpen && (
         <div className="lg:hidden fixed inset-0 z-[60] flex">
@@ -761,7 +846,7 @@ export default function WorkspacePage() {
       </div>
 
       {/* Main area */}
-      <div className="flex flex-1 lg:ml-64 flex-col overflow-hidden">
+      <div className="flex flex-1 lg:ml-64 flex-col overflow-hidden min-h-0">
         {/* Top bar */}
         <header className="flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8 min-h-14 py-2 lg:py-0 lg:h-16 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
           <div className="flex items-center gap-2 min-w-0">
@@ -823,9 +908,9 @@ export default function WorkspacePage() {
         )}
 
         {/* Content area */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Chat column */}
-          <section className={`flex-1 flex flex-col relative border-r border-[#494454]/5 ${mobileTab === "flow" ? "hidden lg:flex" : "flex"}`}>
+          <section className={`flex-1 flex flex-col relative border-r border-[#494454]/5 min-h-0 ${mobileTab === "flow" ? "hidden lg:flex" : "flex"}`}>
             {/* Messages */}
             <div
               ref={messagesScrollRef}
@@ -867,11 +952,24 @@ export default function WorkspacePage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#d0bcff]/30" />
                         </span>
                       </div>
-                      {streamingPreview ? (
-                        <div className="bg-[#131b2e] border border-[#494454]/15 rounded-xl p-4 max-h-64 overflow-y-auto">
-                          <pre className="text-xs text-[#dae2fd]/90 whitespace-pre-wrap font-mono leading-relaxed">
-                            {streamingPreview}
-                          </pre>
+                      {streamBlocks.length > 0 ? (
+                        <div className="space-y-2">
+                          {streamBlocks.map((block) => (
+                            <div
+                              key={block.phase}
+                              className={`rounded-xl border p-3 ${phaseAccentClass(block.phase)}`}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className="text-[10px] uppercase tracking-wide text-[#d0bcff] font-mono">
+                                  {block.label}
+                                </span>
+                                {block.text ? <CopyTextButton text={block.text} label="Copy" /> : null}
+                              </div>
+                              <p className="text-xs text-[#dae2fd]/90 whitespace-pre-wrap font-mono leading-relaxed">
+                                {block.text || "Waiting…"}
+                              </p>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <p className="text-sm text-[#cbc3d7]/70">Waiting for first tokens…</p>
@@ -973,7 +1071,7 @@ export default function WorkspacePage() {
           </section>
 
           {/* Flow panel — desktop always visible, mobile togglable */}
-          <div className={`${mobileTab === "flow" ? "flex flex-1" : "hidden"} lg:flex`}>
+          <div className={`${mobileTab === "flow" ? "flex flex-1 min-h-0" : "hidden"} lg:flex lg:min-h-0`}>
             <FlowPanel flow={flow} onFlowChange={setFlow} />
           </div>
         </div>
