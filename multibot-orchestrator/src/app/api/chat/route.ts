@@ -11,7 +11,16 @@ import {
   getMessages,
   updateConversationTitle,
   reserveDailyUsage,
+  upsertUser,
+  incrementLifetimeCalls,
+  applyPaidUsage,
+  getUserByEmail,
 } from "@/lib/db/queries";
+import { isProductionBillingEnabled } from "@/lib/server/billing";
+import { resolveChatProviderKeys } from "@/lib/server/chat-keys";
+import { FREE_MODEL_SET, calculateCostCents } from "@/lib/pricing";
+import { modelsRequiredForFlow } from "@/lib/provider-keys";
+import type { UsageLine } from "@/lib/types";
 import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
 import { runQuickOrchestratorStream, runSuperOrchestratorStream } from "@/lib/server/orchestrator-stream";
 import type { StreamEvent } from "@/lib/server/orchestrator-stream";
@@ -20,6 +29,9 @@ import {
   findMissingProviderKeys,
   formatMissingKeysMessage,
   normalizeProviderKeys,
+  resolvedKeyForProvider,
+  PROVIDER_LABELS,
+  type MissingKeyError,
 } from "@/lib/provider-keys";
 import type { HistoryMessage } from "@/lib/types";
 import { clientSafeModelError } from "@/lib/server/client-safe-error";
@@ -31,6 +43,8 @@ const KEY_FIELD = z.preprocess(
 );
 
 const chatSchema = z.object({
+  /** Dev-only: when "direct", prefer .env provider keys over OpenRouter (ignored in production). */
+  devRouting: z.enum(["openrouter", "direct"]).optional(),
   conversationId: z.preprocess((v) => (typeof v === "string" ? v : undefined), z.string().max(128).optional()),
   /** @deprecated Use providerKeys.openrouter */
   apiKey: z.preprocess((v) => (v == null ? "" : String(v)), z.string().max(2048)).optional(),
@@ -105,20 +119,77 @@ export async function POST(req: NextRequest) {
   const flow = normalizeFlowConfig(parsed.data.flow as Record<string, unknown>);
   const models = normalizeModelConfig(parsed.data.models as Record<string, string>);
 
+  const userRow = upsertUser(email);
+
+  if (isProductionBillingEnabled()) {
+    if (userRow.tier === "free") {
+      if (userRow.lifetimeCalls >= 1) {
+        return NextResponse.json(
+          {
+            error: "free_limit_reached",
+            message: "You've used your free trial. Add credits to continue.",
+          },
+          { status: 403 }
+        );
+      }
+      const requiredModels = modelsRequiredForFlow(flow, models);
+      for (const m of requiredModels) {
+        if (!FREE_MODEL_SET.has(m)) {
+          return NextResponse.json(
+            {
+              error: "model_not_allowed",
+              message: "This model requires a paid plan.",
+              model: m,
+            },
+            { status: 403 }
+          );
+        }
+      }
+    } else if (userRow.tier === "paid") {
+      if (userRow.creditBalanceCents <= 0) {
+        return NextResponse.json(
+          {
+            error: "insufficient_credits",
+            message: "Your credits are exhausted. Top up to continue.",
+          },
+          { status: 402 }
+        );
+      }
+    }
+  }
+
   let providerKeys = normalizeProviderKeys(parsed.data.providerKeys);
   const legacy = typeof parsed.data.apiKey === "string" ? parsed.data.apiKey.trim() : "";
   if (!providerKeys.openrouter && legacy) {
     providerKeys = { ...providerKeys, openrouter: legacy };
   }
 
-  const missing = findMissingProviderKeys(flow, models, providerKeys);
+  providerKeys = resolveChatProviderKeys({
+    fromClient: providerKeys,
+    devRouting: process.env.NODE_ENV === "development" ? parsed.data.devRouting : undefined,
+  });
+
+  const forceOpenRouter =
+    process.env.NODE_ENV === "production" || parsed.data.devRouting !== "direct";
+
+  const missing: MissingKeyError[] = forceOpenRouter
+    ? resolvedKeyForProvider(providerKeys, "openrouter")
+      ? []
+      : [
+          {
+            modelId: "openrouter",
+            provider: "openrouter",
+            label: PROVIDER_LABELS.openrouter,
+          },
+        ]
+    : findMissingProviderKeys(flow, models, providerKeys);
   if (missing.length > 0) {
     return NextResponse.json({ error: formatMissingKeysMessage(missing) }, { status: 400 });
   }
 
   const apiCallsNeeded = estimateApiCalls(flow);
 
-  const reserved = reserveDailyUsage(1, apiCallsNeeded);
+  const reserved = isProductionBillingEnabled() ? true : reserveDailyUsage(1, apiCallsNeeded);
   if (!reserved) {
     return NextResponse.json({ error: "Daily limit reached. Please try again tomorrow." }, { status: 429 });
   }
@@ -145,7 +216,7 @@ export async function POST(req: NextRequest) {
     .slice(-12)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  const orchestratorInput = { providerKeys, flow, models, prompt, history };
+  const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter };
 
   if (useStream) {
     const encoder = new TextEncoder();
@@ -167,11 +238,18 @@ export async function POST(req: NextRequest) {
             const title = prompt.slice(0, 60).trim();
             updateConversationTitle(convId, title || "New Conversation");
           }
+          const remainingBalanceCents = settleUsageAfterSuccessfulRun(
+            email,
+            userRow.id,
+            userRow.tier,
+            result.usageLines
+          );
           send({
             type: "done",
             conversationId: convId,
             finalAnswer: result.finalAnswer,
             botOutputs: result.botOutputs,
+            remainingBalanceCents,
           });
         } catch (err) {
           send({ type: "error", message: clientSafeModelError(err) });
@@ -208,9 +286,40 @@ export async function POST(req: NextRequest) {
     updateConversationTitle(convId, title || "New Conversation");
   }
 
+  const remainingBalanceCents = settleUsageAfterSuccessfulRun(
+    email,
+    userRow.id,
+    userRow.tier,
+    result.usageLines
+  );
+
   return NextResponse.json({
     conversationId: convId,
     finalAnswer: result.finalAnswer,
     botOutputs: result.botOutputs,
+    remainingBalanceCents,
   });
+}
+
+function settleUsageAfterSuccessfulRun(
+  userEmail: string,
+  userId: string,
+  tier: "free" | "paid",
+  usageLines: UsageLine[]
+): number {
+  if (!isProductionBillingEnabled()) {
+    return getUserByEmail(userEmail)?.creditBalanceCents ?? 0;
+  }
+  if (tier === "free") {
+    incrementLifetimeCalls(userId);
+    return getUserByEmail(userEmail)?.creditBalanceCents ?? 0;
+  }
+  const lines = usageLines.map((l) => ({
+    model: l.model,
+    promptTokens: l.promptTokens,
+    completionTokens: l.completionTokens,
+    costCents: calculateCostCents(l.model, l.promptTokens, l.completionTokens),
+  }));
+  const { newBalanceCents } = applyPaidUsage(userId, lines);
+  return newBalanceCents;
 }

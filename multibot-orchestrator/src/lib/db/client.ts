@@ -6,4 +6,5 @@ import path from "path";
 const DB_PATH = path.join(process.cwd(), "multibot.db");
 
 export const sqlite = new Database(DB_PATH);
+sqlite.pragma("foreign_keys = ON");
 export const db = drizzle(sqlite, { schema });

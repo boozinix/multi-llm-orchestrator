@@ -25,6 +25,38 @@ export const dailyUsage = sqliteTable("daily_usage", {
   apiCalls: integer("api_calls").notNull().default(0),
 });
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  tier: text("tier", { enum: ["free", "paid"] }).notNull().default("free"),
+  creditBalanceCents: integer("credit_balance_cents").notNull().default(0),
+  lifetimeCalls: integer("lifetime_calls").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const billingEvents = sqliteTable("billing_events", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  model: text("model").notNull(),
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  costCents: integer("cost_cents").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+  billingEvents: many(billingEvents),
+}));
+
+export const billingEventsRelations = relations(billingEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [billingEvents.userId],
+    references: [users.id],
+  }),
+}));
+
 export const conversationsRelations = relations(conversations, ({ many }) => ({
   messages: many(messages),
 }));

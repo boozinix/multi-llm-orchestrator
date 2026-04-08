@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, isValidEmail, normalizeEmail } from "@/lib/auth";
 import { hitRateLimit } from "@/lib/server/rate-limit";
+import { upsertUser } from "@/lib/db/queries";
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -16,6 +17,8 @@ export async function POST(req: NextRequest) {
   if (!email || !isValidEmail(raw)) {
     return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
   }
+
+  upsertUser(email);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(AUTH_COOKIE_NAME, email, {

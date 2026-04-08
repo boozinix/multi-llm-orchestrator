@@ -15,9 +15,12 @@ export type ProviderKeyId = keyof UserProviderKeys;
 interface SettingsState {
   providerKeys: UserProviderKeys;
   models: ModelConfig;
+  /** Dev only: when true, prefer OpenRouter (incl. OPENROUTER_API_KEY from .env). */
+  useOpenRouterDev: boolean;
   setProviderKey: (id: ProviderKeyId, value: string) => void;
   setProviderKeys: (partial: Partial<UserProviderKeys>) => void;
   setModel: (slot: keyof ModelConfig, value: string) => void;
+  setUseOpenRouterDev: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +28,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       providerKeys: emptyProviderKeys(),
       models: normalizeModelConfig(null),
+      useOpenRouterDev: true,
       setProviderKey: (id, value) =>
         set((state) => ({
           providerKeys: { ...state.providerKeys, [id]: value },
@@ -35,6 +39,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
       setModel: (slot, value) =>
         set((state) => ({ models: { ...state.models, [slot]: value } })),
+      setUseOpenRouterDev: (value) => set({ useOpenRouterDev: value }),
     }),
     {
       name: "multibot-settings",
@@ -48,6 +53,7 @@ export const useSettingsStore = create<SettingsState>()(
           ...current,
           providerKeys,
           models: normalizeModelConfig(p.models),
+          useOpenRouterDev: typeof p.useOpenRouterDev === "boolean" ? p.useOpenRouterDev : current.useOpenRouterDev,
         };
       },
     }

@@ -450,7 +450,7 @@ function SynthModelSelector() {
 export default function WorkspacePage() {
   const router = useRouter();
   const { conversations, activeConversationId, messages, flow, isLoading, setConversations, setActiveConversation, setMessages, appendMessage, setFlow, setLoading, removeConversation } = useChatStore();
-  const { providerKeys, models } = useSettingsStore();
+  const { providerKeys, models, useOpenRouterDev } = useSettingsStore();
 
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
@@ -609,6 +609,9 @@ export default function WorkspacePage() {
         body: JSON.stringify({
           conversationId: activeConversationId ?? undefined,
           providerKeys,
+          ...(process.env.NODE_ENV === "development"
+            ? { devRouting: useOpenRouterDev ? "openrouter" : "direct" }
+            : {}),
           prompt: trimmed,
           flow,
           stream: true,
@@ -623,8 +626,9 @@ export default function WorkspacePage() {
         let errMsg = `Request failed (${res.status})`;
         if (rawText) {
           try {
-            const j = JSON.parse(rawText) as { error?: string };
-            if (j.error) errMsg = j.error;
+            const j = JSON.parse(rawText) as { error?: string; message?: string };
+            if (typeof j.message === "string" && j.message.trim()) errMsg = j.message;
+            else if (j.error) errMsg = j.error;
           } catch {
             errMsg = rawText.slice(0, 300);
           }

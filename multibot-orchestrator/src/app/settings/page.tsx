@@ -49,13 +49,27 @@ const KEY_ROWS: {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { providerKeys, setProviderKeys, models, setModel } = useSettingsStore();
+  const { providerKeys, setProviderKeys, models, setModel, useOpenRouterDev, setUseOpenRouterDev } =
+    useSettingsStore();
   const [draft, setDraft] = useState<UserProviderKeys>(providerKeys);
   const [showSecrets, setShowSecrets] = useState(false);
   const [saved, setSaved] = useState(false);
   const [usage, setUsage] = useState({ runs: 0, apiCalls: 0, runLimit: 10, apiCallLimit: 30 });
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<ProviderKeyId | null>(null);
+  const [billing, setBilling] = useState<{
+    tier: string;
+    credit_balance_cents: number;
+    lifetime_calls: number;
+    recent_events: {
+      id: string;
+      model: string;
+      prompt_tokens: number;
+      completion_tokens: number;
+      cost_cents: number;
+      created_at: number;
+    }[];
+  } | null>(null);
 
   useEffect(() => {
     setDraft(providerKeys);
@@ -75,6 +89,15 @@ export default function SettingsPage() {
         if (d.runs !== undefined) setUsage(d);
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/billing")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && typeof d.tier === "string") setBilling(d);
+      })
+      .catch(() => setBilling(null));
   }, []);
 
   const handleSave = useCallback(() => {
@@ -165,6 +188,95 @@ export default function SettingsPage() {
               <div className="px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-sm leading-snug">
                 <span className="font-semibold">Showcase mode</span>
                 <span className="text-amber-100/80"> — LLM calls are disabled on this deployment.</span>
+              </div>
+            )}
+
+            {process.env.NODE_ENV === "development" && (
+              <div className="px-4 py-3 rounded-xl border border-[#d0bcff]/25 bg-[#1a2235] text-sm text-[#dae2fd]">
+                <div className="font-semibold text-[#d0bcff] mb-2">Local routing</div>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useOpenRouterDev}
+                    onChange={(e) => setUseOpenRouterDev(e.target.checked)}
+                    className="mt-1 rounded border-[#494454] text-[#a078ff] focus:ring-[#d0bcff]/40"
+                  />
+                  <span className="text-[#cbc3d7] leading-snug">
+                    <span className="text-[#dae2fd] font-medium">Use OpenRouter</span> — all models (
+                    <code className="text-[11px] text-[#d0bcff]">openai/</code>,{" "}
+                    <code className="text-[11px] text-[#d0bcff]">anthropic/</code>, etc.) go through OpenRouter using{" "}
+                    <code className="text-[11px] text-[#d0bcff]">OPENROUTER_API_KEY</code> from{" "}
+                    <code className="text-[11px] text-[#d0bcff]">.env.local</code> (or the browser key if set).
+                    Uncheck to call each provider directly with keys from Settings /{" "}
+                    <code className="text-[11px]">.env.local</code> (<code className="text-[11px]">BYOK_ONLY=0</code>{" "}
+                    helps for env keys).
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {billing && !showcaseMode && (
+              <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-4 sm:p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base font-bold text-[#dae2fd]">Billing</h3>
+                  <span className="text-xs font-mono uppercase tracking-wider text-[#d0bcff]/80">
+                    {billing.tier === "paid" ? "Paid" : "Free"}
+                  </span>
+                </div>
+                {billing.tier === "free" && (
+                  <p className="text-sm text-[#cbc3d7]">
+                    {billing.lifetime_calls >= 1
+                      ? "Free trial used — add credits in the database (tier paid + balance) to continue on production."
+                      : "One free successful chat is available on production; only low-cost models are allowed."}
+                  </p>
+                )}
+                {billing.tier === "paid" && (
+                  <p className="text-sm text-[#cbc3d7]">
+                    Balance:{" "}
+                    <span className="font-mono text-[#d0bcff]">
+                      ${(billing.credit_balance_cents / 100).toFixed(2)}
+                    </span>{" "}
+                    remaining
+                  </p>
+                )}
+                <button
+                  type="button"
+                  disabled
+                  className="min-h-10 px-4 rounded-xl text-sm font-medium bg-[#2d3449] text-[#94a3b8] cursor-not-allowed border border-[#494454]/20"
+                >
+                  Top up — coming soon
+                </button>
+                {billing.recent_events.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <div className="text-xs text-[#cbc3d7]/70 mb-2">Recent usage (server, production billing)</div>
+                    <table className="w-full text-left text-xs text-[#cbc3d7]">
+                      <thead>
+                        <tr className="border-b border-[#494454]/20 text-[#94a3b8]">
+                          <th className="py-2 pr-2 font-medium">Date</th>
+                          <th className="py-2 pr-2 font-medium">Model</th>
+                          <th className="py-2 pr-2 font-medium">Tokens</th>
+                          <th className="py-2 font-medium">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {billing.recent_events.map((ev) => (
+                          <tr key={ev.id} className="border-b border-[#494454]/10">
+                            <td className="py-2 pr-2 font-mono whitespace-nowrap">
+                              {new Date(ev.created_at).toLocaleString()}
+                            </td>
+                            <td className="py-2 pr-2 font-mono truncate max-w-[140px]" title={ev.model}>
+                              {ev.model}
+                            </td>
+                            <td className="py-2 pr-2 font-mono">
+                              {ev.prompt_tokens}+{ev.completion_tokens}
+                            </td>
+                            <td className="py-2 font-mono">${(ev.cost_cents / 100).toFixed(4)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

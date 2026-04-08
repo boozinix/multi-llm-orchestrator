@@ -1,7 +1,45 @@
 import OpenAI from "openai";
-import type { HistoryMessage } from "./types";
+import type { CompletionUsage, HistoryMessage } from "./types";
 import type { UserProviderKeys } from "./provider-keys";
 import { resolvedKeyForProvider } from "./provider-keys";
+
+export type ModelCallResult = { text: string; usage: CompletionUsage };
+
+/** Rough token estimate when the provider omits usage (chars / 4, min 1). */
+export function estimateUsageFromMessages(
+  systemPrompt: string,
+  history: HistoryMessage[],
+  userPrompt: string,
+  output: string
+): CompletionUsage {
+  const histChars = history.reduce((acc, h) => acc + h.content.length, 0);
+  const promptChars = systemPrompt.length + histChars + userPrompt.length;
+  return {
+    promptTokens: Math.max(1, Math.ceil(promptChars / 4)),
+    completionTokens: Math.max(1, Math.ceil(output.length / 4)),
+    estimated: true,
+  };
+}
+
+function usageFromApiResponse(response: OpenAI.Chat.Completions.ChatCompletion): CompletionUsage | null {
+  const u = response.usage;
+  if (!u) return null;
+  const pt = u.prompt_tokens ?? 0;
+  const ct = u.completion_tokens ?? 0;
+  if (pt === 0 && ct === 0) return null;
+  return { promptTokens: pt, completionTokens: ct };
+}
+
+function finalizeUsage(
+  text: string,
+  raw: CompletionUsage | null,
+  systemPrompt: string,
+  history: HistoryMessage[],
+  userPrompt: string
+): CompletionUsage {
+  if (raw && (raw.promptTokens > 0 || raw.completionTokens > 0)) return raw;
+  return estimateUsageFromMessages(systemPrompt, history, userPrompt, text);
+}
 
 // ── Anthropic model ID mapping (OpenRouter slug → direct Anthropic API ID) ──
 const ANTHROPIC_IDS: Record<string, string> = {
@@ -86,11 +124,24 @@ function clientOpenRouter(openRouterModel: string, keys: UserProviderKeys): {
   };
 }
 
+export type ModelRoutingOptions = {
+  /** When true (or in production), every model id is called via OpenRouter. */
+  forceOpenRouter?: boolean;
+};
+
 // ── Build an OpenAI-SDK client for any provider ──────────────────────────────
-function clientForModel(openRouterModel: string, keys: UserProviderKeys): {
+function clientForModel(
+  openRouterModel: string,
+  keys: UserProviderKeys,
+  routing: ModelRoutingOptions = {}
+): {
   client: OpenAI;
   modelId: string;
 } {
+  if (process.env.NODE_ENV === "production" || routing.forceOpenRouter) {
+    return clientOpenRouter(openRouterModel, keys);
+  }
+
   const slash = openRouterModel.indexOf("/");
   const provider = slash === -1 ? "" : openRouterModel.slice(0, slash);
   const slug = slash === -1 ? openRouterModel : openRouterModel.slice(slash + 1);
@@ -202,14 +253,15 @@ export async function callModel(
   openRouterModel: string,
   systemPrompt: string,
   history: HistoryMessage[],
-  userPrompt: string
-): Promise<string> {
+  userPrompt: string,
+  routing: ModelRoutingOptions = {}
+): Promise<ModelCallResult> {
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
     { role: "user", content: userPrompt },
   ];
-  const { client, modelId } = clientForModel(openRouterModel, keys);
+  const { client, modelId } = clientForModel(openRouterModel, keys, routing);
 
   async function createOnce(forceCompletion: boolean) {
     return client.chat.completions.create({
@@ -220,7 +272,7 @@ export async function callModel(
   }
 
   try {
-    let response;
+    let response: OpenAI.Chat.Completions.ChatCompletion;
     try {
       response = await createOnce(false);
     } catch (err) {
@@ -231,7 +283,9 @@ export async function callModel(
         throw err;
       }
     }
-    return response.choices[0]?.message?.content?.trim() ?? "";
+    const text = response.choices[0]?.message?.content?.trim() ?? "";
+    const usage = finalizeUsage(text, usageFromApiResponse(response), systemPrompt, history, userPrompt);
+    return { text, usage };
   } catch (err) {
     if (isModelNotFoundError(err)) {
       if (!openRouterFallbackEnabled()) {
@@ -246,9 +300,22 @@ export async function callModel(
         messages,
         ...outputLimitParams(openRouterModel),
       });
-      return response.choices[0]?.message?.content?.trim() ?? "";
+      const text = response.choices[0]?.message?.content?.trim() ?? "";
+      const usage = finalizeUsage(text, usageFromApiResponse(response), systemPrompt, history, userPrompt);
+      return { text, usage };
     }
     throw formatProviderError(err, openRouterModel);
+  }
+}
+
+/** Forwards string chunks and propagates the inner async generator return value (usage). */
+async function* delegateStream(
+  source: AsyncGenerator<string, CompletionUsage | null, unknown>
+): AsyncGenerator<string, CompletionUsage | null, unknown> {
+  while (true) {
+    const n = await source.next();
+    if (n.done) return (n.value as CompletionUsage | null) ?? null;
+    yield n.value as string;
   }
 }
 
@@ -258,49 +325,63 @@ export async function* streamModel(
   openRouterModel: string,
   systemPrompt: string,
   history: HistoryMessage[],
-  userPrompt: string
-): AsyncGenerator<string, void, unknown> {
+  userPrompt: string,
+  routing: ModelRoutingOptions = {}
+): AsyncGenerator<string, CompletionUsage | null, unknown> {
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
     { role: "user", content: userPrompt },
   ];
-  const { client, modelId } = clientForModel(openRouterModel, keys);
+  const { client, modelId } = clientForModel(openRouterModel, keys, routing);
 
   async function* streamChat(
     c: OpenAI,
     apiModel: string,
     fullModelIdForLimits: string,
     forceCompletion: boolean
-  ): AsyncGenerator<string, void, unknown> {
-    const stream = await c.chat.completions.create({
+  ): AsyncGenerator<string, CompletionUsage | null, unknown> {
+    const baseParams = {
       model: apiModel,
       messages,
-      stream: true,
+      stream: true as const,
       ...outputLimitParams(fullModelIdForLimits, forceCompletion),
-    });
+    };
+    let stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+    try {
+      stream = (await c.chat.completions.create({
+        ...baseParams,
+        stream_options: { include_usage: true },
+      })) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+    } catch {
+      stream = (await c.chat.completions.create(baseParams)) as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
+    }
+    let lastUsage: CompletionUsage | null = null;
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) yield delta;
+      const u = chunk.usage;
+      if (u && ((u.prompt_tokens ?? 0) > 0 || (u.completion_tokens ?? 0) > 0)) {
+        lastUsage = { promptTokens: u.prompt_tokens ?? 0, completionTokens: u.completion_tokens ?? 0 };
+      }
     }
+    return lastUsage;
   }
 
   try {
     try {
-      yield* streamChat(client, modelId, openRouterModel, false);
+      return yield* delegateStream(streamChat(client, modelId, openRouterModel, false));
     } catch (err) {
       const { provider } = parseOpenRouterModel(openRouterModel);
       if (provider === "openai" && isOpenAiMaxTokensUnsupportedError(err)) {
-        yield* streamChat(client, modelId, openRouterModel, true);
-      } else {
-        throw err;
+        return yield* delegateStream(streamChat(client, modelId, openRouterModel, true));
       }
+      throw err;
     }
   } catch (err) {
     if (isModelNotFoundError(err) && openRouterFallbackEnabled()) {
       const fallback = openRouterClient(keys);
-      yield* streamChat(fallback, openRouterModel, openRouterModel, false);
-      return;
+      return yield* delegateStream(streamChat(fallback, openRouterModel, openRouterModel, false));
     }
     if (isModelNotFoundError(err) && !openRouterFallbackEnabled()) {
       throw new Error(
@@ -308,8 +389,9 @@ export async function* streamModel(
       );
     }
     try {
-      const full = await callModel(keys, openRouterModel, systemPrompt, history, userPrompt);
-      if (full) yield full;
+      const { text, usage } = await callModel(keys, openRouterModel, systemPrompt, history, userPrompt, routing);
+      if (text) yield text;
+      return usage;
     } catch {
       throw formatProviderError(err, openRouterModel);
     }
