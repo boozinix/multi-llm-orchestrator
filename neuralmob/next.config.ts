@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+/** Monorepo root (repo has root + neuralmob lockfiles). Matches Vercel outputFileTracingRoot. */
+const workspaceRoot = path.resolve(__dirname, "..");
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -16,7 +19,7 @@ const contentSecurityPolicy = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["better-sqlite3"],
   turbopack: {
-    root: path.resolve(__dirname),
+    root: workspaceRoot,
   },
   async headers() {
     return [
