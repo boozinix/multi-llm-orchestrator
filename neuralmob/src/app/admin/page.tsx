@@ -16,44 +16,47 @@ export default async function AdminPage() {
   const summary = await getAdminDashboardSummary(200);
 
   return (
-    <main className="min-h-[100dvh] bg-[#0b1326] text-[#dae2fd] px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-[100dvh] bg-[#0b1326] text-[#dae2fd] px-4 py-8 sm:px-6 lg:px-8 app-shell">
       <div className="mx-auto max-w-7xl space-y-8">
-        <div className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-[#d0bcff]">Neural Mob Admin</p>
-          <h1 className="text-3xl font-bold tracking-tight">Usage, balance, and user health</h1>
-          <p className="text-sm text-[#cbc3d7]">
+        <section className="app-panel rounded-[2rem] p-6 sm:p-8 overflow-hidden relative">
+          <div className="ambient-orb orbit-slow -top-8 right-8 h-40 w-40 bg-[#8a68ff]/20" />
+          <div className="space-y-2 relative">
+          <p className="app-eyebrow">Neural Mob Admin</p>
+          <h1 className="app-hero-title text-4xl sm:text-5xl text-[#edf2ff]">Usage, balance, and user health</h1>
+          <p className="text-sm text-[#cbc3d7] max-w-2xl">
             Owner-only dashboard for monitoring credits, reservations, spend, and account mix.
           </p>
-        </div>
+          </div>
+        </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-5">
-            <p className="text-xs uppercase tracking-widest text-[#cbc3d7]/60">Users</p>
+          <div className="app-panel rounded-[1.65rem] p-5">
+            <p className="app-eyebrow text-[#cbc3d7]/60">Users</p>
             <p className="mt-2 text-3xl font-bold">{summary.totals.userCount}</p>
             <p className="mt-1 text-xs text-[#94a3b8]">
               {summary.totals.freeUserCount} free, {summary.totals.paidUserCount} paid
             </p>
           </div>
-          <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-5">
-            <p className="text-xs uppercase tracking-widest text-[#cbc3d7]/60">Available Credit</p>
+          <div className="app-panel rounded-[1.65rem] p-5">
+            <p className="app-eyebrow text-[#cbc3d7]/60">Available Credit</p>
             <p className="mt-2 text-3xl font-bold text-[#d0bcff]">{dollars(summary.totals.totalAvailableCreditCents)}</p>
             <p className="mt-1 text-xs text-[#94a3b8]">
               {dollars(summary.totals.totalReservedCreditCents)} reserved
             </p>
           </div>
-          <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-5">
-            <p className="text-xs uppercase tracking-widest text-[#cbc3d7]/60">Lifetime Spend</p>
+          <div className="app-panel rounded-[1.65rem] p-5">
+            <p className="app-eyebrow text-[#cbc3d7]/60">Lifetime Spend</p>
             <p className="mt-2 text-3xl font-bold text-[#4edea3]">{dollars(summary.totals.totalSpentCents)}</p>
             <p className="mt-1 text-xs text-[#94a3b8]">{summary.totals.totalLifetimeCalls} successful runs</p>
           </div>
-          <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-5">
-            <p className="text-xs uppercase tracking-widest text-[#cbc3d7]/60">Gross Credit Stored</p>
+          <div className="app-panel rounded-[1.65rem] p-5">
+            <p className="app-eyebrow text-[#cbc3d7]/60">Gross Credit Stored</p>
             <p className="mt-2 text-3xl font-bold">{dollars(summary.totals.totalCreditBalanceCents)}</p>
             <p className="mt-1 text-xs text-[#94a3b8]">Before subtracting active reservations</p>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#494454]/20 bg-[#131b2e] p-5 sm:p-6">
+        <section className="app-panel rounded-[1.9rem] p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold">Users</h2>
@@ -98,7 +101,7 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#494454]/20 bg-[#131b2e] p-5 sm:p-6">
+        <section className="app-panel rounded-[1.9rem] p-5 sm:p-6">
           <div className="mb-4">
             <h2 className="text-xl font-bold">Recent Charges</h2>
             <p className="text-sm text-[#94a3b8]">Newest metered events across all users.</p>

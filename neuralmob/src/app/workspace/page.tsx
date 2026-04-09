@@ -122,35 +122,37 @@ function SideNav({
   const runPct = usageBarPercent(usage);
 
   return (
-    <aside className="h-screen w-64 fixed left-0 top-0 bg-[#131b2e] flex flex-col p-4 z-50 overflow-hidden">
-      <div className="mb-6 px-2 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-[#a078ff] flex items-center justify-center flex-shrink-0">
+    <aside className="h-screen w-72 fixed left-0 top-0 flex flex-col p-4 z-50 overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] backdrop-blur-xl">
+      <div className="mb-6 px-2 pt-1 flex items-center gap-3">
+        <div className="brand-mark w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0">
           <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
         </div>
-        <div>
-          <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Neural Mob</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Multi-Model Studio</p>
+        <div className="min-w-0">
+          <p className="app-eyebrow mb-1">Neural Mob</p>
+          <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Studio</h1>
+          <p className="mt-1 text-[11px] text-[#b9c5df]/72">Multi-model orchestration console</p>
         </div>
       </div>
 
-      <nav className="space-y-1 mb-4">
+      <nav className="space-y-1.5 mb-5">
+        <p className="app-eyebrow px-3 pb-1 text-[#aeb9d5]/56">Navigate</p>
         <button
           onClick={() => onNav("workspace")}
-          className="w-full bg-[#222a3d] text-[#d0bcff] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left transition-colors"
+          className="w-full app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left"
         >
           <span className="material-symbols-outlined text-[20px]">chat</span>
           Chat
         </button>
         <button
           onClick={() => onNav("settings")}
-          className="w-full text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+          className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
         >
           <span className="material-symbols-outlined text-[20px]">key</span>
           API Keys
         </button>
         <button
           onClick={() => onNav("settings")}
-          className="w-full text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+          className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
         >
           <span className="material-symbols-outlined text-[20px]">settings</span>
           Settings
@@ -158,7 +160,7 @@ function SideNav({
         {showAdmin && (
           <button
             onClick={onAdmin}
-            className="w-full text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+            className="w-full text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335]"
           >
             <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
             Admin
@@ -168,16 +170,21 @@ function SideNav({
 
       {/* History */}
       <div className="flex-1 overflow-y-auto space-y-1">
-        <p className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/50 px-3 mb-2" style={{ fontFamily: "JetBrains Mono, monospace" }}>History</p>
+        <p className="app-eyebrow px-3 mb-2 text-[#aeb9d5]/56">History</p>
         {conversations.length === 0 && (
-          <p className="text-xs text-[#94a3b8] px-3">No conversations yet</p>
+          <div className="app-panel-soft rounded-2xl px-4 py-4 mx-1">
+            <p className="text-sm text-[#9dadcd]">No conversations yet</p>
+            <p className="mt-1 text-xs text-[#6f7c99]">Your orchestration runs will appear here with titles.</p>
+          </div>
         )}
         {conversations.map((c) => (
           <button
             key={c.id}
             onClick={() => onSelect(c.id)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
-              activeId === c.id ? "bg-[#222a3d] text-[#dae2fd]" : "text-[#94a3b8] hover:bg-[#222a3d] hover:text-[#dae2fd]"
+            className={`w-full text-left px-3.5 py-3 rounded-2xl text-sm transition-colors truncate ${
+              activeId === c.id
+                ? "app-panel-soft text-[#edf2ff]"
+                : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
             }`}
           >
             {c.title}
@@ -187,33 +194,33 @@ function SideNav({
 
       {/* Usage bar */}
       <div className="mt-4 space-y-3">
-        <div className="bg-[#171f33] p-3 rounded-xl border border-[#494454]/10">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[11px] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Usage Limit</span>
+        <div className="app-panel rounded-[1.4rem] p-4 shimmer-edge">
+          <div className="flex justify-between items-center mb-2.5">
+            <span className="app-eyebrow text-[#b9c5df]/66">Usage</span>
             <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usagePrimary}</span>
           </div>
-          <div className="h-1.5 w-full bg-[#2d3449] rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
-              style={{ width: `${runPct}%`, background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 0 12px 2px rgba(160,120,255,0.3)" }}
+              style={{ width: `${runPct}%`, background: "linear-gradient(90deg, #d0bcff 0%, #a078ff 56%, #7b5de9 100%)", boxShadow: "0 0 12px 2px rgba(160,120,255,0.3)" }}
             />
           </div>
           {usageSecondary && (
-            <p className="text-[10px] text-[#cbc3d7]/50 mt-1">{usageSecondary}</p>
+            <p className="text-[11px] text-[#9eadcc] mt-2">{usageSecondary}</p>
           )}
         </div>
 
         <div className="space-y-1">
           <button
             onClick={onNew}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-[#94a3b8] hover:bg-[#222a3d] hover:text-[#dae2fd] transition-colors rounded-lg"
+            className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#edf2ff] bg-[#171f33] hover:bg-[#1d2740] transition-colors rounded-2xl"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             New Chat
           </button>
           <button
             onClick={onSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-[#94a3b8] hover:bg-[#222a3d] hover:text-[#dae2fd] transition-colors rounded-lg"
+            className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#9aa8c7] hover:bg-[#161f33] hover:text-[#edf2ff] transition-colors rounded-2xl"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Sign Out
@@ -929,26 +936,43 @@ export default function WorkspacePage() {
 
   if (auth === "anon") {
     return (
-      <div className="min-h-[100dvh] flex flex-col bg-[#0b1326] text-[#dae2fd]">
-        <header className="border-b border-[#494454]/15 px-4 py-4 flex items-center justify-between safe-top">
-          <span className="font-semibold">Neural Mob</span>
+      <div className="min-h-[100dvh] flex flex-col bg-[#0b1326] text-[#dae2fd] app-shell">
+        <header className="border-b border-white/6 px-4 py-4 flex items-center justify-between safe-top">
+          <span className="app-eyebrow">Neural Mob</span>
         </header>
         <main className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-md rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-8 text-center space-y-4">
-            <h1 className="text-xl font-bold">Sign in to run the orchestrator</h1>
-              <p className="text-sm text-[#cbc3d7] leading-relaxed">
-                After you sign in, you get starter credit on approved low-cost models. Top up to unlock flagship models and the full catalog.
+          <div className="w-full max-w-3xl app-panel rounded-[2rem] p-8 md:p-10 grid gap-8 md:grid-cols-[1.2fr_0.8fr] items-center">
+            <div className="space-y-5">
+              <p className="app-eyebrow">Studio Access</p>
+              <h1 className="app-hero-title text-4xl md:text-5xl text-[#edf2ff]">Sign in to orchestrate multiple models in one place.</h1>
+              <p className="text-base text-[#b5c0d8] leading-8 max-w-xl">
+                Neural Mob gives every signed-in user starter credit for low-cost models, then unlocks the full catalog once they top up.
+              </p>
+              <div className="flex flex-wrap gap-3 text-sm text-[#dbe5ff]">
+                <span className="app-panel-soft rounded-full px-4 py-2">Live orchestration</span>
+                <span className="app-panel-soft rounded-full px-4 py-2">Streaming merges</span>
+                <span className="app-panel-soft rounded-full px-4 py-2">Strict credit limits</span>
+              </div>
+            </div>
+            <div className="rounded-[1.75rem] border border-white/8 bg-[#0e1628]/80 p-6 text-center space-y-4">
+              <div className="brand-mark float-soft mx-auto flex h-16 w-16 items-center justify-center rounded-[1.7rem]">
+                <span className="material-symbols-outlined text-3xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              </div>
+              <h2 className="text-xl font-semibold text-[#edf2ff]">Continue with Clerk</h2>
+              <p className="text-sm text-[#9dadcd] leading-7">
+                Use Google or email to enter the studio.
               </p>
             <Link
               href="/sign-in"
-              className="inline-flex items-center justify-center min-h-12 px-6 rounded-xl font-semibold w-full"
+              className="inline-flex items-center justify-center min-h-12 px-6 rounded-xl font-semibold w-full shadow-[0_14px_40px_rgba(160,120,255,0.24)]"
               style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", color: "#340080" }}
             >
               Sign in
             </Link>
-            <p className="text-[11px] text-[#cbc3d7]/60">
+            <p className="text-[11px] text-[#73809d]">
               Use the Sign in / Sign up buttons (top right) or this link — powered by Clerk.
             </p>
+            </div>
           </div>
         </main>
       </div>
@@ -956,7 +980,7 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-[#0b1326] overscroll-none">
+    <div className="flex h-[100dvh] overflow-hidden bg-[#0b1326] overscroll-none app-shell">
       {showLocalReset && (
         <button
           type="button"
@@ -976,13 +1000,16 @@ export default function WorkspacePage() {
             aria-label="Close menu"
             onClick={() => setHistoryOpen(false)}
           />
-          <aside className="relative w-[min(100%,20rem)] max-w-[85vw] bg-[#131b2e] h-full shadow-2xl flex flex-col border-r border-[#494454]/25 safe-top safe-bottom">
-            <div className="flex items-center justify-between p-4 border-b border-[#494454]/15">
-              <span className="font-bold text-[#dae2fd]">History</span>
+          <aside className="relative w-[min(100%,21rem)] max-w-[86vw] bg-[linear-gradient(180deg,rgba(11,19,38,0.98),rgba(9,16,30,0.99))] h-full shadow-2xl flex flex-col border-r border-white/8 safe-top safe-bottom">
+            <div className="flex items-center justify-between p-4 border-b border-white/6">
+              <div>
+                <p className="app-eyebrow mb-1">History</p>
+                <span className="text-base font-semibold text-[#edf2ff]">Recent sessions</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setHistoryOpen(false)}
-                className="min-h-10 min-w-10 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
+                className="min-h-10 min-w-10 rounded-xl app-panel-soft flex items-center justify-center text-[#d0bcff]"
                 aria-label="Close"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -994,7 +1021,7 @@ export default function WorkspacePage() {
                 newChat();
                 setHistoryOpen(false);
               }}
-              className="mx-3 mt-3 min-h-12 rounded-xl bg-[#222a3d] text-[#d0bcff] text-sm font-semibold border border-[#d0bcff]/15"
+              className="mx-3 mt-3 min-h-12 rounded-2xl bg-[#171f33] text-[#edf2ff] text-sm font-semibold border border-white/6"
             >
               New chat
             </button>
@@ -1035,7 +1062,7 @@ export default function WorkspacePage() {
       </div>
 
       {/* Main area */}
-      <div className="flex flex-1 lg:ml-64 flex-col overflow-hidden min-h-0">
+      <div className="flex flex-1 lg:ml-72 flex-col overflow-hidden min-h-0">
         {/* Top bar */}
         <header className="flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8 min-h-14 py-2 lg:py-0 lg:h-16 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
           <div className="flex items-center gap-2 min-w-0">
@@ -1047,12 +1074,11 @@ export default function WorkspacePage() {
             >
               <span className="material-symbols-outlined text-[22px]">menu</span>
             </button>
-            <span className="font-semibold text-[#dae2fd] hidden lg:block truncate">Neural Mob</span>
-            <span className="font-semibold text-[#dae2fd] lg:hidden text-sm truncate">Neural Mob</span>
-            <div className="h-4 w-[1px] bg-[#494454]/30 hidden lg:block" />
-            <span className="hidden lg:block text-[11px] text-[#cbc3d7] bg-[#222a3d] px-2 py-0.5 rounded" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-              v2.0.0-stable
-            </span>
+            <div className="min-w-0">
+              <span className="font-semibold text-[#edf2ff] hidden lg:block truncate">Neural Mob</span>
+              <span className="font-semibold text-[#edf2ff] lg:hidden text-sm truncate">Neural Mob</span>
+              <p className="hidden lg:block text-[11px] text-[#93a1c1] mt-0.5">Orchestration workspace</p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="flex lg:hidden gap-0.5 bg-[#222a3d] rounded-xl p-1">
@@ -1074,7 +1100,7 @@ export default function WorkspacePage() {
             <button
               type="button"
               onClick={newChat}
-              className="hidden lg:flex px-4 py-2 min-h-10 bg-[#222a3d] rounded-xl text-sm font-semibold text-[#d0bcff] border border-[#d0bcff]/20 hover:bg-[#31394d] transition-all"
+              className="hidden lg:flex px-4 py-2 min-h-10 app-panel-soft rounded-xl text-sm font-semibold text-[#edf2ff]"
             >
               New Chat
             </button>
@@ -1082,7 +1108,7 @@ export default function WorkspacePage() {
               <button
                 type="button"
                 onClick={() => router.push("/admin")}
-                className="hidden lg:flex px-4 py-2 min-h-10 bg-[#171f33] rounded-xl text-sm font-semibold text-[#4edea3] border border-[#4edea3]/20 hover:bg-[#1f2a3f] transition-all"
+                className="hidden lg:flex px-4 py-2 min-h-10 rounded-xl text-sm font-semibold text-[#4edea3] border border-[#4edea3]/18 bg-[#111d2f] hover:bg-[#13253a] transition-all"
               >
                 Admin
               </button>
@@ -1090,7 +1116,7 @@ export default function WorkspacePage() {
             <button
               type="button"
               onClick={() => router.push("/settings")}
-              className="min-h-11 min-w-11 rounded-xl bg-[#2d3449] flex items-center justify-center"
+              className="min-h-11 min-w-11 rounded-xl app-panel-soft flex items-center justify-center"
               aria-label="Settings"
             >
               <span className="material-symbols-outlined text-[#d0bcff] text-[22px]">key</span>
@@ -1115,14 +1141,47 @@ export default function WorkspacePage() {
               className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8 pb-[calc(12rem+env(safe-area-inset-bottom))] lg:pb-48"
             >
               {messages.length === 0 && !isLoading && (
-                <div className="flex flex-col items-center justify-center h-full text-center py-20">
-                  <div className="w-16 h-16 rounded-2xl mb-6 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 8px 24px rgba(208,188,255,0.2)" }}>
-                    <span className="material-symbols-outlined text-2xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                <div className="h-full flex items-center">
+                  <div className="max-w-5xl w-full mx-auto grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
+                    <div className="text-left">
+                      <p className="app-eyebrow mb-4">Orchestration Studio</p>
+                      <h2 className="app-hero-title text-5xl md:text-6xl text-[#edf2ff] max-w-2xl">
+                        Ask once. Compare, merge, and synthesize across models.
+                      </h2>
+                      <p className="mt-5 max-w-xl text-base md:text-lg text-[#b4bed6] leading-8">
+                        {flow.mode === "super"
+                          ? `${enabledCount} bots are active right now. Neural Mob runs them in sequence, streams each phase live, and merges where your flow allows it.`
+                          : "Quick mode sends a single model straight through with full streaming and conversation history."}
+                      </p>
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Live phase streaming</div>
+                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Model-by-model reasoning</div>
+                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Final synthesis layer</div>
+                      </div>
+                    </div>
+                    <div className="app-panel rounded-[2rem] p-5 sm:p-6">
+                      <div className="flex items-center justify-between gap-3 mb-5">
+                        <div>
+                          <p className="app-eyebrow mb-1">Current Flow</p>
+                          <h3 className="text-2xl font-semibold text-[#edf2ff]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</h3>
+                        </div>
+                        <div className="brand-mark h-14 w-14 rounded-[1.35rem] flex items-center justify-center float-soft">
+                          <span className="material-symbols-outlined text-3xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                        </div>
+                      </div>
+                      <div className="rounded-[1.5rem] bg-[#0d1525] border border-white/6 p-4">
+                        <FlowDiagram flow={flow} models={models} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                        {BOT_SLOTS.map((slot, i) => (
+                          <div key={slot} className="rounded-2xl bg-[#111b2f] px-3 py-2 border border-white/6">
+                            <p className="text-[10px] uppercase tracking-widest text-[#8e9ab8] font-mono">Bot {i + 1}</p>
+                            <p className="mt-1 text-sm text-[#edf2ff] truncate">{modelLabel(models[slot])}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-bold text-[#dae2fd] mb-2">Neural Mob</h2>
-                  <p className="text-[#cbc3d7] text-sm max-w-sm">
-                    Ask anything. {flow.mode === "super" ? `${enabledCount} bots run in order with live streaming, then merges when enabled.` : "One model streams the answer token by token."}
-                  </p>
                 </div>
               )}
 
@@ -1185,7 +1244,7 @@ export default function WorkspacePage() {
               className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-6"
               style={{ background: "linear-gradient(to top, #0b1326 70%, transparent)" }}
             >
-              <div className="max-w-4xl mx-auto space-y-3">
+              <div className="max-w-5xl mx-auto space-y-3">
                 {/* Model quick-select row */}
                 <div className="flex flex-wrap items-center gap-2">
                   {flow.mode === "super" ? (
@@ -1199,7 +1258,7 @@ export default function WorkspacePage() {
                       />
                     ))
                   ) : (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#222a3d] rounded-full">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a2237] rounded-full border border-white/6">
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                         Quick → {modelLabel(models[flow.primarySlot])}
                       </span>
@@ -1208,7 +1267,7 @@ export default function WorkspacePage() {
                 </div>
 
                 {error && (
-                  <div className="bg-[#93000a]/20 border border-[#ffb4ab]/20 rounded-xl px-4 py-2 flex items-start gap-2">
+                  <div className="bg-[#93000a]/20 border border-[#ffb4ab]/20 rounded-2xl px-4 py-3 flex items-start gap-2">
                     <span className="material-symbols-outlined text-[#ffb4ab] text-base mt-0.5 flex-shrink-0">error</span>
                     <p className="text-[#ffb4ab] text-sm">
                       {error}
@@ -1228,8 +1287,8 @@ export default function WorkspacePage() {
 
                 {/* Textarea — suppressHydrationWarning: password managers (e.g. NordPass) inject data-np-* attrs */}
                 <form onSubmit={handleSubmit} suppressHydrationWarning>
-                  <div className="bg-[#222a3d] rounded-2xl p-2 shadow-2xl border border-[#494454]/10">
-                    <div className="flex items-end gap-2 px-2 py-1">
+                  <div className="app-panel rounded-[1.75rem] p-2.5 shadow-2xl">
+                    <div className="flex items-end gap-2 px-2.5 py-1.5">
                       <textarea
                         suppressHydrationWarning
                         ref={textareaRef}
@@ -1239,29 +1298,29 @@ export default function WorkspacePage() {
                         placeholder={showcaseMode ? "Showcase: chat disabled…" : "Ask anything…"}
                         rows={1}
                         disabled={showcaseMode}
-                        className="flex-1 bg-transparent border-none outline-none text-[#dae2fd] placeholder:text-[#cbc3d7]/50 py-3 resize-none text-base sm:text-sm disabled:opacity-50 min-h-[48px]"
-                        style={{ fontFamily: "Inter, sans-serif", maxHeight: "200px" }}
+                        className="flex-1 bg-transparent border-none outline-none text-[#edf2ff] placeholder:text-[#96a5c6] py-3 resize-none text-base disabled:opacity-50 min-h-[64px]"
+                        style={{ fontFamily: "var(--font-family-body)", maxHeight: "200px", lineHeight: "1.65" }}
                       />
                       <button
                         type="submit"
                         disabled={showcaseMode || isLoading || !prompt.trim()}
-                        className="rounded-xl min-h-12 min-w-12 sm:min-w-0 sm:px-4 py-3 font-bold text-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] disabled:opacity-40 flex-shrink-0 shadow-lg"
+                        className="rounded-[1.15rem] min-h-14 min-w-14 sm:min-w-0 sm:px-5 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40 flex-shrink-0 shadow-lg"
                         style={{
                           background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
                           color: "#340080",
-                          boxShadow: "0 4px 16px rgba(208,188,255,0.2)",
+                          boxShadow: "0 14px 36px rgba(160,120,255,0.22)",
                         }}
                         aria-label={flow.mode === "super" ? "Run orchestration" : "Send message"}
                       >
                         <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                        <span className="hidden sm:inline">{flow.mode === "super" ? "Run" : "Ask"}</span>
+                        <span className="hidden sm:inline">{flow.mode === "super" ? "Run Neural Mob" : "Send"}</span>
                       </button>
                     </div>
-                    <div className="flex items-center gap-4 px-4 py-1.5 border-t border-[#494454]/10">
+                    <div className="flex items-center justify-between gap-4 px-4 py-2 border-t border-white/6">
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                         {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : `Quick mode`}
                       </span>
-                      <span className="text-[10px] text-[#cbc3d7]/50">↵ Send  ⇧↵ Newline</span>
+                      <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
                     </div>
                   </div>
                 </form>

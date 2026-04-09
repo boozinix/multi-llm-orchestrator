@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider, SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
+import { getLocalOwnerEmail, isLocalOwnerBypassEnabled } from "@/lib/server/auth-mode";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -16,20 +17,29 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const localOwnerBypass = isLocalOwnerBypassEnabled();
+  const localOwnerEmail = localOwnerBypass ? getLocalOwnerEmail() : null;
+
   return (
     <html lang="en" className="dark">
-      <body className="antialiased">
+      <body className="antialiased app-shell">
         <ClerkProvider
           signInFallbackRedirectUrl="/workspace"
           signUpFallbackRedirectUrl="/workspace"
           afterSignOutUrl="/workspace"
         >
           <header className="fixed top-0 right-0 z-[200] flex items-center gap-2 px-3 py-2 safe-top">
+            {localOwnerBypass ? (
+              <div className="app-panel-soft rounded-full px-3 py-1.5 text-[11px] font-semibold text-[#d0bcff] backdrop-blur-xl">
+                Local owner mode: {localOwnerEmail}
+              </div>
+            ) : (
+              <>
             <Show when="signed-out">
               <SignInButton mode="modal">
                 <button
                   type="button"
-                  className="rounded-lg bg-[#222a3d] px-3 py-1.5 text-xs font-semibold text-[#d0bcff] border border-[#494454]/40 hover:bg-[#2d3449]"
+                  className="app-panel-soft rounded-full px-3.5 py-2 text-xs font-semibold text-[#d0bcff] hover:text-white backdrop-blur-xl"
                 >
                   Sign in
                 </button>
@@ -37,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SignUpButton mode="modal">
                 <button
                   type="button"
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#340080] border border-[#d0bcff]/30"
+                  className="rounded-full px-3.5 py-2 text-xs font-semibold text-[#340080] border border-[#d0bcff]/25 shadow-[0_10px_30px_rgba(160,120,255,0.22)]"
                   style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)" }}
                 >
                   Sign up
@@ -51,6 +61,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 }}
               />
             </Show>
+              </>
+            )}
           </header>
           {children}
         </ClerkProvider>

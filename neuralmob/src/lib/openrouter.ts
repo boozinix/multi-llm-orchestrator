@@ -7,7 +7,7 @@ import { resolvedKeyForProvider } from "./provider-keys";
 function openRouterSiteHeaders(): { referer: string; title: string } {
   const referer =
     process.env.OPENROUTER_HTTP_REFERER?.trim() ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3010");
   return {
     referer,
     title: process.env.OPENROUTER_APP_TITLE?.trim() || "Neuralmob",

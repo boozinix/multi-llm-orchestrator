@@ -19,12 +19,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in, and then go to **Settings**.
+Open [http://localhost:3010](http://localhost:3010), sign in, and then go to **Settings**.
 
 Local behavior:
 - Turn **Use OpenRouter** on to route every model call through OpenRouter.
 - Turn it off to use each provider’s own API key directly.
 - If your email is in `OWNER_UNLIMITED_EMAILS`, billing gates are bypassed for that account.
+- If Clerk keys are not configured locally, the app automatically enters local owner mode on `localhost` instead of showing a Clerk sign-in screen.
 
 ### 3. Environment variables
 
@@ -44,7 +45,7 @@ SHOWCASE_MODE=1
 # DATABASE_URL=postgres://...
 
 # Comma-separated origins allowed to POST to /api/* in production.
-ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app
+ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app,http://localhost:3010
 
 # Optional: server-side model keys for local dev / self-hosting only.
 # OPENAI_API_KEY=

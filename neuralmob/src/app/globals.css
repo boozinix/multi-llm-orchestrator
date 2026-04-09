@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0");
 @import "tailwindcss";
 
 @theme {
@@ -55,9 +56,9 @@
   --color-outline: #958ea0;
   --color-outline-variant: #494454;
 
-  --font-family-headline: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-family-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-family-label: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-family-headline: "Fraunces", Georgia, serif;
+  --font-family-body: "Manrope", "Segoe UI", sans-serif;
+  --font-family-label: "Manrope", "Segoe UI", sans-serif;
   --font-family-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
 
   --radius: 0.25rem;
@@ -75,11 +76,69 @@ html {
 }
 
 body {
-  background-color: #0b1326;
+  background:
+    radial-gradient(circle at top left, rgba(124, 92, 255, 0.16), transparent 24rem),
+    radial-gradient(circle at 80% 20%, rgba(78, 222, 163, 0.1), transparent 20rem),
+    radial-gradient(circle at bottom left, rgba(208, 188, 255, 0.08), transparent 28rem),
+    linear-gradient(180deg, #091123 0%, #0b1326 42%, #0a1222 100%);
   color: #dae2fd;
   font-family: var(--font-family-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background-image:
+    linear-gradient(rgba(208, 188, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(208, 188, 255, 0.025) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 88%);
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 20% 16%, rgba(208, 188, 255, 0.1), transparent 18rem),
+    radial-gradient(circle at 78% 78%, rgba(78, 222, 163, 0.06), transparent 16rem);
+  filter: blur(36px);
+  opacity: 0.8;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-family-headline);
+  letter-spacing: -0.03em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a,
+button {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 220ms ease,
+    opacity 180ms ease;
 }
 
 .glass-panel {
@@ -101,6 +160,8 @@ body {
   font-family: "Material Symbols Outlined";
   font-style: normal;
   display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
   line-height: 1;
   text-transform: none;
   white-space: nowrap;
@@ -109,6 +170,134 @@ body {
   -webkit-font-feature-settings: "liga";
   font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(208, 188, 255, 0.06), transparent 20rem),
+    radial-gradient(circle at 88% 18%, rgba(78, 222, 163, 0.05), transparent 18rem);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.app-panel {
+  background: linear-gradient(180deg, rgba(25, 34, 56, 0.96), rgba(16, 24, 42, 0.96));
+  border: 1px solid rgba(149, 142, 160, 0.16);
+  box-shadow:
+    0 24px 64px rgba(2, 6, 23, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.app-panel-soft {
+  background: linear-gradient(180deg, rgba(24, 32, 53, 0.8), rgba(13, 21, 37, 0.82));
+  border: 1px solid rgba(149, 142, 160, 0.12);
+}
+
+.app-eyebrow {
+  font-family: var(--font-family-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(208, 188, 255, 0.78);
+}
+
+.app-hero-title {
+  font-family: var(--font-family-headline);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+}
+
+.brand-mark {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(248, 243, 255, 0.35), transparent 35%),
+    linear-gradient(135deg, #d0bcff 0%, #a078ff 58%, #7655e7 100%);
+  box-shadow:
+    0 16px 48px rgba(160, 120, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: inherit;
+  border: 1px solid rgba(52, 0, 128, 0.16);
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.orbit-slow {
+  animation: orbit-slow 18s ease-in-out infinite;
+}
+
+.float-soft {
+  animation: float-soft 7s ease-in-out infinite;
+}
+
+.shimmer-edge {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 10%, rgba(255, 255, 255, 0.06), transparent 55%);
+  transform: translateX(-120%);
+  animation: shimmer-edge 7.5s ease-in-out infinite;
+}
+
+@keyframes orbit-slow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(1.25rem, -1rem, 0) scale(1.06);
+  }
+}
+
+@keyframes float-soft {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmer-edge {
+  0%, 70%, 100% {
+    transform: translateX(-120%);
+  }
+  82% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-slow,
+  .float-soft,
+  .shimmer-edge::after {
+    animation: none;
+  }
 }
 
 ::-webkit-scrollbar {

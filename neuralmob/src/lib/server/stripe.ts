@@ -27,6 +27,6 @@ export function appBaseUrl(req: NextRequest): string {
   const envBase = process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_BASE_URL?.trim();
   if (envBase) return envBase.replace(/\/$/, "");
   const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3000";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "localhost:3010";
   return `${proto}://${host}`;
 }

@@ -189,22 +189,24 @@ export default function SettingsPage() {
   const configuredCount = KEY_ROWS.filter((r) => draft[r.id]?.trim()).length;
 
   return (
-    <div className="flex min-h-[100dvh] lg:h-screen overflow-hidden bg-[#0b1326]">
-      <aside className="h-screen w-64 fixed left-0 top-0 bg-[#131b2e] flex-col p-4 z-50 hidden lg:flex">
-        <div className="mb-8 px-2 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#a078ff] flex items-center justify-center flex-shrink-0">
+    <div className="flex min-h-[100dvh] lg:h-screen overflow-hidden bg-[#0b1326] app-shell">
+      <aside className="h-screen w-72 fixed left-0 top-0 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] flex-col p-4 z-50 hidden lg:flex border-r border-white/6 backdrop-blur-xl">
+        <div className="mb-8 px-2 pt-1 flex items-center gap-3">
+          <div className="brand-mark w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0">
             <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Neural Mob</h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Multi-Model Studio</p>
+          <div className="min-w-0">
+            <p className="app-eyebrow mb-1">Neural Mob</p>
+            <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Settings</h1>
+            <p className="mt-1 text-[11px] text-[#b9c5df]/72">Provider keys, routing, and model mapping</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-1.5">
+          <p className="app-eyebrow px-3 pb-1 text-[#aeb9d5]/56">Navigate</p>
           <button
             type="button"
             onClick={() => router.push("/workspace")}
-            className="w-full min-h-11 text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+            className="w-full min-h-11 text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#edf2ff] transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]">chat</span>
             Chat
@@ -212,7 +214,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => router.push("/settings")}
-            className="w-full min-h-11 bg-[#222a3d] text-[#d0bcff] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left transition-colors"
+            className="w-full min-h-11 app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>settings</span>
             Settings
@@ -221,7 +223,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => router.push("/admin")}
-              className="w-full min-h-11 text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+              className="w-full min-h-11 text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335] transition-colors"
             >
               <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
               Admin
@@ -229,48 +231,57 @@ export default function SettingsPage() {
           )}
         </nav>
         <div className="mt-auto space-y-4">
-          <div className="bg-[#171f33] p-3 rounded-xl border border-[#494454]/10">
+          <div className="app-panel rounded-[1.4rem] p-4">
             <div className="flex justify-between mb-2">
-              <span className="text-[11px] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Usage</span>
+              <span className="app-eyebrow text-[#b9c5df]/66">Usage</span>
               <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usage.runs}/{usage.runLimit}</span>
             </div>
-            <div className="h-1.5 w-full bg-[#2d3449] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${runPct}%`, background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)" }} />
+            <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${runPct}%`, background: "linear-gradient(90deg, #d0bcff 0%, #a078ff 56%, #7b5de9 100%)" }} />
             </div>
           </div>
-          <button type="button" onClick={handleSignOut} className="w-full min-h-11 flex items-center gap-3 px-3 py-2 text-sm text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d] rounded-lg transition-colors">
+          <button type="button" onClick={handleSignOut} className="w-full min-h-11 flex items-center gap-3 px-3.5 py-3 text-sm text-[#9aa8c7] hover:text-[#edf2ff] hover:bg-[#161f33] rounded-2xl transition-colors">
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Sign Out
           </button>
         </div>
       </aside>
 
-      <div className="lg:ml-64 flex-1 flex flex-col overflow-hidden w-full min-w-0">
-        <header className="sticky top-0 z-40 flex justify-between items-center gap-2 px-4 sm:px-6 min-h-14 py-3 lg:px-8 lg:h-16 lg:min-h-0 bg-[#0b1326]/95 backdrop-blur-xl border-b border-[#494454]/10 safe-top">
+      <div className="lg:ml-72 flex-1 flex flex-col overflow-hidden w-full min-w-0">
+        <header className="sticky top-0 z-40 flex justify-between items-center gap-2 px-4 sm:px-6 min-h-14 py-3 lg:px-8 lg:h-16 lg:min-h-0 bg-[#0b1326]/95 backdrop-blur-xl border-b border-white/6 safe-top">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <h2 className="font-semibold text-[#dae2fd] text-sm sm:text-base truncate">API keys</h2>
-            <span className="hidden sm:inline text-xs text-[#cbc3d7]/60 font-mono truncate">models you use need a key</span>
+            <div>
+              <p className="app-eyebrow mb-1">Configuration</p>
+              <h2 className="font-semibold text-[#edf2ff] text-sm sm:text-base truncate">Provider access and routing</h2>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => router.push("/workspace")}
-            className="shrink-0 min-h-10 px-3 sm:px-4 py-2 text-sm font-semibold text-[#d0bcff] border border-[#d0bcff]/20 rounded-xl hover:bg-[#d0bcff]/5 transition-all"
+            className="shrink-0 min-h-10 px-3 sm:px-4 py-2 text-sm font-semibold text-[#edf2ff] rounded-xl app-panel-soft"
           >
             Chat
           </button>
         </header>
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 sm:py-6 lg:px-8 lg:py-8 pb-mobile-nav">
-          <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
+          <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
+            <section className="app-panel rounded-[2rem] p-6 sm:p-8">
+              <p className="app-eyebrow mb-3">Control Deck</p>
+              <h3 className="app-hero-title text-4xl sm:text-5xl text-[#edf2ff] max-w-2xl">Tune how Neural Mob routes, bills, and assigns models.</h3>
+              <p className="mt-4 text-[#b4bed6] max-w-2xl leading-8">
+                Keep this page simple: configure provider access, choose your routing mode, then save model assignments for each bot and synthesis stage.
+              </p>
+            </section>
             {showcaseMode && (
-              <div className="px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-sm leading-snug">
+              <div className="px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-sm leading-snug">
                 <span className="font-semibold">Showcase mode</span>
                 <span className="text-amber-100/80"> — LLM calls are disabled on this deployment.</span>
               </div>
             )}
 
             {process.env.NODE_ENV === "development" && (
-              <div className="px-4 py-3 rounded-xl border border-[#d0bcff]/25 bg-[#1a2235] text-sm text-[#dae2fd]">
+              <div className="app-panel-soft px-5 py-4 rounded-[1.5rem] text-sm text-[#dae2fd]">
                 <div className="font-semibold text-[#d0bcff] mb-2">Local routing</div>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
@@ -294,7 +305,7 @@ export default function SettingsPage() {
             )}
 
             {billing && !showcaseMode && (
-              <div className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-4 sm:p-5 space-y-4">
+              <div className="app-panel rounded-[1.75rem] p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base font-bold text-[#dae2fd]">Billing</h3>
                   <span className="text-xs font-mono uppercase tracking-wider text-[#d0bcff]/80">
@@ -370,7 +381,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <p className="text-sm text-[#cbc3d7] leading-relaxed">
+            <p className="text-sm text-[#c3cbe0] leading-relaxed app-panel-soft rounded-[1.5rem] px-5 py-4">
               Keys stay in <strong className="text-[#dae2fd] font-medium">this browser</strong> until you save. They are sent to this app only when you send a chat message, to forward to the provider. Add only the providers you use — e.g. Anthropic + OpenRouter for Gemini; DeepSeek stays off until you add a DeepSeek key.
             </p>
 
@@ -390,7 +401,7 @@ export default function SettingsPage() {
               {KEY_ROWS.map((row) => {
                 const open = openAccordion === row.id;
                 return (
-                  <div key={row.id} className="rounded-2xl border border-[#494454]/20 bg-[#131b2e] overflow-hidden">
+                  <div key={row.id} className="app-panel rounded-[1.4rem] overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setOpenAccordion(open ? null : row.id)}
@@ -428,7 +439,7 @@ export default function SettingsPage() {
             {/* Desktop: all visible */}
             <div className="hidden lg:block space-y-4">
               {KEY_ROWS.map((row) => (
-                <div key={row.id} className="bg-[#131b2e] rounded-2xl p-5 border border-[#494454]/15">
+                <div key={row.id} className="app-panel rounded-[1.6rem] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                     <div>
                       <h4 className="text-base font-bold text-[#dae2fd]">{row.title}</h4>
@@ -455,7 +466,7 @@ export default function SettingsPage() {
               ))}
             </div>
 
-            <div className="bg-[#131b2e] rounded-2xl p-4 sm:p-6 border border-[#494454]/15">
+            <div className="app-panel rounded-[1.75rem] p-5 sm:p-6">
               <h4 className="text-base font-bold text-[#dae2fd] mb-1">Models</h4>
               <p className="text-xs text-[#cbc3d7]/70 mb-4">Per-slot assignments (large touch targets on phone).</p>
               <div className="space-y-4">
@@ -481,7 +492,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="hidden lg:grid grid-cols-1 gap-4">
-              <div className="bg-[#131b2e] rounded-3xl p-6">
+              <div className="app-panel rounded-[1.8rem] p-6">
                 <h3 className="font-semibold text-[#dae2fd] mb-4">
                   {usage.mode === "paid_credits"
                       ? "Credits"
@@ -587,7 +598,7 @@ export default function SettingsPage() {
         </main>
       </div>
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-[#494454]/10 bg-[#131b2e] z-50 safe-bottom pt-1">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-white/8 bg-[#10182b]/95 backdrop-blur-xl z-50 safe-bottom pt-1">
         <button type="button" onClick={() => router.push("/workspace")} className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]">
           <span className="material-symbols-outlined text-2xl">chat</span>
           <span className="text-[10px]">Chat</span>

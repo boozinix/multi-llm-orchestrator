@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isAllowedRequestOrigin } from "@/lib/server/request-origin";
+import { isLocalOwnerBypassEnabled } from "@/lib/server/auth-mode";
 
 const MAX_API_BODY_BYTES = 512 * 1024;
 
@@ -35,7 +36,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  if (isProtectedRoute(req)) {
+  if (!isLocalOwnerBypassEnabled() && isProtectedRoute(req)) {
     await auth.protect();
   }
 
