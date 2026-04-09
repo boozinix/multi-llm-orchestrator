@@ -13,7 +13,8 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://api.openai.com https://api.anthropic.com https://api.x.ai https://api.deepseek.com https://openrouter.ai https://generativelanguage.googleapis.com",
+  "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.com https://*.clerk.accounts.dev",
+  "connect-src 'self' https://api.openai.com https://api.anthropic.com https://api.x.ai https://api.deepseek.com https://openrouter.ai https://generativelanguage.googleapis.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk-telemetry.com",
 ].join("; ");
 
 const nextConfig: NextConfig = {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { useSettingsStore, type ProviderKeyId } from "@/store/settings-store";
 import { GROUPED_MODELS, filterGroupedModels, clampModelConfigToAllowed } from "@/lib/constants";
 import type { ModelConfig } from "@/lib/types";
@@ -49,6 +50,7 @@ const KEY_ROWS: {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const { providerKeys, setProviderKeys, models, setModel, setModels, useOpenRouterDev, setUseOpenRouterDev } =
     useSettingsStore();
   const [draft, setDraft] = useState<UserProviderKeys>(providerKeys);
@@ -145,8 +147,7 @@ export default function SettingsPage() {
   }, [providerKeys]);
 
   async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    await signOut({ redirectUrl: "/workspace" });
   }
 
   const runPct =

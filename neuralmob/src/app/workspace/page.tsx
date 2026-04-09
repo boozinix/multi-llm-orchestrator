@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import { useChatStore } from "@/store/chat-store";
 import { useSettingsStore } from "@/store/settings-store";
 import {
@@ -503,6 +504,7 @@ function SynthModelSelector({ groupedModels }: { groupedModels: typeof GROUPED_M
 
 export default function WorkspacePage() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const { conversations, activeConversationId, messages, flow, isLoading, setConversations, setActiveConversation, setMessages, appendMessage, setFlow, setLoading, removeConversation } = useChatStore();
   const { providerKeys, models, useOpenRouterDev, setModels } = useSettingsStore();
 
@@ -890,8 +892,7 @@ export default function WorkspacePage() {
   }
 
   async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
+    await signOut({ redirectUrl: "/workspace" });
   }
 
   const enabledCount = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
@@ -917,14 +918,14 @@ export default function WorkspacePage() {
               After you sign in, you get one free successful run on approved low-cost models. Upgrade for flagship models and higher limits.
             </p>
             <Link
-              href="/login"
+              href="/sign-in"
               className="inline-flex items-center justify-center min-h-12 px-6 rounded-xl font-semibold w-full"
               style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", color: "#340080" }}
             >
-              Continue with email
+              Sign in
             </Link>
             <p className="text-[11px] text-[#cbc3d7]/60">
-              Demo sign-in uses email only. For SSO and verified accounts, wire Clerk (see .env.example).
+              Use the Sign in / Sign up buttons (top right) or this link — powered by Clerk.
             </p>
           </div>
         </main>

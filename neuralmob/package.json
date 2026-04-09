@@ -12,6 +12,7 @@
     "db:reset-usage": "node scripts/reset-daily-usage.mjs"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.0.12",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.2",
