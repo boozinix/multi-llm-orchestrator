@@ -1,6 +1,7 @@
 import { streamModel, estimateUsageFromMessages } from "../openrouter";
 import { modelLabel } from "../constants";
 import {
+  buildCollaborativeUserPrompt,
   buildIndividualSystemPrompt,
   buildMergeSystemPrompt,
   buildStagedMergeUserPrompt,
@@ -146,6 +147,7 @@ export async function runSuperOrchestratorStream(
   const botOutputs: BotRunOutput[] = [];
   const outputMap: Partial<Record<"bot1" | "bot2" | "bot3", string>> = {};
   const usageLines: UsageLine[] = [];
+  const priorOutputs: string[] = [];
 
   for (let i = 0; i < ordered.length; i++) {
     const slotId = ordered[i];
@@ -153,12 +155,13 @@ export async function runSuperOrchestratorStream(
     const n = i + 1;
     const label = `Bot ${n} — ${modelLabel(model)}`;
     emit({ type: "status", message: `${label}…` });
-    const sys = buildIndividualSystemPrompt();
-    const botCtx = { systemPrompt: sys, history, userPrompt: prompt };
+    const sys = buildIndividualSystemPrompt(priorOutputs.length);
+    const collaborativePrompt = buildCollaborativeUserPrompt(prompt, priorOutputs);
+    const botCtx = { systemPrompt: sys, history, userPrompt: collaborativePrompt };
     const got = await tryRunPhase(
       slotId,
       label,
-      streamModel(providerKeys, model, sys, history, prompt, orOpts),
+      streamModel(providerKeys, model, sys, history, collaborativePrompt, orOpts),
       emit,
       botCtx
     );
@@ -166,6 +169,7 @@ export async function runSuperOrchestratorStream(
     const trimmed = got.text.trim();
     if (!trimmed) continue;
     outputMap[slotId] = trimmed;
+    priorOutputs.push(trimmed);
     botOutputs.push({ slotId, model, output: trimmed });
     usageLines.push({
       model,

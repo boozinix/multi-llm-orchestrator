@@ -63,14 +63,19 @@ export default function SettingsPage() {
     runLimit: 10,
     apiCallLimit: 30,
     credit_balance_cents: undefined as number | undefined,
+    reserved_credit_cents: undefined as number | undefined,
+    available_credit_cents: undefined as number | undefined,
     free_runs_remaining: undefined as number | undefined,
   });
   const [modelGroups, setModelGroups] = useState(GROUPED_MODELS);
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<ProviderKeyId | null>(null);
+  const [topupLoading, setTopupLoading] = useState<number | null>(null);
   const [billing, setBilling] = useState<{
     tier: string;
     credit_balance_cents: number;
+    reserved_credit_cents?: number;
+    available_credit_cents?: number;
     lifetime_calls: number;
     owner_unlimited?: boolean;
     recent_events: {
@@ -106,6 +111,8 @@ export default function SettingsPage() {
           runLimit: d.runLimit ?? 10,
           apiCallLimit: d.apiCallLimit ?? 30,
           credit_balance_cents: d.credit_balance_cents,
+          reserved_credit_cents: d.reserved_credit_cents,
+          available_credit_cents: d.available_credit_cents,
           free_runs_remaining: d.free_runs_remaining,
         });
       })
@@ -150,6 +157,26 @@ export default function SettingsPage() {
     await signOut({ redirectUrl: "/workspace" });
   }
 
+  async function handleTopUp(amountCents: number) {
+    try {
+      setTopupLoading(amountCents);
+      const res = await fetch("/api/billing/top-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountCents }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Unable to start checkout");
+      }
+      window.location.href = data.url;
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to start top-up");
+    } finally {
+      setTopupLoading(null);
+    }
+  }
+
   const runPct =
     usage.runLimit > 0
       ? Math.min(100, (usage.runs / usage.runLimit) * 100)
@@ -169,8 +196,8 @@ export default function SettingsPage() {
             <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Multibot Pro</h1>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Orchestrator</p>
+            <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Neural Mob</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Multi-Model Studio</p>
           </div>
         </div>
         <nav className="flex-1 space-y-1">
@@ -190,6 +217,16 @@ export default function SettingsPage() {
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>settings</span>
             Settings
           </button>
+          {billing?.owner_unlimited && (
+            <button
+              type="button"
+              onClick={() => router.push("/admin")}
+              className="w-full min-h-11 text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+              Admin
+            </button>
+          )}
         </nav>
         <div className="mt-auto space-y-4">
           <div className="bg-[#171f33] p-3 rounded-xl border border-[#494454]/10">
@@ -272,27 +309,33 @@ export default function SettingsPage() {
                 )}
                 {!billing.owner_unlimited && billing.tier === "free" && (
                   <p className="text-sm text-[#cbc3d7]">
-                    {billing.lifetime_calls >= 1
-                      ? "Free trial used — add credits in the database (tier paid + balance) to continue on production."
-                      : "One free successful chat is available on production; only low-cost models are allowed."}
+                    Free users get starter credit and only low-cost models on production. Top up to unlock the full model catalog.
                   </p>
                 )}
                 {!billing.owner_unlimited && billing.tier === "paid" && (
                   <p className="text-sm text-[#cbc3d7]">
-                    Balance:{" "}
+                    Available:{" "}
                     <span className="font-mono text-[#d0bcff]">
-                      ${(billing.credit_balance_cents / 100).toFixed(2)}
+                      ${((billing.available_credit_cents ?? billing.credit_balance_cents) / 100).toFixed(2)}
                     </span>{" "}
                     remaining
                   </p>
                 )}
-                <button
-                  type="button"
-                  disabled
-                  className="min-h-10 px-4 rounded-xl text-sm font-medium bg-[#2d3449] text-[#94a3b8] cursor-not-allowed border border-[#494454]/20"
-                >
-                  Top up — coming soon
-                </button>
+                {!billing.owner_unlimited && !showcaseMode && (
+                  <div className="flex flex-wrap gap-2">
+                    {[500, 1000, 2000].map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => void handleTopUp(amount)}
+                        disabled={topupLoading !== null}
+                        className="min-h-10 px-4 rounded-xl text-sm font-medium bg-[#222a3d] text-[#d0bcff] border border-[#d0bcff]/20 hover:bg-[#2d3449] disabled:opacity-60 disabled:cursor-wait"
+                      >
+                        {topupLoading === amount ? "Redirecting…" : `Top up $${(amount / 100).toFixed(0)}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {billing.recent_events.length > 0 && (
                   <div className="overflow-x-auto">
                     <div className="text-xs text-[#cbc3d7]/70 mb-2">Recent usage (server, production billing)</div>
@@ -440,10 +483,10 @@ export default function SettingsPage() {
             <div className="hidden lg:grid grid-cols-1 gap-4">
               <div className="bg-[#131b2e] rounded-3xl p-6">
                 <h3 className="font-semibold text-[#dae2fd] mb-4">
-                  {usage.mode === "free_lifetime"
-                    ? "Free trial"
-                    : usage.mode === "paid_credits"
+                  {usage.mode === "paid_credits"
                       ? "Credits"
+                      : usage.mode === "free_credits"
+                        ? "Starter credit"
                       : usage.mode === "owner_unlimited"
                         ? "Usage"
                         : "Daily usage"}
@@ -484,31 +527,31 @@ export default function SettingsPage() {
                       </div>
                     </>
                   )}
-                  {usage.mode === "free_lifetime" && (
+                  {usage.mode === "free_credits" && (
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-[#cbc3d7]">Free runs (lifetime)</span>
+                        <span className="text-[#cbc3d7]">Available free credit</span>
                         <span className="text-[#d0bcff] font-mono">
-                          {usage.runs}/{usage.runLimit}
+                          ${((usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
                         </span>
                       </div>
                       <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
-                            width: `${runPct}%`,
+                            width: `${(usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) > 0 ? 100 : 0}%`,
                             background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
                           }}
                         />
                       </div>
-                      <p className="text-xs text-[#cbc3d7]/70 mt-2">Only low-cost models until you upgrade.</p>
+                      <p className="text-xs text-[#cbc3d7]/70 mt-2">Only low-cost models until you top up.</p>
                     </div>
                   )}
                   {usage.mode === "paid_credits" && (
                     <p className="text-sm text-[#dae2fd]">
-                      Balance:{" "}
+                      Available:{" "}
                       <span className="font-mono text-[#d0bcff]">
-                        ${((usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
+                        ${((usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
                       </span>
                     </p>
                   )}

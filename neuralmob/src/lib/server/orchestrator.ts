@@ -1,5 +1,6 @@
 import { callModel } from "../openrouter";
 import {
+  buildCollaborativeUserPrompt,
   buildIndividualSystemPrompt,
   buildMergeSystemPrompt,
   buildStagedMergeUserPrompt,
@@ -118,14 +119,22 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   const botOutputs: BotRunOutput[] = [];
   const outputMap: Record<string, string> = {};
   const usageLines: UsageLine[] = [];
+  const priorOutputs: string[] = [];
 
   // Graceful fan-out: if one bot fails (credits, timeout, etc.), continue others.
   for (const slotId of enabledSlots) {
     const model = models[slotId];
-    const got = await safeCallModel(input, model, buildIndividualSystemPrompt(), history, prompt);
+    const got = await safeCallModel(
+      input,
+      model,
+      buildIndividualSystemPrompt(priorOutputs.length),
+      history,
+      buildCollaborativeUserPrompt(prompt, priorOutputs)
+    );
     if (!got) continue;
     botOutputs.push({ slotId, model, output: got.text });
     outputMap[slotId] = got.text;
+    priorOutputs.push(got.text);
     usageLines.push({ model, promptTokens: got.usage.promptTokens, completionTokens: got.usage.completionTokens });
   }
 

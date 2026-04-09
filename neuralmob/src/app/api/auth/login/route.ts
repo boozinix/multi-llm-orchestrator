@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
   }
 
-  upsertUser(email);
+  await upsertUser(email);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(AUTH_COOKIE_NAME, email, {

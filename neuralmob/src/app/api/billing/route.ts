@@ -9,8 +9,8 @@ export async function GET() {
   const email = await requireSessionEmail();
   if (!email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  upsertUser(email);
-  const summary = getUserBillingSummary(email);
+  await upsertUser(email);
+  const summary = await getUserBillingSummary(email);
   if (!summary) {
     return NextResponse.json({ error: "User record missing" }, { status: 500 });
   }
@@ -21,6 +21,8 @@ export async function GET() {
   return NextResponse.json({
     tier: summary.user.tier,
     credit_balance_cents: summary.user.creditBalanceCents,
+    reserved_credit_cents: summary.user.reservedCreditCents,
+    available_credit_cents: Math.max(0, summary.user.creditBalanceCents - summary.user.reservedCreditCents),
     lifetime_calls: summary.user.lifetimeCalls,
     owner_unlimited: isOwnerUnlimitedEmail(email),
     billing_enforced: enforced,

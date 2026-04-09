@@ -24,20 +24,24 @@ type UsageViewState = {
   runLimit: number;
   apiCallLimit: number;
   credit_balance_cents?: number;
+  reserved_credit_cents?: number;
+  available_credit_cents?: number;
   free_runs_remaining?: number;
 };
 
 function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary: string | null } {
   const mode = u.mode ?? "daily";
-  if (mode === "free_lifetime") {
+  if (mode === "free_credits") {
+    const usd = ((u.available_credit_cents ?? u.credit_balance_cents ?? 0) / 100).toFixed(2);
     return {
-      primary: `${u.runs}/${u.runLimit} free run${u.runLimit === 1 ? "" : "s"}`,
-      secondary: u.free_runs_remaining === 0 ? "Upgrade for more runs" : "Low-cost models only",
+      primary: `$${usd} free credit`,
+      secondary: usd === "0.00" ? "Top up to continue" : "Low-cost models only",
     };
   }
   if (mode === "paid_credits") {
-    const usd = ((u.credit_balance_cents ?? 0) / 100).toFixed(2);
-    return { primary: `$${usd} credits`, secondary: null };
+    const usd = ((u.available_credit_cents ?? u.credit_balance_cents ?? 0) / 100).toFixed(2);
+    const reserved = ((u.reserved_credit_cents ?? 0) / 100).toFixed(2);
+    return { primary: `$${usd} credits`, secondary: reserved === "0.00" ? null : `$${reserved} reserved` };
   }
   if (mode === "owner_unlimited") {
     return { primary: "Unlimited", secondary: null };
@@ -50,6 +54,9 @@ function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary:
 
 function usageBarPercent(u: UsageViewState): number {
   if (u.mode === "owner_unlimited") return 100;
+  if (u.mode === "free_credits" || u.mode === "paid_credits") {
+    return (u.available_credit_cents ?? u.credit_balance_cents ?? 0) > 0 ? 100 : 0;
+  }
   if (u.runLimit > 0) return Math.min(100, (u.runs / u.runLimit) * 100);
   return 0;
 }
@@ -97,6 +104,8 @@ function SideNav({
   onSelect,
   onNew,
   onNav,
+  showAdmin,
+  onAdmin,
   onSignOut,
 }: {
   conversations: ConversationRecord[];
@@ -105,6 +114,8 @@ function SideNav({
   onSelect: (id: string) => void;
   onNew: () => void;
   onNav: (page: "workspace" | "settings") => void;
+  showAdmin: boolean;
+  onAdmin: () => void;
   onSignOut: () => void;
 }) {
   const { primary: usagePrimary, secondary: usageSecondary } = usagePrimarySecondary(usage);
@@ -117,8 +128,8 @@ function SideNav({
           <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Multibot Pro</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Orchestrator</p>
+          <h1 className="text-lg font-bold text-[#dae2fd] tracking-tighter">Neural Mob</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#d0bcff] opacity-80" style={{ fontFamily: "JetBrains Mono, monospace" }}>Multi-Model Studio</p>
         </div>
       </div>
 
@@ -144,6 +155,15 @@ function SideNav({
           <span className="material-symbols-outlined text-[20px]">settings</span>
           Settings
         </button>
+        {showAdmin && (
+          <button
+            onClick={onAdmin}
+            className="w-full text-[#94a3b8] rounded-lg flex items-center gap-3 px-3 py-2.5 font-medium text-sm text-left hover:bg-[#222a3d] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+            Admin
+          </button>
+        )}
       </nav>
 
       {/* History */}
@@ -229,7 +249,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       <div className="space-y-3 sm:space-y-4 flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-widest text-[#d0bcff] font-bold" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-            Orchestrator
+            Neural Mob
           </span>
           {msg.botOutputs && msg.botOutputs.length > 1 && (
             <span className="text-[10px] text-[#cbc3d7] opacity-60" style={{ fontFamily: "JetBrains Mono, monospace" }}>
@@ -526,6 +546,7 @@ export default function WorkspacePage() {
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [showLocalReset, setShowLocalReset] = useState(false);
+  const [ownerUnlimited, setOwnerUnlimited] = useState(false);
   const [streamBlocks, setStreamBlocks] = useState<StreamBlock[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
@@ -544,6 +565,8 @@ export default function WorkspacePage() {
           runLimit: data.runLimit ?? 10,
           apiCallLimit: data.apiCallLimit ?? 30,
           credit_balance_cents: data.credit_balance_cents,
+          reserved_credit_cents: data.reserved_credit_cents,
+          available_credit_cents: data.available_credit_cents,
           free_runs_remaining: data.free_runs_remaining,
         });
       }
@@ -577,7 +600,7 @@ export default function WorkspacePage() {
         }
       }
     } catch { /* ignore */ }
-  }, [router, setConversations, setActiveConversation, setMessages]);
+  }, [setConversations, setActiveConversation, setMessages]);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -619,8 +642,10 @@ export default function WorkspacePage() {
         } | null) => {
           if (!b) {
             setFreeModelIds(null);
+            setOwnerUnlimited(false);
             return;
           }
+          setOwnerUnlimited(Boolean(b.owner_unlimited));
           if (b.billing_enforced && b.tier === "free" && !b.owner_unlimited && Array.isArray(b.free_model_ids)) {
             const allowed = new Set(b.free_model_ids);
             setFreeModelIds(b.free_model_ids);
@@ -631,7 +656,10 @@ export default function WorkspacePage() {
           }
         }
       )
-      .catch(() => setFreeModelIds(null));
+      .catch(() => {
+        setFreeModelIds(null);
+        setOwnerUnlimited(false);
+      });
     return () => ac.abort();
   }, [auth, setModels]);
 
@@ -684,12 +712,6 @@ export default function WorkspacePage() {
   function newChat() {
     setActiveConversation(null);
     setMessages([]);
-  }
-
-  async function deleteConversation(id: string) {
-    await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-    removeConversation(id);
-    if (activeConversationId === id) newChat();
   }
 
   async function handleResetLimits() {
@@ -909,14 +931,14 @@ export default function WorkspacePage() {
     return (
       <div className="min-h-[100dvh] flex flex-col bg-[#0b1326] text-[#dae2fd]">
         <header className="border-b border-[#494454]/15 px-4 py-4 flex items-center justify-between safe-top">
-          <span className="font-semibold">Orchestrator</span>
+          <span className="font-semibold">Neural Mob</span>
         </header>
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-md rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-8 text-center space-y-4">
             <h1 className="text-xl font-bold">Sign in to run the orchestrator</h1>
-            <p className="text-sm text-[#cbc3d7] leading-relaxed">
-              After you sign in, you get one free successful run on approved low-cost models. Upgrade for flagship models and higher limits.
-            </p>
+              <p className="text-sm text-[#cbc3d7] leading-relaxed">
+                After you sign in, you get starter credit on approved low-cost models. Top up to unlock flagship models and the full catalog.
+              </p>
             <Link
               href="/sign-in"
               className="inline-flex items-center justify-center min-h-12 px-6 rounded-xl font-semibold w-full"
@@ -1006,6 +1028,8 @@ export default function WorkspacePage() {
           onSelect={selectConversation}
           onNew={newChat}
           onNav={(page) => router.push(page === "settings" ? "/settings" : "/workspace")}
+          showAdmin={ownerUnlimited}
+          onAdmin={() => router.push("/admin")}
           onSignOut={handleSignOut}
         />
       </div>
@@ -1023,8 +1047,8 @@ export default function WorkspacePage() {
             >
               <span className="material-symbols-outlined text-[22px]">menu</span>
             </button>
-            <span className="font-semibold text-[#dae2fd] hidden lg:block truncate">Orchestrator</span>
-            <span className="font-semibold text-[#dae2fd] lg:hidden text-sm truncate">Multibot</span>
+            <span className="font-semibold text-[#dae2fd] hidden lg:block truncate">Neural Mob</span>
+            <span className="font-semibold text-[#dae2fd] lg:hidden text-sm truncate">Neural Mob</span>
             <div className="h-4 w-[1px] bg-[#494454]/30 hidden lg:block" />
             <span className="hidden lg:block text-[11px] text-[#cbc3d7] bg-[#222a3d] px-2 py-0.5 rounded" style={{ fontFamily: "JetBrains Mono, monospace" }}>
               v2.0.0-stable
@@ -1054,6 +1078,15 @@ export default function WorkspacePage() {
             >
               New Chat
             </button>
+            {ownerUnlimited && (
+              <button
+                type="button"
+                onClick={() => router.push("/admin")}
+                className="hidden lg:flex px-4 py-2 min-h-10 bg-[#171f33] rounded-xl text-sm font-semibold text-[#4edea3] border border-[#4edea3]/20 hover:bg-[#1f2a3f] transition-all"
+              >
+                Admin
+              </button>
+            )}
             <button
               type="button"
               onClick={() => router.push("/settings")}
@@ -1086,7 +1119,7 @@ export default function WorkspacePage() {
                   <div className="w-16 h-16 rounded-2xl mb-6 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 8px 24px rgba(208,188,255,0.2)" }}>
                     <span className="material-symbols-outlined text-2xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
                   </div>
-                  <h2 className="text-xl font-bold text-[#dae2fd] mb-2">MultiBot Orchestrator</h2>
+                  <h2 className="text-xl font-bold text-[#dae2fd] mb-2">Neural Mob</h2>
                   <p className="text-[#cbc3d7] text-sm max-w-sm">
                     Ask anything. {flow.mode === "super" ? `${enabledCount} bots run in order with live streaming, then merges when enabled.` : "One model streams the answer token by token."}
                   </p>

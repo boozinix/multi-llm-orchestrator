@@ -1,5 +1,4 @@
 import type { FlowConfig, ModelConfig } from "./types";
-import { FREE_MODEL_SET } from "./pricing";
 
 /** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
 export const OPENROUTER_MODELS = [

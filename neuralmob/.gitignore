@@ -50,3 +50,6 @@ PROJECT_FULL_SOURCE.md
 *.db-journal
 *.db-wal
 *.db-shm
+
+# clerk configuration (can include secrets)
+/.clerk/

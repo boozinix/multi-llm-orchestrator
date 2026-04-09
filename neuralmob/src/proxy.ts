@@ -5,6 +5,7 @@ import { isAllowedRequestOrigin } from "@/lib/server/request-origin";
 const MAX_API_BODY_BYTES = 512 * 1024;
 
 const isProtectedRoute = createRouteMatcher([
+  "/admin(.*)",
   "/settings(.*)",
   "/api/conversations(.*)",
   "/api/chat(.*)",
@@ -15,8 +16,10 @@ const isProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
+  const isStripeWebhook = pathname === "/api/stripe/webhook";
 
   if (
+    !isStripeWebhook &&
     pathname.startsWith("/api/") &&
     (req.method === "POST" || req.method === "PUT" || req.method === "PATCH")
   ) {

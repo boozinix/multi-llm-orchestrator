@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSessionEmail } from "@/lib/server/session";
 import { z } from "zod";
 import { normalizeFlowConfig, normalizeModelConfig } from "@/lib/constants";
-import { estimateApiCalls, FREE_TIER_LIFETIME_RUN_CAP } from "@/lib/limits";
+import { estimateApiCalls } from "@/lib/limits";
 import {
-  getConversation,
-  createConversation,
+  createConversationForUser,
   upsertConversationState,
   addMessage,
   getMessages,
@@ -15,11 +14,14 @@ import {
   incrementLifetimeCalls,
   applyPaidUsage,
   getUserByEmail,
+  getConversationForUser,
+  reserveCreditsForUser,
+  releaseCreditReservation,
 } from "@/lib/db/queries";
 import { isProductionBillingEnabled, shouldEnforceProductionBilling } from "@/lib/server/billing";
 import { isOwnerUnlimitedEmail } from "@/lib/server/owner-unlimited";
 import { resolveChatProviderKeys } from "@/lib/server/chat-keys";
-import { FREE_MODEL_SET, calculateCostCents } from "@/lib/pricing";
+import { FREE_MODEL_SET, calculateCostCents, estimateWorstCaseRunReserveCents } from "@/lib/pricing";
 import { modelsRequiredForFlow } from "@/lib/provider-keys";
 import type { UsageLine } from "@/lib/types";
 import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
@@ -120,19 +122,10 @@ export async function POST(req: NextRequest) {
   const flow = normalizeFlowConfig(parsed.data.flow as Record<string, unknown>);
   const models = normalizeModelConfig(parsed.data.models as Record<string, string>);
 
-  const userRow = upsertUser(email);
+  const userRow = await upsertUser(email);
 
   if (shouldEnforceProductionBilling(email)) {
     if (userRow.tier === "free") {
-      if (userRow.lifetimeCalls >= FREE_TIER_LIFETIME_RUN_CAP) {
-        return NextResponse.json(
-          {
-            error: "free_limit_reached",
-            message: "You've used your free trial. Add credits to continue.",
-          },
-          { status: 403 }
-        );
-      }
       const requiredModels = modelsRequiredForFlow(flow, models);
       for (const m of requiredModels) {
         if (!FREE_MODEL_SET.has(m)) {
@@ -146,16 +139,19 @@ export async function POST(req: NextRequest) {
           );
         }
       }
-    } else if (userRow.tier === "paid") {
-      if (userRow.creditBalanceCents <= 0) {
-        return NextResponse.json(
-          {
-            error: "insufficient_credits",
-            message: "Your credits are exhausted. Top up to continue.",
-          },
-          { status: 402 }
-        );
-      }
+    }
+    const availableCreditCents = userRow.creditBalanceCents - userRow.reservedCreditCents;
+    if (availableCreditCents <= 0) {
+      return NextResponse.json(
+        {
+          error: "insufficient_credits",
+          message:
+            userRow.tier === "free"
+              ? "Your free starter credit is exhausted. Top up to continue."
+              : "Your credits are exhausted. Top up to continue.",
+        },
+        { status: 402 }
+      );
     }
   }
 
@@ -190,32 +186,54 @@ export async function POST(req: NextRequest) {
 
   const apiCallsNeeded = estimateApiCalls(flow);
 
-  const reserved = isProductionBillingEnabled() ? true : reserveDailyUsage(1, apiCallsNeeded);
+  const reserved = isProductionBillingEnabled() ? true : await reserveDailyUsage(1, apiCallsNeeded);
   if (!reserved) {
     return NextResponse.json({ error: "Daily limit reached. Please try again tomorrow." }, { status: 429 });
   }
 
   let convId = inputConvId;
   if (!convId) {
-    const conv = createConversation(flow, models);
+    const conv = await createConversationForUser(email, flow, models);
     convId = conv.id;
   } else {
-    const existing = getConversation(convId);
+    const existing = await getConversationForUser(convId, email);
     if (!existing) {
-      const conv = createConversation(flow, models);
+      const conv = await createConversationForUser(email, flow, models);
       convId = conv.id;
     } else {
-      upsertConversationState(convId, flow, models);
+      await upsertConversationState(convId, flow, models);
     }
   }
 
-  addMessage(convId, "user", prompt);
+  await addMessage(convId, "user", prompt);
 
-  const existingMessages = getMessages(convId);
+  const existingMessages = await getMessages(convId);
   const history: HistoryMessage[] = existingMessages
     .slice(0, -1)
     .slice(-12)
     .map((m) => ({ role: m.role, content: m.content }));
+
+  let reservationId: string | null = null;
+  if (shouldEnforceProductionBilling(email)) {
+    const reserveCents = estimateWorstCaseRunReserveCents(flow, models, prompt, history);
+    const reservation = await reserveCreditsForUser(userRow.id, reserveCents);
+    if (!reservation) {
+      const availableCreditCents = Math.max(0, userRow.creditBalanceCents - userRow.reservedCreditCents);
+      return NextResponse.json(
+        {
+          error: "insufficient_credits",
+          message:
+            availableCreditCents <= 0
+              ? "You do not have enough credit to start this run."
+              : `You need at least $${(reserveCents / 100).toFixed(2)} available to run this request safely.`,
+          required_credit_cents: reserveCents,
+          available_credit_cents: availableCreditCents,
+        },
+        { status: 402 }
+      );
+    }
+    reservationId = reservation.id;
+  }
 
   const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter };
 
@@ -233,16 +251,16 @@ export async function POST(req: NextRequest) {
               ? await runQuickOrchestratorStream(orchestratorInput, emit)
               : await runSuperOrchestratorStream(orchestratorInput, emit);
 
-          addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
-          const allMessages = getMessages(convId);
+          await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
+          const allMessages = await getMessages(convId);
           if (allMessages.length === 2) {
             const title = prompt.slice(0, 60).trim();
-            updateConversationTitle(convId, title || "New Conversation");
+            await updateConversationTitle(convId, title || "New Conversation");
           }
-          const remainingBalanceCents = settleUsageAfterSuccessfulRun(
+          const remainingBalanceCents = await settleUsageAfterSuccessfulRun(
             email,
             userRow.id,
-            userRow.tier,
+            reservationId,
             result.usageLines
           );
           send({
@@ -254,6 +272,9 @@ export async function POST(req: NextRequest) {
             owner_unlimited: isOwnerUnlimitedEmail(email),
           });
         } catch (err) {
+          if (reservationId) {
+            await releaseCreditReservation(userRow.id, reservationId);
+          }
           send({ type: "error", message: clientSafeModelError(err) });
         } finally {
           controller.close();
@@ -278,20 +299,23 @@ export async function POST(req: NextRequest) {
       result = await runSuperOrchestrator(orchestratorInput);
     }
   } catch (err) {
+    if (reservationId) {
+      await releaseCreditReservation(userRow.id, reservationId);
+    }
     return NextResponse.json({ error: clientSafeModelError(err) }, { status: 502 });
   }
 
-  addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
-  const allMessages = getMessages(convId);
+  await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
+  const allMessages = await getMessages(convId);
   if (allMessages.length === 2) {
     const title = prompt.slice(0, 60).trim();
-    updateConversationTitle(convId, title || "New Conversation");
+    await updateConversationTitle(convId, title || "New Conversation");
   }
 
-  const remainingBalanceCents = settleUsageAfterSuccessfulRun(
+  const remainingBalanceCents = await settleUsageAfterSuccessfulRun(
     email,
     userRow.id,
-    userRow.tier,
+    reservationId,
     result.usageLines
   );
 
@@ -304,21 +328,17 @@ export async function POST(req: NextRequest) {
   });
 }
 
-function settleUsageAfterSuccessfulRun(
+async function settleUsageAfterSuccessfulRun(
   userEmail: string,
   userId: string,
-  tier: "free" | "paid",
+  reservationId: string | null,
   usageLines: UsageLine[]
-): number {
+): Promise<number> {
   if (isOwnerUnlimitedEmail(userEmail)) {
-    return getUserByEmail(userEmail)?.creditBalanceCents ?? 0;
+    return (await getUserByEmail(userEmail))?.creditBalanceCents ?? 0;
   }
   if (!isProductionBillingEnabled()) {
-    return getUserByEmail(userEmail)?.creditBalanceCents ?? 0;
-  }
-  if (tier === "free") {
-    incrementLifetimeCalls(userId);
-    return getUserByEmail(userEmail)?.creditBalanceCents ?? 0;
+    return (await getUserByEmail(userEmail))?.creditBalanceCents ?? 0;
   }
   const lines = usageLines.map((l) => ({
     model: l.model,
@@ -326,6 +346,7 @@ function settleUsageAfterSuccessfulRun(
     completionTokens: l.completionTokens,
     costCents: calculateCostCents(l.model, l.promptTokens, l.completionTokens),
   }));
-  const { newBalanceCents } = applyPaidUsage(userId, lines);
+  const { newBalanceCents } = await applyPaidUsage(userId, reservationId, lines);
+  await incrementLifetimeCalls(userId);
   return newBalanceCents;
 }

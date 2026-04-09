@@ -34,6 +34,7 @@ export interface BotRunOutput {
 
 export interface ConversationRecord {
   id: string;
+  userEmail: string;
   title: string;
   flow: FlowConfig;
   models: ModelConfig;
@@ -54,8 +55,19 @@ export interface UserRecord {
   email: string;
   tier: UserTier;
   creditBalanceCents: number;
+  reservedCreditCents: number;
   lifetimeCalls: number;
   createdAt: number;
+}
+
+export interface CreditReservationRecord {
+  id: string;
+  userId: string;
+  reservedCents: number;
+  actualCostCents: number | null;
+  status: "active" | "settled" | "released";
+  createdAt: number;
+  finalizedAt: number | null;
 }
 
 export interface BillingEventRecord {

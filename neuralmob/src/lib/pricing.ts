@@ -1,3 +1,12 @@
+import {
+  buildIndividualSystemPrompt,
+  buildMergeSystemPrompt,
+  buildQuickModeSystemPrompt,
+  buildStagedMergeUserPrompt,
+} from "./prompts";
+import { MODEL_MAX_OUTPUT_TOKENS, RUN_COST_SAFETY_MULTIPLIER } from "./limits";
+import type { FlowConfig, HistoryMessage, ModelConfig } from "./types";
+
 /** USD per 1M tokens (input / output). Fallback when API does not return cost. */
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "anthropic/claude-sonnet-4-5": { input: 3.0, output: 15.0 },
@@ -50,4 +59,55 @@ function calculateCostCentsWithRates(
 ): number {
   const usd = (promptTokens * inputPerM) / 1_000_000 + (completionTokens * outputPerM) / 1_000_000;
   return Math.round(usd * 100);
+}
+
+function estimatePromptTokensConservative(text: string): number {
+  return Math.max(1, Math.ceil(text.length / 3));
+}
+
+function estimateCallReserveCents(modelId: string, promptText: string): number {
+  const promptTokens = estimatePromptTokensConservative(promptText);
+  return calculateCostCents(modelId, promptTokens, MODEL_MAX_OUTPUT_TOKENS);
+}
+
+export function estimateWorstCaseRunReserveCents(
+  flow: FlowConfig,
+  models: ModelConfig,
+  prompt: string,
+  history: HistoryMessage[]
+): number {
+  const historyText = history.map((h) => `${h.role}: ${h.content}`).join("\n");
+  const basePrompt = `${historyText}\n${prompt}`.trim();
+
+  if (flow.mode === "quick") {
+    const reserve = estimateCallReserveCents(
+      models[flow.primarySlot],
+      `${buildQuickModeSystemPrompt()}\n${basePrompt}`
+    );
+    return Math.max(1, Math.ceil(reserve * RUN_COST_SAFETY_MULTIPLIER));
+  }
+
+  const enabledSlots = (["bot1", "bot2", "bot3"] as const).filter((slot) => flow[`${slot}Enabled`]);
+  let reserve = 0;
+  const individualSystem = buildIndividualSystemPrompt();
+
+  for (const slot of enabledSlots) {
+    reserve += estimateCallReserveCents(models[slot], `${individualSystem}\n${basePrompt}`);
+  }
+
+  if (enabledSlots.length > 1) {
+    const maxSyntheticOutput = "X".repeat(MODEL_MAX_OUTPUT_TOKENS * 4);
+    const mergeSystem = buildMergeSystemPrompt();
+    const mergePrompt = buildStagedMergeUserPrompt(maxSyntheticOutput, maxSyntheticOutput, prompt);
+    const synthCalls = Math.max(
+      enabledSlots.length - 1,
+      (flow.merge12Enabled && flow.bot1Enabled && flow.bot2Enabled ? 1 : 0) +
+        (flow.merge123Enabled && flow.bot3Enabled ? 1 : 0)
+    );
+    for (let i = 0; i < synthCalls; i++) {
+      reserve += estimateCallReserveCents(models.synth, `${mergeSystem}\n${mergePrompt}`);
+    }
+  }
+
+  return Math.max(1, Math.ceil(reserve * RUN_COST_SAFETY_MULTIPLIER));
 }
