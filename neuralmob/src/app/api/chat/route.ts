@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSessionEmail } from "@/lib/server/session";
 import { z } from "zod";
 import { normalizeFlowConfig, normalizeModelConfig } from "@/lib/constants";
-import { estimateApiCalls } from "@/lib/limits";
+import { estimateApiCalls, FREE_TIER_LIFETIME_RUN_CAP } from "@/lib/limits";
 import {
   getConversation,
   createConversation,
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
   if (shouldEnforceProductionBilling(email)) {
     if (userRow.tier === "free") {
-      if (userRow.lifetimeCalls >= 1) {
+      if (userRow.lifetimeCalls >= FREE_TIER_LIFETIME_RUN_CAP) {
         return NextResponse.json(
           {
             error: "free_limit_reached",

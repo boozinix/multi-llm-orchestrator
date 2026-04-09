@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, isValidEmail } from "@/lib/auth";
 import { isAllowedRequestOrigin } from "@/lib/server/request-origin";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/me",
+  "/api/showcase",
+  "/workspace",
+];
 
 /** Reject huge JSON bodies early when Content-Length is sent (typical for fetch). */
 const MAX_API_BODY_BYTES = 512 * 1024;

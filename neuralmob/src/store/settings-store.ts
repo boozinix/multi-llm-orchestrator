@@ -3,12 +3,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { normalizeModelConfig } from "@/lib/constants";
+import type { ModelConfig } from "@/lib/types";
 import {
   emptyProviderKeys,
   normalizeProviderKeys,
   type UserProviderKeys,
 } from "@/lib/provider-keys";
-import type { ModelConfig } from "@/lib/types";
 
 export type ProviderKeyId = keyof UserProviderKeys;
 
@@ -20,6 +20,7 @@ interface SettingsState {
   setProviderKey: (id: ProviderKeyId, value: string) => void;
   setProviderKeys: (partial: Partial<UserProviderKeys>) => void;
   setModel: (slot: keyof ModelConfig, value: string) => void;
+  setModels: (models: ModelConfig) => void;
   setUseOpenRouterDev: (value: boolean) => void;
 }
 
@@ -39,6 +40,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
       setModel: (slot, value) =>
         set((state) => ({ models: { ...state.models, [slot]: value } })),
+      setModels: (models) => set({ models: { ...models } }),
       setUseOpenRouterDev: (value) => set({ useOpenRouterDev: value }),
     }),
     {

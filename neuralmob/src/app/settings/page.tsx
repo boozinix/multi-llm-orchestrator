@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSettingsStore, type ProviderKeyId } from "@/store/settings-store";
-import { GROUPED_MODELS } from "@/lib/constants";
+import { GROUPED_MODELS, filterGroupedModels, clampModelConfigToAllowed } from "@/lib/constants";
 import type { ModelConfig } from "@/lib/types";
 import type { UserProviderKeys } from "@/lib/provider-keys";
 
@@ -49,12 +49,21 @@ const KEY_ROWS: {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { providerKeys, setProviderKeys, models, setModel, useOpenRouterDev, setUseOpenRouterDev } =
+  const { providerKeys, setProviderKeys, models, setModel, setModels, useOpenRouterDev, setUseOpenRouterDev } =
     useSettingsStore();
   const [draft, setDraft] = useState<UserProviderKeys>(providerKeys);
   const [showSecrets, setShowSecrets] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [usage, setUsage] = useState({ runs: 0, apiCalls: 0, runLimit: 10, apiCallLimit: 30 });
+  const [usage, setUsage] = useState({
+    mode: "daily" as string | undefined,
+    runs: 0,
+    apiCalls: 0,
+    runLimit: 10,
+    apiCallLimit: 30,
+    credit_balance_cents: undefined as number | undefined,
+    free_runs_remaining: undefined as number | undefined,
+  });
+  const [modelGroups, setModelGroups] = useState(GROUPED_MODELS);
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<ProviderKeyId | null>(null);
   const [billing, setBilling] = useState<{
@@ -87,7 +96,16 @@ export default function SettingsPage() {
     fetch("/api/usage")
       .then((r) => r.json())
       .then((d) => {
-        if (d.runs !== undefined) setUsage(d);
+        if (d.runs === undefined) return;
+        setUsage({
+          mode: d.mode,
+          runs: d.runs ?? 0,
+          apiCalls: d.apiCalls ?? 0,
+          runLimit: d.runLimit ?? 10,
+          apiCallLimit: d.apiCallLimit ?? 30,
+          credit_balance_cents: d.credit_balance_cents,
+          free_runs_remaining: d.free_runs_remaining,
+        });
       })
       .catch(() => {});
   }, []);
@@ -97,9 +115,24 @@ export default function SettingsPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d && typeof d.tier === "string") setBilling(d);
+        if (
+          d?.billing_enforced &&
+          d.tier === "free" &&
+          !d.owner_unlimited &&
+          Array.isArray(d.free_model_ids)
+        ) {
+          const allowed = new Set<string>(d.free_model_ids);
+          setModelGroups(filterGroupedModels(allowed));
+          setModels(clampModelConfigToAllowed(useSettingsStore.getState().models, allowed));
+        } else {
+          setModelGroups(GROUPED_MODELS);
+        }
       })
-      .catch(() => setBilling(null));
-  }, []);
+      .catch(() => {
+        setBilling(null);
+        setModelGroups(GROUPED_MODELS);
+      });
+  }, [setModels]);
 
   const handleSave = useCallback(() => {
     setProviderKeys(draft);
@@ -116,8 +149,14 @@ export default function SettingsPage() {
     router.push("/login");
   }
 
-  const runPct = Math.min(100, (usage.runs / usage.runLimit) * 100);
-  const apiPct = Math.min(100, (usage.apiCalls / usage.apiCallLimit) * 100);
+  const runPct =
+    usage.runLimit > 0
+      ? Math.min(100, (usage.runs / usage.runLimit) * 100)
+      : usage.mode === "owner_unlimited"
+        ? 100
+        : 0;
+  const apiPct =
+    usage.apiCallLimit > 0 ? Math.min(100, (usage.apiCalls / usage.apiCallLimit) * 100) : 0;
 
   const configuredCount = KEY_ROWS.filter((r) => draft[r.id]?.trim()).length;
 
@@ -384,7 +423,7 @@ export default function SettingsPage() {
                       onChange={(e) => setModel(key, e.target.value)}
                       className="w-full min-h-12 bg-[#060e20] text-[#dae2fd] rounded-xl px-4 py-3 text-base sm:text-sm border-none outline-none focus:ring-2 focus:ring-[#d0bcff]/30 font-mono"
                     >
-                      {GROUPED_MODELS.map((g) => (
+                      {modelGroups.map((g) => (
                         <optgroup key={g.group} label={g.group}>
                           {g.models.map((m) => (
                             <option key={m.value} value={m.value}>{m.label}</option>
@@ -399,26 +438,82 @@ export default function SettingsPage() {
 
             <div className="hidden lg:grid grid-cols-1 gap-4">
               <div className="bg-[#131b2e] rounded-3xl p-6">
-                <h3 className="font-semibold text-[#dae2fd] mb-4">Daily usage</h3>
+                <h3 className="font-semibold text-[#dae2fd] mb-4">
+                  {usage.mode === "free_lifetime"
+                    ? "Free trial"
+                    : usage.mode === "paid_credits"
+                      ? "Credits"
+                      : usage.mode === "owner_unlimited"
+                        ? "Usage"
+                        : "Daily usage"}
+                </h3>
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-[#cbc3d7]">Runs</span>
-                      <span className="text-[#d0bcff] font-mono">{usage.runs}/{usage.runLimit}</span>
+                  {usage.mode === "daily" && (
+                    <>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-[#cbc3d7]">Runs</span>
+                          <span className="text-[#d0bcff] font-mono">
+                            {usage.runs}/{usage.runLimit}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${runPct}%`,
+                              background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-[#cbc3d7]">API calls</span>
+                          <span className="text-[#d0bcff] font-mono">
+                            {usage.apiCalls}/{usage.apiCallLimit}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${apiPct}%`, background: "linear-gradient(135deg, #4edea3 0%, #00a572 100%)" }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {usage.mode === "free_lifetime" && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-[#cbc3d7]">Free runs (lifetime)</span>
+                        <span className="text-[#d0bcff] font-mono">
+                          {usage.runs}/{usage.runLimit}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${runPct}%`,
+                            background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-[#cbc3d7]/70 mt-2">Only low-cost models until you upgrade.</p>
                     </div>
-                    <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${runPct}%`, background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-[#cbc3d7]">API calls</span>
-                      <span className="text-[#d0bcff] font-mono">{usage.apiCalls}/{usage.apiCallLimit}</span>
-                    </div>
-                    <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${apiPct}%`, background: "linear-gradient(135deg, #4edea3 0%, #00a572 100%)" }} />
-                    </div>
-                  </div>
+                  )}
+                  {usage.mode === "paid_credits" && (
+                    <p className="text-sm text-[#dae2fd]">
+                      Balance:{" "}
+                      <span className="font-mono text-[#d0bcff]">
+                        ${((usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
+                      </span>
+                    </p>
+                  )}
+                  {usage.mode === "owner_unlimited" && (
+                    <p className="text-sm text-[#4edea3]">Owner unlimited — no limits applied.</p>
+                  )}
                 </div>
               </div>
             </div>

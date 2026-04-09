@@ -1,4 +1,5 @@
 import type { FlowConfig, ModelConfig } from "./types";
+import { FREE_MODEL_SET } from "./pricing";
 
 /** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
 export const OPENROUTER_MODELS = [
@@ -37,6 +38,14 @@ export const DEFAULT_MODELS: ModelConfig = {
   synth: "anthropic/claude-haiku-3-5",
 };
 
+/** Defaults when free-tier model allowlist applies (must stay within FREE_MODELS). */
+export const DEFAULT_MODELS_FREE_TIER: ModelConfig = {
+  bot1: "deepseek/deepseek-chat",
+  bot2: "google/gemini-2.5-flash-preview",
+  bot3: "mistralai/mistral-small-3.1",
+  synth: "google/gemini-2.5-flash-preview",
+};
+
 export const DEFAULT_FLOW: FlowConfig = {
   mode: "super",
   primarySlot: "bot1",
@@ -73,6 +82,29 @@ export function normalizeModelConfig(input: Partial<ModelConfig> | null | undefi
     bot2: pick(input.bot2, d.bot2),
     bot3: pick(input.bot3, d.bot3),
     synth: pick(input.synth, d.synth),
+  };
+}
+
+export function filterGroupedModels(allowed: ReadonlySet<string> | null) {
+  if (!allowed) return GROUPED_MODELS;
+  return GROUPED_MODELS.map((g) => ({
+    ...g,
+    models: g.models.filter((m) => allowed.has(m.value)),
+  })).filter((g) => g.models.length > 0);
+}
+
+/** Clamp stored models to an allowlist (e.g. free tier). */
+export function clampModelConfigToAllowed(
+  models: ModelConfig,
+  allowed: ReadonlySet<string>,
+  defaults: ModelConfig = DEFAULT_MODELS_FREE_TIER
+): ModelConfig {
+  const pick = (v: string, fb: string) => (allowed.has(v) ? v : fb);
+  return {
+    bot1: pick(models.bot1, defaults.bot1),
+    bot2: pick(models.bot2, defaults.bot2),
+    bot3: pick(models.bot3, defaults.bot3),
+    synth: pick(models.synth, defaults.synth),
   };
 }
 

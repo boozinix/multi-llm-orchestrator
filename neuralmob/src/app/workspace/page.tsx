@@ -1,14 +1,57 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useChatStore } from "@/store/chat-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { GROUPED_MODELS, modelLabel } from "@/lib/constants";
+import {
+  GROUPED_MODELS,
+  modelLabel,
+  filterGroupedModels,
+  clampModelConfigToAllowed,
+} from "@/lib/constants";
 import { FlowDiagram } from "./FlowDiagram";
 import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "@/lib/types";
 
 const BOT_SLOTS = ["bot1", "bot2", "bot3"] as const;
+
+type UsageViewState = {
+  mode?: string;
+  runs: number;
+  apiCalls: number;
+  runLimit: number;
+  apiCallLimit: number;
+  credit_balance_cents?: number;
+  free_runs_remaining?: number;
+};
+
+function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary: string | null } {
+  const mode = u.mode ?? "daily";
+  if (mode === "free_lifetime") {
+    return {
+      primary: `${u.runs}/${u.runLimit} free run${u.runLimit === 1 ? "" : "s"}`,
+      secondary: u.free_runs_remaining === 0 ? "Upgrade for more runs" : "Low-cost models only",
+    };
+  }
+  if (mode === "paid_credits") {
+    const usd = ((u.credit_balance_cents ?? 0) / 100).toFixed(2);
+    return { primary: `$${usd} credits`, secondary: null };
+  }
+  if (mode === "owner_unlimited") {
+    return { primary: "Unlimited", secondary: null };
+  }
+  return {
+    primary: `${u.runs}/${u.runLimit} runs`,
+    secondary: `${u.apiCalls}/${u.apiCallLimit} API calls`,
+  };
+}
+
+function usageBarPercent(u: UsageViewState): number {
+  if (u.mode === "owner_unlimited") return 100;
+  if (u.runLimit > 0) return Math.min(100, (u.runs / u.runLimit) * 100);
+  return 0;
+}
 
 type StreamBlock = {
   phase: string;
@@ -57,13 +100,14 @@ function SideNav({
 }: {
   conversations: ConversationRecord[];
   activeId: string | null;
-  usage: { runs: number; apiCalls: number };
+  usage: UsageViewState;
   onSelect: (id: string) => void;
   onNew: () => void;
   onNav: (page: "workspace" | "settings") => void;
   onSignOut: () => void;
 }) {
-  const runPct = Math.min(100, (usage.runs / 10) * 100);
+  const { primary: usagePrimary, secondary: usageSecondary } = usagePrimarySecondary(usage);
+  const runPct = usageBarPercent(usage);
 
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 bg-[#131b2e] flex flex-col p-4 z-50 overflow-hidden">
@@ -125,7 +169,7 @@ function SideNav({
         <div className="bg-[#171f33] p-3 rounded-xl border border-[#494454]/10">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[11px] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Usage Limit</span>
-            <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usage.runs}/10 runs</span>
+            <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usagePrimary}</span>
           </div>
           <div className="h-1.5 w-full bg-[#2d3449] rounded-full overflow-hidden">
             <div
@@ -133,7 +177,9 @@ function SideNav({
               style={{ width: `${runPct}%`, background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 0 12px 2px rgba(160,120,255,0.3)" }}
             />
           </div>
-          <p className="text-[10px] text-[#cbc3d7]/50 mt-1">{usage.apiCalls}/30 API calls</p>
+          {usageSecondary && (
+            <p className="text-[10px] text-[#cbc3d7]/50 mt-1">{usageSecondary}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -247,7 +293,15 @@ function BotOutputCard({ bot }: { bot: BotRunOutput }) {
   );
 }
 
-function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p: Partial<FlowConfig>) => void }) {
+function FlowPanel({
+  flow,
+  onFlowChange,
+  groupedModels,
+}: {
+  flow: FlowConfig;
+  onFlowChange: (p: Partial<FlowConfig>) => void;
+  groupedModels: typeof GROUPED_MODELS;
+}) {
   const { models, setModel } = useSettingsStore();
 
   return (
@@ -299,7 +353,7 @@ function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p:
             className="w-full bg-[#060e20] text-[#dae2fd] rounded-lg px-3 py-2 text-sm border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40"
             style={{ fontFamily: "JetBrains Mono, monospace" }}
           >
-            {GROUPED_MODELS.map((g) => (
+            {groupedModels.map((g) => (
               <optgroup key={g.group} label={g.group}>
                 {g.models.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -344,7 +398,7 @@ function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p:
                 className="w-full bg-[#060e20] text-[#dae2fd] rounded-lg px-2 py-1.5 text-xs border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40 disabled:opacity-40"
                 style={{ fontFamily: "JetBrains Mono, monospace" }}
               >
-                {GROUPED_MODELS.map((g) => (
+                {groupedModels.map((g) => (
                   <optgroup key={g.group} label={g.group}>
                     {g.models.map((m) => (
                       <option key={m.value} value={m.value}>{m.label}</option>
@@ -413,7 +467,7 @@ function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p:
       {flow.mode === "super" && (
         <div>
           <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7] mb-3" style={{ fontFamily: "JetBrains Mono, monospace" }}>Synthesis Model</h3>
-          <SynthModelSelector />
+          <SynthModelSelector groupedModels={groupedModels} />
         </div>
       )}
 
@@ -428,7 +482,7 @@ function FlowPanel({ flow, onFlowChange }: { flow: FlowConfig; onFlowChange: (p:
   );
 }
 
-function SynthModelSelector() {
+function SynthModelSelector({ groupedModels }: { groupedModels: typeof GROUPED_MODELS }) {
   const { models, setModel } = useSettingsStore();
   return (
     <select
@@ -436,7 +490,7 @@ function SynthModelSelector() {
       onChange={(e) => setModel("synth", e.target.value)}
       className="w-full bg-[#060e20] text-[#dae2fd] rounded-lg px-3 py-2 text-sm border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40"
     >
-      {GROUPED_MODELS.map((g) => (
+      {groupedModels.map((g) => (
         <optgroup key={g.group} label={g.group}>
           {g.models.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
@@ -450,11 +504,20 @@ function SynthModelSelector() {
 export default function WorkspacePage() {
   const router = useRouter();
   const { conversations, activeConversationId, messages, flow, isLoading, setConversations, setActiveConversation, setMessages, appendMessage, setFlow, setLoading, removeConversation } = useChatStore();
-  const { providerKeys, models, useOpenRouterDev } = useSettingsStore();
+  const { providerKeys, models, useOpenRouterDev, setModels } = useSettingsStore();
+
+  const [auth, setAuth] = useState<"loading" | "anon" | "authed">("loading");
+  const [freeModelIds, setFreeModelIds] = useState<string[] | null>(null);
 
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
-  const [usage, setUsage] = useState({ runs: 0, apiCalls: 0 });
+  const [usage, setUsage] = useState<UsageViewState>({
+    mode: "daily",
+    runs: 0,
+    apiCalls: 0,
+    runLimit: 10,
+    apiCallLimit: 30,
+  });
   const [streamingStatus, setStreamingStatus] = useState("");
   const [streamingPreview, setStreamingPreview] = useState("");
   const [mobileTab, setMobileTab] = useState<"chat" | "flow">("chat");
@@ -471,17 +534,35 @@ export default function WorkspacePage() {
     try {
       const res = await fetch("/api/usage");
       if (res.ok) {
-        const data = await res.json();
-        setUsage({ runs: data.runs, apiCalls: data.apiCalls });
+        const data = (await res.json()) as UsageViewState;
+        setUsage({
+          mode: data.mode,
+          runs: data.runs ?? 0,
+          apiCalls: data.apiCalls ?? 0,
+          runLimit: data.runLimit ?? 10,
+          apiCallLimit: data.apiCallLimit ?? 30,
+          credit_balance_cents: data.credit_balance_cents,
+          free_runs_remaining: data.free_runs_remaining,
+        });
       }
     } catch { /* ignore */ }
   }, []);
+
+  const groupedModelsForUi = useMemo(() => {
+    if (!freeModelIds?.length) return GROUPED_MODELS;
+    return filterGroupedModels(new Set(freeModelIds));
+  }, [freeModelIds]);
+
+  const mobileUsageLine = useMemo(() => {
+    const { primary, secondary } = usagePrimarySecondary(usage);
+    return secondary ? `${primary} · ${secondary}` : primary;
+  }, [usage]);
 
   const loadConversations = useCallback(async () => {
     try {
       const res = await fetch("/api/conversations");
       if (res.status === 401) {
-        router.push("/login");
+        setAuth("anon");
         return;
       }
       if (res.ok) {
@@ -497,8 +578,15 @@ export default function WorkspacePage() {
   }, [router, setConversations, setActiveConversation, setMessages]);
 
   useEffect(() => {
-    loadConversations();
-    loadUsage();
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { authenticated?: boolean }) => {
+        setAuth(d.authenticated ? "authed" : "anon");
+      })
+      .catch(() => setAuth("anon"));
+  }, []);
+
+  useEffect(() => {
     fetch("/api/showcase")
       .then((r) => r.json())
       .then((d: { showcase?: boolean }) => setShowcaseMode(Boolean(d.showcase)))
@@ -507,7 +595,43 @@ export default function WorkspacePage() {
       const h = window.location.hostname;
       setShowLocalReset(h === "localhost" || h === "127.0.0.1");
     }
-  }, [loadConversations, loadUsage]);
+  }, []);
+
+  useEffect(() => {
+    if (auth !== "authed") return;
+    void loadConversations();
+    void loadUsage();
+  }, [auth, loadConversations, loadUsage]);
+
+  useEffect(() => {
+    if (auth !== "authed") return;
+    const ac = new AbortController();
+    fetch("/api/billing", { signal: ac.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (b: {
+          billing_enforced?: boolean;
+          tier?: string;
+          owner_unlimited?: boolean;
+          free_model_ids?: string[] | null;
+        } | null) => {
+          if (!b) {
+            setFreeModelIds(null);
+            return;
+          }
+          if (b.billing_enforced && b.tier === "free" && !b.owner_unlimited && Array.isArray(b.free_model_ids)) {
+            const allowed = new Set(b.free_model_ids);
+            setFreeModelIds(b.free_model_ids);
+            const clamped = clampModelConfigToAllowed(useSettingsStore.getState().models, allowed);
+            setModels(clamped);
+          } else {
+            setFreeModelIds(null);
+          }
+        }
+      )
+      .catch(() => setFreeModelIds(null));
+    return () => ac.abort();
+  }, [auth, setModels]);
 
   /** Stick to bottom only if the user is already near the bottom; always jump when switching chats. */
   useEffect(() => {
@@ -772,6 +896,42 @@ export default function WorkspacePage() {
 
   const enabledCount = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
 
+  if (auth === "loading") {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#0b1326] text-[#cbc3d7]">
+        Loading…
+      </div>
+    );
+  }
+
+  if (auth === "anon") {
+    return (
+      <div className="min-h-[100dvh] flex flex-col bg-[#0b1326] text-[#dae2fd]">
+        <header className="border-b border-[#494454]/15 px-4 py-4 flex items-center justify-between safe-top">
+          <span className="font-semibold">Orchestrator</span>
+        </header>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-md rounded-2xl border border-[#494454]/20 bg-[#131b2e] p-8 text-center space-y-4">
+            <h1 className="text-xl font-bold">Sign in to run the orchestrator</h1>
+            <p className="text-sm text-[#cbc3d7] leading-relaxed">
+              After you sign in, you get one free successful run on approved low-cost models. Upgrade for flagship models and higher limits.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center min-h-12 px-6 rounded-xl font-semibold w-full"
+              style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", color: "#340080" }}
+            >
+              Continue with email
+            </Link>
+            <p className="text-[11px] text-[#cbc3d7]/60">
+              Demo sign-in uses email only. For SSO and verified accounts, wire Clerk (see .env.example).
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#0b1326] overscroll-none">
       {showLocalReset && (
@@ -831,7 +991,7 @@ export default function WorkspacePage() {
               ))}
             </div>
             <div className="p-3 border-t border-[#494454]/15 text-[10px] text-[#cbc3d7]/60 font-mono">
-              {usage.runs}/10 runs · {usage.apiCalls}/30 API
+              {mobileUsageLine}
             </div>
           </aside>
         </div>
@@ -1077,7 +1237,7 @@ export default function WorkspacePage() {
 
           {/* Flow panel — desktop always visible, mobile togglable */}
           <div className={`${mobileTab === "flow" ? "flex flex-1 min-h-0" : "hidden"} lg:flex lg:min-h-0`}>
-            <FlowPanel flow={flow} onFlowChange={setFlow} />
+            <FlowPanel flow={flow} onFlowChange={setFlow} groupedModels={groupedModelsForUi} />
           </div>
         </div>
       </div>

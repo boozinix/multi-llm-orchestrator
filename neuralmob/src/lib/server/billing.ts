@@ -1,9 +1,19 @@
 import { isShowcaseMode } from "./showcase";
 import { isOwnerUnlimitedEmail } from "./owner-unlimited";
 
-/** Production deploys with real LLM: enforce tier + credit metering (not showcase). */
+function envTruthy(name: string): boolean {
+  const v = (process.env[name] ?? "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/**
+ * When true, enforce free-tier model list + lifetime run cap + paid credits (not showcase).
+ * Production: on by default. Local: set `ENFORCE_BILLING=1` to mirror production rules.
+ */
 export function isProductionBillingEnabled(): boolean {
-  return process.env.NODE_ENV === "production" && !isShowcaseMode();
+  if (isShowcaseMode()) return false;
+  if (envTruthy("ENFORCE_BILLING")) return true;
+  return process.env.NODE_ENV === "production";
 }
 
 /** True when production billing rules apply to this session (owner bypass is off). */
