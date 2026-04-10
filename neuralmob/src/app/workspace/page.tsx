@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { BrandGlyph, BrandMark } from "@/components/brand-mark";
+import { AppIcon } from "@/components/app-icon";
 import { WorkspaceTour, type WorkspaceTourStep } from "@/components/workspace-tour";
 import { useChatStore } from "@/store/chat-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -212,21 +213,21 @@ function SideNav({
           onClick={() => onNav("workspace")}
           className="w-full app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left"
         >
-          <span className="material-symbols-outlined text-[20px]">chat</span>
+          <AppIcon name="chat" className="h-5 w-5" />
           Chat
         </button>
         <button
           onClick={() => onNav("settings")}
           className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
         >
-          <span className="material-symbols-outlined text-[20px]">key</span>
+          <AppIcon name="key" className="h-5 w-5" />
           API Keys
         </button>
         <button
           onClick={() => onNav("settings")}
           className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
         >
-          <span className="material-symbols-outlined text-[20px]">settings</span>
+          <AppIcon name="settings" className="h-5 w-5" />
           Settings
         </button>
         {showAdmin && (
@@ -234,7 +235,7 @@ function SideNav({
             onClick={onAdmin}
             className="w-full text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335]"
           >
-            <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+            <AppIcon name="admin" className="h-5 w-5" />
             Admin
           </button>
         )}
@@ -287,14 +288,14 @@ function SideNav({
             onClick={onNew}
             className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#edf2ff] bg-[#171f33] hover:bg-[#1d2740] transition-colors rounded-2xl"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <AppIcon name="add" className="h-[1.05rem] w-[1.05rem]" />
             New Chat
           </button>
           <button
             onClick={onSignOut}
             className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#9aa8c7] hover:bg-[#161f33] hover:text-[#edf2ff] transition-colors rounded-2xl"
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <AppIcon name="logout" className="h-[1.05rem] w-[1.05rem]" />
             Sign Out
           </button>
         </div>
@@ -308,7 +309,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
     return (
       <div className="flex gap-3 sm:gap-4 max-w-3xl mx-auto px-0.5">
         <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg bg-[#222a3d] flex-shrink-0 flex items-center justify-center">
-          <span className="material-symbols-outlined text-[#cbc3d7] text-lg sm:text-base">person</span>
+          <AppIcon name="person" className="h-[1.1rem] w-[1.1rem] text-[#cbc3d7] sm:h-4 sm:w-4" />
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex justify-end">
@@ -581,7 +582,7 @@ function FlowPanel({
 
       <div className="p-4 bg-[#2d3449] rounded-xl border border-[#d0bcff]/10">
         <div className="flex items-center gap-2 mb-2">
-          <span className="material-symbols-outlined text-[#d0bcff] text-sm">verified</span>
+          <AppIcon name="verified" className="h-4 w-4 text-[#d0bcff]" />
           <span className="text-[10px] uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
         </div>
         <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active bots.</p>
@@ -1194,7 +1195,7 @@ export default function WorkspacePage() {
                 className="min-h-10 min-w-10 rounded-xl app-panel-soft flex items-center justify-center text-[#d0bcff]"
                 aria-label="Close"
               >
-                <span className="material-symbols-outlined">close</span>
+                <AppIcon name="close" className="h-5 w-5" />
               </button>
             </div>
             <button
@@ -1255,7 +1256,7 @@ export default function WorkspacePage() {
               className="lg:hidden min-h-11 min-w-11 shrink-0 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
               aria-label="Open history"
             >
-              <span className="material-symbols-outlined text-[22px]">menu</span>
+              <AppIcon name="menu" className="h-[1.35rem] w-[1.35rem]" />
             </button>
             <div className="min-w-0">
               <span className="font-semibold text-[#edf2ff] hidden lg:block truncate">Neural Mob</span>
@@ -1289,7 +1290,7 @@ export default function WorkspacePage() {
               className="min-h-11 rounded-xl px-3 sm:px-3.5 text-sm font-medium text-[#b7c4df] bg-[#171f33] hover:bg-[#1d2740] transition-colors flex items-center justify-center gap-2"
               aria-label="Open guide"
             >
-              <span className="material-symbols-outlined text-[18px]">help</span>
+              <AppIcon name="help" className="h-[1.05rem] w-[1.05rem]" />
               <span className="hidden sm:inline">Guide</span>
             </button>
             <button
@@ -1315,7 +1316,7 @@ export default function WorkspacePage() {
               className="min-h-11 min-w-11 rounded-xl app-panel-soft flex items-center justify-center"
               aria-label="Settings"
             >
-              <span className="material-symbols-outlined text-[#d0bcff] text-[22px]">key</span>
+              <AppIcon name="key" className="h-[1.35rem] w-[1.35rem] text-[#d0bcff]" />
             </button>
           </div>
         </header>
@@ -1388,7 +1389,7 @@ export default function WorkspacePage() {
                 <div className="max-w-3xl mx-auto space-y-3">
                   <div className="flex gap-3 items-start">
                     <div className="w-8 h-8 rounded-lg bg-[#2d3449] animate-pulse flex-shrink-0 flex items-center justify-center mt-1">
-                      <span className="material-symbols-outlined text-sm text-[#d0bcff]">smart_toy</span>
+                      <AppIcon name="robot" className="h-4 w-4 text-[#d0bcff]" />
                     </div>
                     <div className="flex-1 space-y-2 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1464,7 +1465,7 @@ export default function WorkspacePage() {
 
                 {error && (
                   <div className="bg-[#93000a]/20 border border-[#ffb4ab]/20 rounded-2xl px-4 py-3 flex items-start gap-2">
-                    <span className="material-symbols-outlined text-[#ffb4ab] text-base mt-0.5 flex-shrink-0">error</span>
+                    <AppIcon name="error" className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#ffb4ab]" />
                     <p className="text-[#ffb4ab] text-sm">
                       {error}
                       {(error.toLowerCase().includes("api key") ||
@@ -1538,7 +1539,7 @@ export default function WorkspacePage() {
           onClick={() => router.push("/workspace")}
           className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#d0bcff]"
         >
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+          <AppIcon name="chat" className="h-6 w-6" />
           <span className="text-[10px] font-medium">Chat</span>
         </button>
         <button
@@ -1546,7 +1547,7 @@ export default function WorkspacePage() {
           onClick={() => router.push("/settings")}
           className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]"
         >
-          <span className="material-symbols-outlined text-2xl">key</span>
+          <AppIcon name="key" className="h-6 w-6" />
           <span className="text-[10px] font-medium">Keys</span>
         </button>
         <button
@@ -1554,7 +1555,7 @@ export default function WorkspacePage() {
           onClick={handleSignOut}
           className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]"
         >
-          <span className="material-symbols-outlined text-2xl">logout</span>
+          <AppIcon name="logout" className="h-6 w-6" />
           <span className="text-[10px] font-medium">Out</span>
         </button>
       </div>

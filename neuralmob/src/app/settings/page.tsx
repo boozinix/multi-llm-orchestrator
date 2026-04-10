@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { BrandMark } from "@/components/brand-mark";
+import { AppIcon } from "@/components/app-icon";
 import { useSettingsStore, type ProviderKeyId } from "@/store/settings-store";
 import { GROUPED_MODELS, filterGroupedModels, clampModelConfigToAllowed } from "@/lib/constants";
 import type { ModelConfig } from "@/lib/types";
@@ -207,7 +208,7 @@ export default function SettingsPage() {
             onClick={() => router.push("/workspace")}
             className="w-full min-h-11 text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#edf2ff] transition-colors"
           >
-            <span className="material-symbols-outlined text-[20px]">chat</span>
+            <AppIcon name="chat" className="h-5 w-5" />
             Chat
           </button>
           <button
@@ -215,7 +216,7 @@ export default function SettingsPage() {
             onClick={() => router.push("/settings")}
             className="w-full min-h-11 app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left transition-colors"
           >
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>settings</span>
+            <AppIcon name="settings" className="h-5 w-5" />
             Settings
           </button>
           {billing?.owner_unlimited && (
@@ -224,7 +225,7 @@ export default function SettingsPage() {
               onClick={() => router.push("/admin")}
               className="w-full min-h-11 text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335] transition-colors"
             >
-              <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+              <AppIcon name="admin" className="h-5 w-5" />
               Admin
             </button>
           )}
@@ -240,7 +241,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <button type="button" onClick={handleSignOut} className="w-full min-h-11 flex items-center gap-3 px-3.5 py-3 text-sm text-[#9aa8c7] hover:text-[#edf2ff] hover:bg-[#161f33] rounded-2xl transition-colors">
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <AppIcon name="logout" className="h-[1.05rem] w-[1.05rem]" />
             Sign Out
           </button>
         </div>
@@ -412,7 +413,10 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className={`w-2 h-2 rounded-full ${draft[row.id]?.trim() ? "bg-[#4edea3]" : "bg-[#ffb4ab]/60"}`} />
-                        <span className="material-symbols-outlined text-[#cbc3d7]">{open ? "expand_less" : "expand_more"}</span>
+                        <AppIcon
+                          name={open ? "expandUp" : "expandDown"}
+                          className="h-[1.05rem] w-[1.05rem] text-[#cbc3d7]"
+                        />
                       </div>
                     </button>
                     {open && (
@@ -599,15 +603,15 @@ export default function SettingsPage() {
 
       <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-white/8 bg-[#10182b]/95 backdrop-blur-xl z-50 safe-bottom pt-1">
         <button type="button" onClick={() => router.push("/workspace")} className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]">
-          <span className="material-symbols-outlined text-2xl">chat</span>
+          <AppIcon name="chat" className="h-6 w-6" />
           <span className="text-[10px]">Chat</span>
         </button>
         <button type="button" className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#d0bcff]">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>key</span>
+          <AppIcon name="key" className="h-6 w-6" />
           <span className="text-[10px]">Keys</span>
         </button>
         <button type="button" onClick={handleSignOut} className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]">
-          <span className="material-symbols-outlined text-2xl">logout</span>
+          <AppIcon name="logout" className="h-6 w-6" />
           <span className="text-[10px]">Out</span>
         </button>
       </div>

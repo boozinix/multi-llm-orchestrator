@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
+import { AppIcon } from "@/components/app-icon";
 
 export type WorkspaceTourStep = {
   id: string;
@@ -142,7 +143,7 @@ export function WorkspaceTour({
               className="min-h-10 min-w-10 rounded-2xl bg-white/5 text-[#b5c0d8] transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Dismiss tour"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <AppIcon name="close" className="h-5 w-5" />
             </button>
           </div>
 
