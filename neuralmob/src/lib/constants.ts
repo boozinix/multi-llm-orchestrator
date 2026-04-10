@@ -20,6 +20,17 @@ export type PickerModelGroup = {
   models: PickerModelOption[];
 };
 
+const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  "google/gemini-2.5-pro-preview": "google/gemini-2.5-pro",
+  "google/gemini-2.5-flash-preview": "google/gemini-2.5-flash",
+  "mistralai/mistral-small-3.1": "mistralai/mistral-small-3.1-24b-instruct",
+};
+
+function canonicalModelId(value: string | undefined): string | undefined {
+  if (!value) return value;
+  return LEGACY_MODEL_ALIASES[value] ?? value;
+}
+
 /** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
 export const OPENROUTER_MODELS: ModelOption[] = [
   // Anthropic
@@ -35,8 +46,8 @@ export const OPENROUTER_MODELS: ModelOption[] = [
   { value: "x-ai/grok-3-mini", label: "Grok 3 Mini — ⚡ Fast" },
   // Google
   { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro — 🥇 Flagship" },
-  { value: "google/gemini-2.5-pro-preview", label: "Gemini 2.5 Pro — Stable fallback" },
-  { value: "google/gemini-2.5-flash-preview", label: "Gemini 2.5 Flash — ⚡ Fast/cheap merge" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro — Stable fallback" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash — ⚡ Fast/cheap merge" },
   // DeepSeek
   { value: "deepseek/deepseek-chat", label: "DeepSeek V3 — 💰 Cheap + analytical" },
   { value: "deepseek/deepseek-reasoner", label: "DeepSeek Reasoner — 🧮 Math/logic specialist" },
@@ -47,7 +58,7 @@ export const OPENROUTER_MODELS: ModelOption[] = [
   { value: "moonshotai/kimi-k2", label: "Kimi K2 — 🧮 Best math/agentic" },
   // Mistral
   { value: "mistralai/mistral-large-3", label: "Mistral Large 3 — 🇪🇺 EU/multilingual" },
-  { value: "mistralai/mistral-small-3.1", label: "Mistral Small 3.1 — ⚡ Fast EU fallback" },
+  { value: "mistralai/mistral-small-3.1-24b-instruct", label: "Mistral Small 3.1 — ⚡ Fast EU fallback" },
 ];
 
 export const DEFAULT_MODELS: ModelConfig = {
@@ -60,9 +71,9 @@ export const DEFAULT_MODELS: ModelConfig = {
 /** Defaults when free-tier model allowlist applies (must stay within FREE_MODELS). */
 export const DEFAULT_MODELS_FREE_TIER: ModelConfig = {
   bot1: "deepseek/deepseek-chat",
-  bot2: "google/gemini-2.5-flash-preview",
-  bot3: "mistralai/mistral-small-3.1",
-  synth: "google/gemini-2.5-flash-preview",
+  bot2: "google/gemini-2.5-flash",
+  bot3: "mistralai/mistral-small-3.1-24b-instruct",
+  synth: "google/gemini-2.5-flash",
 };
 
 export const DEFAULT_FLOW: FlowConfig = {
@@ -112,7 +123,7 @@ export function normalizeModelConfig(input: Partial<ModelConfig> | null | undefi
   const d = DEFAULT_MODELS;
   if (!input) return { ...d };
   const pick = (v: string | undefined, fallback: string) =>
-    v && typeof v === "string" && ALLOWED_MODEL_VALUES.has(v) ? v : fallback;
+    v && typeof v === "string" && ALLOWED_MODEL_VALUES.has(canonicalModelId(v) ?? "") ? canonicalModelId(v)! : fallback;
   return {
     bot1: pick(input.bot1, d.bot1),
     bot2: pick(input.bot2, d.bot2),
@@ -170,5 +181,6 @@ export const GROUPED_MODELS: ModelGroup[] = [
 ];
 
 export function modelLabel(value: string): string {
-  return OPENROUTER_MODELS.find((m) => m.value === value)?.label ?? value.split("/").pop() ?? value;
+  const canonical = canonicalModelId(value) ?? value;
+  return OPENROUTER_MODELS.find((m) => m.value === canonical)?.label ?? canonical.split("/").pop() ?? canonical;
 }
