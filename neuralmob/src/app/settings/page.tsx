@@ -161,7 +161,15 @@ export default function SettingsPage() {
   }, [providerKeys]);
 
   async function handleSignOut() {
-    await signOut({ redirectUrl: "/workspace" });
+    const redirectUrl =
+      typeof window !== "undefined" ? `${window.location.origin}/sign-in` : "/sign-in";
+    try {
+      await signOut({ redirectUrl });
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.assign("/sign-in");
+      }
+    }
   }
 
   async function handleTopUp(amountCents: number) {

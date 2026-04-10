@@ -968,7 +968,15 @@ export default function WorkspacePage() {
             if (typeof j.message === "string" && j.message.trim()) errMsg = j.message;
             else if (j.error) errMsg = j.error;
           } catch {
-            errMsg = rawText.slice(0, 300);
+            const rawLower = rawText.toLowerCase();
+            if (rawLower.includes("<!doctype html") || rawLower.includes("<html")) {
+              errMsg =
+                res.status === 401
+                  ? "Your session expired. Sign in again and retry."
+                  : "The server returned an unexpected HTML response. Please refresh and try again.";
+            } else {
+              errMsg = rawText.slice(0, 300);
+            }
           }
         }
         setError(errMsg);
@@ -1104,7 +1112,15 @@ export default function WorkspacePage() {
   }
 
   async function handleSignOut() {
-    await signOut({ redirectUrl: "/workspace" });
+    const redirectUrl =
+      typeof window !== "undefined" ? `${window.location.origin}/sign-in` : "/sign-in";
+    try {
+      await signOut({ redirectUrl });
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.assign("/sign-in");
+      }
+    }
   }
 
   const enabledCount = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
@@ -1348,7 +1364,7 @@ export default function WorkspacePage() {
                   <div className="max-w-5xl w-full mx-auto grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
                     <div className="text-left">
                       <p className="app-eyebrow mb-4">Neural Mob</p>
-                      <h2 className="app-hero-title text-4xl md:text-5xl xl:text-[5.25rem] text-[#edf2ff] max-w-2xl">
+                      <h2 className="app-hero-title text-3xl md:text-4xl xl:text-[4.3rem] text-[#edf2ff] max-w-xl">
                         Ask once. Compare, merge, and synthesize across models.
                       </h2>
                       <p className="mt-5 max-w-xl text-base md:text-lg text-[#b4bed6] leading-8">

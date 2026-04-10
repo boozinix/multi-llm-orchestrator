@@ -18,6 +18,7 @@ const isProtectedRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
   const isStripeWebhook = pathname === "/api/stripe/webhook";
+  const isApiRoute = pathname.startsWith("/api/");
 
   if (
     !isStripeWebhook &&
@@ -37,7 +38,13 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (!isLocalOwnerBypassEnabled() && isProtectedRoute(req)) {
-    await auth.protect();
+    const { userId } = await auth();
+    if (!userId) {
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      await auth.protect();
+    }
   }
 
   return NextResponse.next();
