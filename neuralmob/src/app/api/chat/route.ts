@@ -346,6 +346,14 @@ async function settleUsageAfterSuccessfulRun(
     completionTokens: l.completionTokens,
     costCents: calculateCostCents(l.model, l.promptTokens, l.completionTokens),
   }));
+  const totalCostCents = lines.reduce((sum, line) => sum + line.costCents, 0);
+  const hasBillableUsage = lines.some((line) => line.promptTokens > 0 || line.completionTokens > 0);
+  if (hasBillableUsage && totalCostCents === 0 && lines.length > 0) {
+    lines[0] = {
+      ...lines[0],
+      costCents: 1,
+    };
+  }
   const { newBalanceCents } = await applyPaidUsage(userId, reservationId, lines);
   await incrementLifetimeCalls(userId);
   return newBalanceCents;

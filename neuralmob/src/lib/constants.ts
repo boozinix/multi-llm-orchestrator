@@ -1,7 +1,27 @@
 import type { FlowConfig, ModelConfig } from "./types";
 
+export type ModelOption = {
+  value: string;
+  label: string;
+};
+
+export type PickerModelOption = ModelOption & {
+  disabled: boolean;
+  displayLabel: string;
+};
+
+export type ModelGroup = {
+  group: string;
+  models: ModelOption[];
+};
+
+export type PickerModelGroup = {
+  group: string;
+  models: PickerModelOption[];
+};
+
 /** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
-export const OPENROUTER_MODELS = [
+export const OPENROUTER_MODELS: ModelOption[] = [
   // Anthropic
   { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5 — 🥇 Flagship" },
   { value: "anthropic/claude-opus-4", label: "Claude 4 Opus — 🧠 Deep reasoning" },
@@ -109,6 +129,20 @@ export function filterGroupedModels(allowed: ReadonlySet<string> | null) {
   })).filter((g) => g.models.length > 0);
 }
 
+export function buildSelectableModelGroups(allowed: ReadonlySet<string> | null): PickerModelGroup[] {
+  return GROUPED_MODELS.map((group) => ({
+    group: group.group,
+    models: group.models.map((model) => {
+      const disabled = Boolean(allowed && !allowed.has(model.value));
+      return {
+        ...model,
+        disabled,
+        displayLabel: disabled ? `${model.label} — Paid only` : model.label,
+      };
+    }),
+  }));
+}
+
 /** Clamp stored models to an allowlist (e.g. free tier). */
 export function clampModelConfigToAllowed(
   models: ModelConfig,
@@ -124,7 +158,7 @@ export function clampModelConfigToAllowed(
   };
 }
 
-export const GROUPED_MODELS = [
+export const GROUPED_MODELS: ModelGroup[] = [
   { group: "Anthropic", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("anthropic/")) },
   { group: "OpenAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("openai/")) },
   { group: "xAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("x-ai/")) },

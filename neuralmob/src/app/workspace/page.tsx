@@ -10,10 +10,10 @@ import { WorkspaceTour, type WorkspaceTourStep } from "@/components/workspace-to
 import { useChatStore } from "@/store/chat-store";
 import { useSettingsStore } from "@/store/settings-store";
 import {
-  GROUPED_MODELS,
   modelLabel,
-  filterGroupedModels,
+  buildSelectableModelGroups,
   clampModelConfigToAllowed,
+  type PickerModelGroup,
 } from "@/lib/constants";
 import { FlowDiagram } from "./FlowDiagram";
 import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "@/lib/types";
@@ -201,7 +201,6 @@ function SideNav({
       <div className="mb-6 px-2 pt-1 flex items-center gap-3">
         <BrandMark className="w-11 h-11 rounded-2xl flex-shrink-0" />
         <div className="min-w-0">
-          <p className="app-eyebrow mb-1">Neural Mob</p>
           <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
           <p className="mt-1 text-[11px] text-[#b9c5df]/72">Multi-model orchestration</p>
         </div>
@@ -401,7 +400,7 @@ function FlowPanel({
 }: {
   flow: FlowConfig;
   onFlowChange: (p: Partial<FlowConfig>) => void;
-  groupedModels: typeof GROUPED_MODELS;
+  groupedModels: PickerModelGroup[];
 }) {
   const { models, setModel } = useSettingsStore();
   const canMerge12 = flow.bot1Enabled && flow.bot2Enabled;
@@ -459,7 +458,9 @@ function FlowPanel({
             {groupedModels.map((g) => (
               <optgroup key={g.group} label={g.group}>
                 {g.models.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
+                  <option key={m.value} value={m.value} disabled={m.disabled}>
+                    {m.displayLabel}
+                  </option>
                 ))}
               </optgroup>
             ))}
@@ -504,7 +505,9 @@ function FlowPanel({
                 {groupedModels.map((g) => (
                   <optgroup key={g.group} label={g.group}>
                     {g.models.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                      <option key={m.value} value={m.value} disabled={m.disabled}>
+                        {m.displayLabel}
+                      </option>
                     ))}
                   </optgroup>
                 ))}
@@ -591,7 +594,7 @@ function FlowPanel({
   );
 }
 
-function SynthModelSelector({ groupedModels }: { groupedModels: typeof GROUPED_MODELS }) {
+function SynthModelSelector({ groupedModels }: { groupedModels: PickerModelGroup[] }) {
   const { models, setModel } = useSettingsStore();
   return (
     <select
@@ -602,7 +605,9 @@ function SynthModelSelector({ groupedModels }: { groupedModels: typeof GROUPED_M
       {groupedModels.map((g) => (
         <optgroup key={g.group} label={g.group}>
           {g.models.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
+            <option key={m.value} value={m.value} disabled={m.disabled}>
+              {m.displayLabel}
+            </option>
           ))}
         </optgroup>
       ))}
@@ -668,10 +673,10 @@ export default function WorkspacePage() {
     } catch { /* ignore */ }
   }, []);
 
-  const groupedModelsForUi = useMemo(() => {
-    if (!freeModelIds?.length) return GROUPED_MODELS;
-    return filterGroupedModels(new Set(freeModelIds));
-  }, [freeModelIds]);
+  const groupedModelsForUi = useMemo(
+    () => buildSelectableModelGroups(freeModelIds?.length ? new Set(freeModelIds) : null),
+    [freeModelIds]
+  );
 
   const mobileUsageLine = useMemo(() => {
     const { primary, secondary } = usagePrimarySecondary(usage);
@@ -1343,7 +1348,7 @@ export default function WorkspacePage() {
                   <div className="max-w-5xl w-full mx-auto grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
                     <div className="text-left">
                       <p className="app-eyebrow mb-4">Neural Mob</p>
-                      <h2 className="app-hero-title text-5xl md:text-6xl text-[#edf2ff] max-w-2xl">
+                      <h2 className="app-hero-title text-4xl md:text-5xl xl:text-[5.25rem] text-[#edf2ff] max-w-2xl">
                         Ask once. Compare, merge, and synthesize across models.
                       </h2>
                       <p className="mt-5 max-w-xl text-base md:text-lg text-[#b4bed6] leading-8">

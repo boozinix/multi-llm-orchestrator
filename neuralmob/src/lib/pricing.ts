@@ -34,7 +34,9 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
 /** Free tier may only use these OpenRouter model IDs. */
 export const FREE_MODELS = [
   "deepseek/deepseek-chat",
+  "x-ai/grok-3-mini",
   "google/gemini-2.5-flash-preview",
+  "openai/gpt-4.1",
   "mistralai/mistral-small-3.1",
 ] as const;
 

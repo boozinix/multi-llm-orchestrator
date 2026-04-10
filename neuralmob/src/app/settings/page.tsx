@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { BrandMark } from "@/components/brand-mark";
 import { AppIcon } from "@/components/app-icon";
 import { useSettingsStore, type ProviderKeyId } from "@/store/settings-store";
-import { GROUPED_MODELS, filterGroupedModels, clampModelConfigToAllowed } from "@/lib/constants";
+import { buildSelectableModelGroups, clampModelConfigToAllowed } from "@/lib/constants";
 import type { ModelConfig } from "@/lib/types";
 import type { UserProviderKeys } from "@/lib/provider-keys";
 
@@ -69,7 +69,7 @@ export default function SettingsPage() {
     available_credit_cents: undefined as number | undefined,
     free_runs_remaining: undefined as number | undefined,
   });
-  const [modelGroups, setModelGroups] = useState(GROUPED_MODELS);
+  const [freeModelIds, setFreeModelIds] = useState<string[] | null>(null);
   const [showcaseMode, setShowcaseMode] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<ProviderKeyId | null>(null);
   const [topupLoading, setTopupLoading] = useState<number | null>(null);
@@ -93,6 +93,11 @@ export default function SettingsPage() {
   useEffect(() => {
     setDraft(providerKeys);
   }, [providerKeys]);
+
+  const modelGroups = useMemo(
+    () => buildSelectableModelGroups(freeModelIds?.length ? new Set(freeModelIds) : null),
+    [freeModelIds]
+  );
 
   useEffect(() => {
     fetch("/api/showcase")
@@ -133,15 +138,15 @@ export default function SettingsPage() {
           Array.isArray(d.free_model_ids)
         ) {
           const allowed = new Set<string>(d.free_model_ids);
-          setModelGroups(filterGroupedModels(allowed));
+          setFreeModelIds(d.free_model_ids);
           setModels(clampModelConfigToAllowed(useSettingsStore.getState().models, allowed));
         } else {
-          setModelGroups(GROUPED_MODELS);
+          setFreeModelIds(null);
         }
       })
       .catch(() => {
         setBilling(null);
-        setModelGroups(GROUPED_MODELS);
+        setFreeModelIds(null);
       });
   }, [setModels]);
 
@@ -484,7 +489,9 @@ export default function SettingsPage() {
                       {modelGroups.map((g) => (
                         <optgroup key={g.group} label={g.group}>
                           {g.models.map((m) => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
+                            <option key={m.value} value={m.value} disabled={m.disabled}>
+                              {m.displayLabel}
+                            </option>
                           ))}
                         </optgroup>
                       ))}
