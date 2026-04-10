@@ -1,10 +1,11 @@
 import { streamModel, estimateUsageFromMessages } from "../openrouter";
 import { modelLabel } from "../constants";
 import {
-  buildCollaborativeUserPrompt,
-  buildIndividualSystemPrompt,
-  buildMergeSystemPrompt,
-  buildStagedMergeUserPrompt,
+  buildFinalJudgeSystemPrompt,
+  buildFinalJudgeUserPrompt,
+  buildIndependentSystemPrompt,
+  buildMerge12SystemPrompt,
+  buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
@@ -142,26 +143,24 @@ export async function runSuperOrchestratorStream(
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
 
-  emit({ type: "status", message: "Running bots in order (streaming)…" });
+  emit({ type: "status", message: "Running independent bots (streaming)…" });
 
   const botOutputs: BotRunOutput[] = [];
   const outputMap: Partial<Record<"bot1" | "bot2" | "bot3", string>> = {};
   const usageLines: UsageLine[] = [];
-  const priorOutputs: string[] = [];
 
   for (let i = 0; i < ordered.length; i++) {
     const slotId = ordered[i];
     const model = models[slotId];
     const n = i + 1;
-    const label = `Bot ${n} — ${modelLabel(model)}`;
+    const label = `Bot ${n} — ${modelLabel(model)} (independent)`;
     emit({ type: "status", message: `${label}…` });
-    const sys = buildIndividualSystemPrompt(priorOutputs.length);
-    const collaborativePrompt = buildCollaborativeUserPrompt(prompt, priorOutputs);
-    const botCtx = { systemPrompt: sys, history, userPrompt: collaborativePrompt };
+    const sys = buildIndependentSystemPrompt(n);
+    const botCtx = { systemPrompt: sys, history, userPrompt: prompt };
     const got = await tryRunPhase(
       slotId,
       label,
-      streamModel(providerKeys, model, sys, history, collaborativePrompt, orOpts),
+      streamModel(providerKeys, model, sys, history, prompt, orOpts),
       emit,
       botCtx
     );
@@ -169,7 +168,6 @@ export async function runSuperOrchestratorStream(
     const trimmed = got.text.trim();
     if (!trimmed) continue;
     outputMap[slotId] = trimmed;
-    priorOutputs.push(trimmed);
     botOutputs.push({ slotId, model, output: trimmed });
     usageLines.push({
       model,
@@ -191,7 +189,8 @@ export async function runSuperOrchestratorStream(
 
   let finalAnswer: string;
 
-  const mergeSys = buildMergeSystemPrompt();
+  const merge12Sys = buildMerge12SystemPrompt();
+  const finalJudgeSys = buildFinalJudgeSystemPrompt();
   const emptyHist: HistoryMessage[] = [];
 
   function pushSynthUsage(got: { usage: CompletionUsage } | null) {
@@ -204,13 +203,13 @@ export async function runSuperOrchestratorStream(
   }
 
   if (hasMerge12 && hasMerge123) {
-    emit({ type: "status", message: "Merging Bot 1 + Bot 2 (streaming)…" });
-    const up12 = buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt);
-    const ctx12 = { systemPrompt: mergeSys, history: emptyHist, userPrompt: up12 };
+    emit({ type: "status", message: "Comparing Bot 1 + Bot 2 (streaming)…" });
+    const up12 = buildMerge12UserPrompt(prompt, bot1Out, bot2Out);
+    const ctx12 = { systemPrompt: merge12Sys, history: emptyHist, userPrompt: up12 };
     const combined12got = await tryRunPhase(
       "merge12",
-      "Merge Bot 1 + 2",
-      streamModel(providerKeys, models.synth, mergeSys, emptyHist, up12, orOpts),
+      "Judge 1 + 2",
+      streamModel(providerKeys, models.synth, merge12Sys, emptyHist, up12, orOpts),
       emit,
       ctx12
     );
@@ -219,13 +218,13 @@ export async function runSuperOrchestratorStream(
     } else {
       pushSynthUsage(combined12got);
       const c12 = combined12got.text.trim();
-      emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-      const up123 = buildStagedMergeUserPrompt(c12, bot3Out, prompt);
-      const ctx123 = { systemPrompt: mergeSys, history: emptyHist, userPrompt: up123 };
+      emit({ type: "status", message: "Comparing (1 + 2) against Bot 3 (streaming)…" });
+      const up123 = buildFinalJudgeUserPrompt(prompt, c12, bot3Out);
+      const ctx123 = { systemPrompt: finalJudgeSys, history: emptyHist, userPrompt: up123 };
       const merged123got = await tryRunPhase(
         "merge123",
-        "Final synthesis",
-        streamModel(providerKeys, models.synth, mergeSys, emptyHist, up123, orOpts),
+        "Final judgment",
+        streamModel(providerKeys, models.synth, finalJudgeSys, emptyHist, up123, orOpts),
         emit,
         ctx123
       );
@@ -233,89 +232,38 @@ export async function runSuperOrchestratorStream(
       finalAnswer = merged123got?.text.trim() || c12;
     }
   } else if (hasMerge12 && !hasMerge123) {
-    emit({ type: "status", message: "Merging Bot 1 + Bot 2 (streaming)…" });
-    const up12b = buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt);
-    const ctx12b = { systemPrompt: mergeSys, history: emptyHist, userPrompt: up12b };
+    emit({ type: "status", message: "Comparing Bot 1 + Bot 2 (streaming)…" });
+    const up12b = buildMerge12UserPrompt(prompt, bot1Out, bot2Out);
+    const ctx12b = { systemPrompt: merge12Sys, history: emptyHist, userPrompt: up12b };
     const combined12got = await tryRunPhase(
       "merge12",
-      "Merge Bot 1 + 2",
-      streamModel(providerKeys, models.synth, mergeSys, emptyHist, up12b, orOpts),
+      "Judge 1 + 2",
+      streamModel(providerKeys, models.synth, merge12Sys, emptyHist, up12b, orOpts),
       emit,
       ctx12b
     );
-    if (bot3Out) {
-      if (!combined12got) {
-        finalAnswer = bot3Out;
-      } else {
-        pushSynthUsage(combined12got);
-        const c12 = combined12got.text.trim();
-        emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-        const up123b = buildStagedMergeUserPrompt(c12, bot3Out, prompt);
-        const ctx123b = { systemPrompt: mergeSys, history: emptyHist, userPrompt: up123b };
-        const merged123got = await tryRunPhase(
-          "merge123",
-          "Final synthesis",
-          streamModel(providerKeys, models.synth, mergeSys, emptyHist, up123b, orOpts),
-          emit,
-          ctx123b
-        );
-        pushSynthUsage(merged123got);
-        finalAnswer = merged123got?.text.trim() || c12;
-      }
-    } else {
-      pushSynthUsage(combined12got);
-      finalAnswer = combined12got?.text.trim() || bot1Out || bot2Out || "";
-    }
-  } else if (!hasMerge12 && hasMerge123 && bot1Out && bot3Out) {
-    let left = bot1Out;
-    if (bot2Out) {
-      emit({ type: "status", message: "Combining Bot 1 + 2 before Bot 3…" });
-      const upMid = buildStagedMergeUserPrompt(bot1Out, bot2Out, prompt);
-      const ctxMid = { systemPrompt: mergeSys, history: emptyHist, userPrompt: upMid };
-      const maybeLeftGot = await tryRunPhase(
-        "merge12",
-        "Combine Bot 1 + 2",
-        streamModel(providerKeys, models.synth, mergeSys, emptyHist, upMid, orOpts),
+    pushSynthUsage(combined12got);
+    finalAnswer = combined12got?.text.trim() || bot1Out || bot2Out || "";
+  } else if (!hasMerge12 && hasMerge123) {
+    const left = bot1Out ?? bot2Out;
+    if (left && bot3Out) {
+      emit({ type: "status", message: "Comparing prior answer against Bot 3 (streaming)…" });
+      const upLast = buildFinalJudgeUserPrompt(prompt, left.trim(), bot3Out);
+      const ctxLast = { systemPrompt: finalJudgeSys, history: emptyHist, userPrompt: upLast };
+      const merged123got = await tryRunPhase(
+        "merge123",
+        "Final judgment",
+        streamModel(providerKeys, models.synth, finalJudgeSys, emptyHist, upLast, orOpts),
         emit,
-        ctxMid
+        ctxLast
       );
-      pushSynthUsage(maybeLeftGot);
-      if (maybeLeftGot?.text.trim()) left = maybeLeftGot.text.trim();
-    }
-    emit({ type: "status", message: "Merging with Bot 3 (streaming)…" });
-    const upLast = buildStagedMergeUserPrompt(left.trim(), bot3Out, prompt);
-    const ctxLast = { systemPrompt: mergeSys, history: emptyHist, userPrompt: upLast };
-    const merged123got = await tryRunPhase(
-      "merge123",
-      "Final synthesis",
-      streamModel(providerKeys, models.synth, mergeSys, emptyHist, upLast, orOpts),
-      emit,
-      ctxLast
-    );
-    pushSynthUsage(merged123got);
-    finalAnswer = merged123got?.text.trim() || left.trim();
-  } else {
-    const all = Object.values(outputMap).filter(Boolean) as string[];
-    if (all.length === 1) {
-      finalAnswer = all[0];
+      pushSynthUsage(merged123got);
+      finalAnswer = merged123got?.text.trim() || left.trim();
     } else {
-      emit({ type: "status", message: "Synthesizing multiple answers…" });
-      let acc = all[0];
-      for (let i = 1; i < all.length; i++) {
-        const upChain = buildStagedMergeUserPrompt(acc, all[i], prompt);
-        const ctxChain = { systemPrompt: mergeSys, history: emptyHist, userPrompt: upChain };
-        const mergedGot = await tryRunPhase(
-          "merge_chain",
-          `Synthesis step ${i}`,
-          streamModel(providerKeys, models.synth, mergeSys, emptyHist, upChain, orOpts),
-          emit,
-          ctxChain
-        );
-        pushSynthUsage(mergedGot);
-        if (mergedGot?.text.trim()) acc = mergedGot.text.trim();
-      }
-      finalAnswer = acc.trim();
+      finalAnswer = left?.trim() || bot3Out || "";
     }
+  } else {
+    finalAnswer = bot1Out ?? bot2Out ?? bot3Out ?? "";
   }
 
   return { finalAnswer, botOutputs, usageLines };

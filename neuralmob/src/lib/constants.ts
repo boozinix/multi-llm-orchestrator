@@ -9,13 +9,13 @@ export const OPENROUTER_MODELS = [
   // OpenAI
   { value: "openai/gpt-5", label: "GPT-5 — 🥇 Flagship" },
   { value: "openai/gpt-5.1", label: "GPT-5.1 — 🔁 Latest iteration" },
-  { value: "openai/gpt-4.1", label: "GPT-4.1 — 🔒 Reliable fallback" },
+  { value: "openai/gpt-4.1", label: "GPT-4.1 — Reliable fallback" },
   // xAI
   { value: "x-ai/grok-3", label: "Grok 3 — 🥇 Flagship" },
   { value: "x-ai/grok-3-mini", label: "Grok 3 Mini — ⚡ Fast" },
   // Google
   { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro — 🥇 Flagship" },
-  { value: "google/gemini-2.5-pro-preview", label: "Gemini 2.5 Pro — 🔒 Stable fallback" },
+  { value: "google/gemini-2.5-pro-preview", label: "Gemini 2.5 Pro — Stable fallback" },
   { value: "google/gemini-2.5-flash-preview", label: "Gemini 2.5 Flash — ⚡ Fast/cheap merge" },
   // DeepSeek
   { value: "deepseek/deepseek-chat", label: "DeepSeek V3 — 💰 Cheap + analytical" },
@@ -58,14 +58,31 @@ export const DEFAULT_FLOW: FlowConfig = {
 export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefined): FlowConfig {
   const d = DEFAULT_FLOW;
   if (!input) return { ...d };
+  const mode = input.mode === "quick" || input.mode === "super" ? input.mode : d.mode;
+  const primarySlot =
+    input.primarySlot === "bot1" || input.primarySlot === "bot2" || input.primarySlot === "bot3"
+      ? input.primarySlot
+      : d.primarySlot;
+  const bot1Enabled = input.bot1Enabled !== undefined ? Boolean(input.bot1Enabled) : d.bot1Enabled;
+  const bot2Enabled = input.bot2Enabled !== undefined ? Boolean(input.bot2Enabled) : d.bot2Enabled;
+  const bot3Enabled = input.bot3Enabled !== undefined ? Boolean(input.bot3Enabled) : d.bot3Enabled;
+  const merge12Enabled =
+    (input.merge12Enabled !== undefined ? Boolean(input.merge12Enabled) : d.merge12Enabled) &&
+    bot1Enabled &&
+    bot2Enabled;
+  const merge123Enabled =
+    (input.merge123Enabled !== undefined ? Boolean(input.merge123Enabled) : d.merge123Enabled) &&
+    merge12Enabled &&
+    bot3Enabled;
+
   return {
-    mode: input.mode === "quick" || input.mode === "super" ? input.mode : d.mode,
-    primarySlot: input.primarySlot === "bot1" || input.primarySlot === "bot2" || input.primarySlot === "bot3" ? input.primarySlot : d.primarySlot,
-    bot1Enabled: input.bot1Enabled !== undefined ? Boolean(input.bot1Enabled) : d.bot1Enabled,
-    bot2Enabled: input.bot2Enabled !== undefined ? Boolean(input.bot2Enabled) : d.bot2Enabled,
-    bot3Enabled: input.bot3Enabled !== undefined ? Boolean(input.bot3Enabled) : d.bot3Enabled,
-    merge12Enabled: input.merge12Enabled !== undefined ? Boolean(input.merge12Enabled) : d.merge12Enabled,
-    merge123Enabled: input.merge123Enabled !== undefined ? Boolean(input.merge123Enabled) : d.merge123Enabled,
+    mode,
+    primarySlot,
+    bot1Enabled,
+    bot2Enabled,
+    bot3Enabled,
+    merge12Enabled,
+    merge123Enabled,
   };
 }
 

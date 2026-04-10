@@ -1,8 +1,10 @@
 import {
-  buildIndividualSystemPrompt,
-  buildMergeSystemPrompt,
+  buildFinalJudgeSystemPrompt,
+  buildFinalJudgeUserPrompt,
+  buildIndependentSystemPrompt,
+  buildMerge12SystemPrompt,
+  buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
-  buildStagedMergeUserPrompt,
 } from "./prompts";
 import { MODEL_MAX_OUTPUT_TOKENS, RUN_COST_SAFETY_MULTIPLIER } from "./limits";
 import type { FlowConfig, HistoryMessage, ModelConfig } from "./types";
@@ -89,24 +91,22 @@ export function estimateWorstCaseRunReserveCents(
 
   const enabledSlots = (["bot1", "bot2", "bot3"] as const).filter((slot) => flow[`${slot}Enabled`]);
   let reserve = 0;
-  const individualSystem = buildIndividualSystemPrompt();
 
-  for (const slot of enabledSlots) {
-    reserve += estimateCallReserveCents(models[slot], `${individualSystem}\n${basePrompt}`);
+  for (let index = 0; index < enabledSlots.length; index++) {
+    const slot = enabledSlots[index];
+    reserve += estimateCallReserveCents(models[slot], `${buildIndependentSystemPrompt(index + 1)}\n${basePrompt}`);
   }
 
-  if (enabledSlots.length > 1) {
-    const maxSyntheticOutput = "X".repeat(MODEL_MAX_OUTPUT_TOKENS * 4);
-    const mergeSystem = buildMergeSystemPrompt();
-    const mergePrompt = buildStagedMergeUserPrompt(maxSyntheticOutput, maxSyntheticOutput, prompt);
-    const synthCalls = Math.max(
-      enabledSlots.length - 1,
-      (flow.merge12Enabled && flow.bot1Enabled && flow.bot2Enabled ? 1 : 0) +
-        (flow.merge123Enabled && flow.bot3Enabled ? 1 : 0)
-    );
-    for (let i = 0; i < synthCalls; i++) {
-      reserve += estimateCallReserveCents(models.synth, `${mergeSystem}\n${mergePrompt}`);
-    }
+  const maxSyntheticOutput = "X".repeat(MODEL_MAX_OUTPUT_TOKENS * 4);
+
+  if (flow.merge12Enabled && flow.bot1Enabled && flow.bot2Enabled) {
+    const merge12Prompt = buildMerge12UserPrompt(prompt, maxSyntheticOutput, maxSyntheticOutput);
+    reserve += estimateCallReserveCents(models.synth, `${buildMerge12SystemPrompt()}\n${merge12Prompt}`);
+  }
+
+  if (flow.merge123Enabled && flow.bot3Enabled && (flow.bot1Enabled || flow.bot2Enabled)) {
+    const finalJudgePrompt = buildFinalJudgeUserPrompt(prompt, maxSyntheticOutput, maxSyntheticOutput);
+    reserve += estimateCallReserveCents(models.synth, `${buildFinalJudgeSystemPrompt()}\n${finalJudgePrompt}`);
   }
 
   return Math.max(1, Math.ceil(reserve * RUN_COST_SAFETY_MULTIPLIER));

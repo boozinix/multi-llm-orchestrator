@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
+import { BrandMark } from "@/components/brand-mark";
 import { useSettingsStore, type ProviderKeyId } from "@/store/settings-store";
 import { GROUPED_MODELS, filterGroupedModels, clampModelConfigToAllowed } from "@/lib/constants";
 import type { ModelConfig } from "@/lib/types";
@@ -192,9 +193,7 @@ export default function SettingsPage() {
     <div className="flex min-h-[100dvh] lg:h-screen overflow-hidden bg-[#0b1326] app-shell">
       <aside className="h-screen w-72 fixed left-0 top-0 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] flex-col p-4 z-50 hidden lg:flex border-r border-white/6 backdrop-blur-xl">
         <div className="mb-8 px-2 pt-1 flex items-center gap-3">
-          <div className="brand-mark w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
-          </div>
+          <BrandMark className="w-11 h-11 rounded-2xl flex-shrink-0" />
           <div className="min-w-0">
             <p className="app-eyebrow mb-1">Neural Mob</p>
             <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Settings</h1>

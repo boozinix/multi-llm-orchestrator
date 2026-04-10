@@ -20,7 +20,13 @@
 ## Current State
 
 - The app builds and lints successfully.
-- The repo is intentionally not yet pushed from this session’s work until the user chooses.
+- `neuralmob.xyz` is already live, but current production is behind the latest local changes.
+- There is meaningful uncommitted local work in `neuralmob` that includes:
+  - mobile UX fixes
+  - workspace tour improvements
+  - favicon/share metadata updates
+  - orchestration prompt/flow updates
+  - message/composer cutoff fix
 - Hosted mode now assumes:
   - `DATABASE_URL`
   - `OPENROUTER_API_KEY`
@@ -30,7 +36,8 @@
 
 ## Highest Priority Next Step
 
-Test the real hosted deployment end to end:
+Bring production to parity with the latest local code, then test the real hosted deployment end to end:
+- save/commit local work only when the user approves
 - Vercel env vars
 - Postgres connectivity
 - Clerk auth

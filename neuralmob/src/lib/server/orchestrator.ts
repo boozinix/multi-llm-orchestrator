@@ -1,9 +1,10 @@
 import { callModel } from "../openrouter";
 import {
-  buildCollaborativeUserPrompt,
-  buildIndividualSystemPrompt,
-  buildMergeSystemPrompt,
-  buildStagedMergeUserPrompt,
+  buildFinalJudgeSystemPrompt,
+  buildFinalJudgeUserPrompt,
+  buildIndependentSystemPrompt,
+  buildMerge12SystemPrompt,
+  buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
@@ -68,18 +69,18 @@ async function safeCallModel(
   }
 }
 
-async function safeMerge(
+async function safeSynthesisPass(
   input: OrchestratorInput,
-  left: string,
-  right: string,
+  systemPrompt: string,
+  userPrompt: string,
   usageLines: UsageLine[]
 ): Promise<string | null> {
   const r = await safeCallModel(
     input,
     input.models.synth,
-    buildMergeSystemPrompt(),
+    systemPrompt,
     [],
-    buildStagedMergeUserPrompt(left, right, input.prompt)
+    userPrompt
   );
   if (!r) return null;
   usageLines.push({
@@ -119,22 +120,20 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   const botOutputs: BotRunOutput[] = [];
   const outputMap: Record<string, string> = {};
   const usageLines: UsageLine[] = [];
-  const priorOutputs: string[] = [];
 
-  // Graceful fan-out: if one bot fails (credits, timeout, etc.), continue others.
-  for (const slotId of enabledSlots) {
+  for (let index = 0; index < enabledSlots.length; index++) {
+    const slotId = enabledSlots[index];
     const model = models[slotId];
     const got = await safeCallModel(
       input,
       model,
-      buildIndividualSystemPrompt(priorOutputs.length),
+      buildIndependentSystemPrompt(index + 1),
       history,
-      buildCollaborativeUserPrompt(prompt, priorOutputs)
+      prompt
     );
     if (!got) continue;
     botOutputs.push({ slotId, model, output: got.text });
     outputMap[slotId] = got.text;
-    priorOutputs.push(got.text);
     usageLines.push({ model, promptTokens: got.usage.promptTokens, completionTokens: got.usage.completionTokens });
   }
 
@@ -152,41 +151,46 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   const hasMerge123 = flow.merge123Enabled && bot3Out;
 
   if (hasMerge12 && hasMerge123) {
-    const combined12 = await safeMerge(input, bot1Out, bot2Out, usageLines);
+    const combined12 = await safeSynthesisPass(
+      input,
+      buildMerge12SystemPrompt(),
+      buildMerge12UserPrompt(prompt, bot1Out, bot2Out),
+      usageLines
+    );
     if (combined12) {
-      const merged123 = await safeMerge(input, combined12, bot3Out, usageLines);
+      const merged123 = await safeSynthesisPass(
+        input,
+        buildFinalJudgeSystemPrompt(),
+        buildFinalJudgeUserPrompt(prompt, combined12, bot3Out),
+        usageLines
+      );
       finalAnswer = merged123 ?? combined12;
     } else {
-      finalAnswer = bot1Out;
-      if (bot2Out) finalAnswer = bot2Out;
-      if (bot3Out) finalAnswer = bot3Out;
+      finalAnswer = bot1Out ?? bot2Out ?? bot3Out!;
     }
   } else if (hasMerge12 && !hasMerge123) {
-    const combined12 = await safeMerge(input, bot1Out, bot2Out, usageLines);
-    if (bot3Out) {
-      if (!combined12) {
-        finalAnswer = bot3Out;
-      } else {
-        finalAnswer = (await safeMerge(input, combined12, bot3Out, usageLines)) ?? combined12;
-      }
+    const combined12 = await safeSynthesisPass(
+      input,
+      buildMerge12SystemPrompt(),
+      buildMerge12UserPrompt(prompt, bot1Out, bot2Out),
+      usageLines
+    );
+    finalAnswer = combined12 ?? bot1Out ?? bot2Out;
+  } else if (!hasMerge12 && hasMerge123) {
+    const left = bot1Out ?? bot2Out;
+    if (left && bot3Out) {
+      finalAnswer =
+        (await safeSynthesisPass(
+          input,
+          buildFinalJudgeSystemPrompt(),
+          buildFinalJudgeUserPrompt(prompt, left, bot3Out),
+          usageLines
+        )) ?? left;
     } else {
-      finalAnswer = combined12 ?? bot1Out ?? bot2Out;
+      finalAnswer = left ?? bot3Out!;
     }
-  } else if (!hasMerge12 && hasMerge123 && bot1Out && bot3Out) {
-    const left = bot2Out ? (await safeMerge(input, bot1Out, bot2Out, usageLines)) ?? bot1Out : bot1Out;
-    finalAnswer = (await safeMerge(input, left, bot3Out, usageLines)) ?? left;
   } else {
-    const allOutputs = Object.values(outputMap);
-    if (allOutputs.length === 1) {
-      finalAnswer = allOutputs[0];
-    } else {
-      let acc = allOutputs[0];
-      for (let i = 1; i < allOutputs.length; i++) {
-        const merged = await safeMerge(input, acc, allOutputs[i], usageLines);
-        if (merged) acc = merged;
-      }
-      finalAnswer = acc;
-    }
+    finalAnswer = bot1Out ?? bot2Out ?? bot3Out ?? Object.values(outputMap)[0];
   }
 
   return { finalAnswer, botOutputs, usageLines };

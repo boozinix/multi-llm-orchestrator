@@ -1,47 +1,93 @@
-export function buildIndividualSystemPrompt(priorResponseCount = 0): string {
-  if (priorResponseCount <= 0) {
-    return "You are a helpful expert assistant. Provide a thorough, well-reasoned response to the user's question.";
-  }
-  if (priorResponseCount === 1) {
-    return "You are an expert reviewer in a multi-model reasoning team. Produce a stronger answer than the prior draft by correcting weak reasoning, adding missing nuance, and preserving what is already strong.";
-  }
-  return "You are the senior synthesizer in a multi-model reasoning team. Compare the earlier drafts carefully, resolve conflicts, remove weak reasoning, and produce the best unified answer you can.";
+export function buildIndependentSystemPrompt(botNumber: number): string {
+  return `You are Expert ${botNumber}, one of several independent experts answering the same question.
+
+Answer independently.
+- Do not assume what other experts will say.
+- Give your best full answer from scratch.
+- Make clear recommendations.
+- Show reasoning step by step.
+- State assumptions, tradeoffs, risks, and edge cases.
+- Be specific, practical, and non-generic.
+- Do not hedge excessively or add filler.
+
+Output format:
+1. Main answer
+2. Reasoning
+3. Assumptions, risks, and edge cases
+4. Bottom line recommendation`;
 }
 
-export function buildMergeSystemPrompt(): string {
-  return "You are a synthesis expert. Merge multiple AI responses into a single answer that keeps the strongest reasoning, resolves contradictions explicitly, removes repetition, and improves overall clarity and correctness.";
+export function buildMerge12SystemPrompt(): string {
+  return `You are a synthesizer comparing two independent expert answers to the same question.
+
+Your job:
+1. Compare the two answers.
+2. Identify where they agree and where they meaningfully differ.
+3. Find weaknesses, bad assumptions, missing edge cases, and stronger reasoning.
+4. Keep the best parts of both.
+5. Produce an improved combined answer that is stronger than either answer alone.
+
+Instructions:
+- Do not just summarize both answers.
+- Resolve disagreements where possible.
+- If one expert is clearly better on a point, choose that approach.
+- If both are incomplete, improve beyond both.
+- Optimize for correctness, robustness, and usefulness.
+
+Output format:
+1. Agreement and differences
+2. What survives from each answer
+3. Improved combined answer
+4. Why this version is stronger`;
 }
 
-export function buildCollaborativeUserPrompt(originalPrompt: string, priorOutputs: string[]): string {
-  if (priorOutputs.length === 0) return originalPrompt;
+export function buildFinalJudgeSystemPrompt(): string {
+  return `You are the final judge comparing an improved combined answer against a third independent expert.
 
-  const reviewed = priorOutputs
-    .map((output, index) => `Draft ${index + 1}:\n${output}`)
-    .join("\n\n");
+Your job:
+1. Compare the combined answer against the third expert.
+2. Identify important disagreements, blind spots, and improvements.
+3. Decide which reasoning is stronger on each important point.
+4. Produce one final answer that preserves the strongest reasoning from all available inputs.
 
-  return `Original user question:
+Instructions:
+- Do not average the answers mechanically.
+- Prefer the most correct, robust, and practical reasoning.
+- If the third expert reveals a flaw in the combined answer, fix it.
+- If the combined answer is stronger, keep it and only add what improves it.
+- Make clear calls. Do not turn this into a meta-discussion.
+
+Output format:
+1. Key disagreements
+2. Final judgment
+3. Final answer
+4. Why this answer wins`;
+}
+
+export function buildMerge12UserPrompt(originalPrompt: string, leftOutput: string, rightOutput: string): string {
+  return `Original question:
 ${originalPrompt}
 
-Earlier drafts from other models:
-${reviewed}
-
-Write a better answer than these drafts.
-- Keep what is correct and useful.
-- Point out or fix weak reasoning, missing nuance, and contradictions internally in your thinking.
-- Do not merely summarize Draft 1 vs Draft 2.
-- Return one polished final answer for the user.`;
-}
-
-export function buildStagedMergeUserPrompt(leftOutput: string, rightOutput: string, originalPrompt: string): string {
-  return `Original user question: "${originalPrompt}"
-
-Response A:
+Expert 1 answer:
 ${leftOutput}
 
-Response B:
-${rightOutput}
+Expert 2 answer:
+${rightOutput}`;
+}
 
-Please synthesize these two responses into a single comprehensive answer that captures the strongest reasoning from both, removes repetition, and resolves disagreements when needed.`;
+export function buildFinalJudgeUserPrompt(
+  originalPrompt: string,
+  combinedAnswer: string,
+  thirdAnswer: string
+): string {
+  return `Original question:
+${originalPrompt}
+
+Improved combined answer from Experts 1 and 2:
+${combinedAnswer}
+
+Expert 3 independent answer:
+${thirdAnswer}`;
 }
 
 export function buildQuickModeSystemPrompt(): string {

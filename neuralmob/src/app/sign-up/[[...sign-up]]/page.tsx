@@ -8,7 +8,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#0b1326] text-[#dae2fd] flex items-center justify-center p-6 app-shell">
+    <main className="min-h-[100dvh] bg-[#0b1326] text-[#dae2fd] flex items-center justify-center px-4 py-6 sm:p-6 safe-top safe-bottom app-shell">
       <div className="ambient-orb orbit-slow left-[10%] top-[12%] h-56 w-56 bg-[#8a68ff]/20" />
       <div className="ambient-orb orbit-slow right-[10%] bottom-[10%] h-52 w-52 bg-[#4edea3]/10" />
       <div className="w-full max-w-6xl grid gap-8 lg:grid-cols-[1fr_430px] items-center">
@@ -25,6 +25,13 @@ export default function SignUpPage() {
           </div>
         </section>
         <div className="app-panel rounded-[2rem] p-4 sm:p-6">
+          <div className="mb-5 lg:hidden">
+            <p className="app-eyebrow mb-2">Join Neural Mob</p>
+            <h1 className="app-hero-title text-4xl text-[#edf2ff]">Start small, then unlock the full flow.</h1>
+            <p className="mt-3 text-sm leading-7 text-[#b5c0d8]">
+              New accounts begin with starter credit on low-cost models and can top up when they need the full catalog.
+            </p>
+          </div>
           <SignUp
             path="/sign-up"
             routing="path"

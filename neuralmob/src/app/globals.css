@@ -220,19 +220,85 @@ button {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 30% 30%, rgba(248, 243, 255, 0.35), transparent 35%),
-    linear-gradient(135deg, #d0bcff 0%, #a078ff 58%, #7655e7 100%);
+    radial-gradient(circle at 26% 22%, rgba(255, 255, 255, 0.5), transparent 24%),
+    radial-gradient(circle at 72% 78%, rgba(79, 31, 178, 0.42), transparent 38%),
+    linear-gradient(145deg, #ddd0ff 0%, #b794ff 38%, #835fe9 74%, #5935bb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
     0 16px 48px rgba(160, 120, 255, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.brand-mark::before {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border-radius: inherit;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.22), transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(48, 18, 105, 0.12), transparent 65%);
+  opacity: 0.92;
 }
 
 .brand-mark::after {
   content: "";
   position: absolute;
-  inset: 20%;
+  inset: 14%;
   border-radius: inherit;
-  border: 1px solid rgba(52, 0, 128, 0.16);
+  border: 1px solid rgba(53, 16, 123, 0.18);
+}
+
+.brand-glyph {
+  position: relative;
+  z-index: 1;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 8px 14px rgba(43, 17, 84, 0.2));
+}
+
+.brand-glyph--mark {
+  width: 66%;
+  height: 66%;
+}
+
+.brand-glyph-line,
+.brand-glyph-thread,
+.brand-glyph-core-ring {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-glyph-line {
+  stroke: rgba(43, 17, 84, 0.86);
+  stroke-width: 3.2;
+}
+
+.brand-glyph-thread {
+  stroke: rgba(80, 42, 156, 0.6);
+  stroke-width: 2;
+}
+
+.brand-glyph-node {
+  stroke: rgba(43, 17, 84, 0.18);
+  stroke-width: 1.5;
+}
+
+.brand-glyph-node-soft {
+  fill: #f2ebff;
+}
+
+.brand-glyph-node-strong {
+  fill: #2f125f;
+}
+
+.brand-glyph-core-ring {
+  stroke: rgba(43, 17, 84, 0.16);
+  stroke-width: 1.6;
+}
+
+.brand-glyph-core {
+  fill: #2f125f;
 }
 
 .ambient-orb {

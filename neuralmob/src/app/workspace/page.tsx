@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
+import { BrandGlyph, BrandMark } from "@/components/brand-mark";
+import { WorkspaceTour, type WorkspaceTourStep } from "@/components/workspace-tour";
 import { useChatStore } from "@/store/chat-store";
 import { useSettingsStore } from "@/store/settings-store";
 import {
@@ -16,6 +18,78 @@ import { FlowDiagram } from "./FlowDiagram";
 import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "@/lib/types";
 
 const BOT_SLOTS = ["bot1", "bot2", "bot3"] as const;
+const TOUR_STORAGE_PREFIX = "neuralmob-tour";
+
+const WORKSPACE_TOUR_STEPS: WorkspaceTourStep[] = [
+  {
+    id: "overview",
+    eyebrow: "Welcome to Neural Mob",
+    title: "One prompt in. Independent model reasoning out.",
+    description:
+      "Neural Mob lets you run one model or a small reasoning chain, watch each phase stream live, and end with a stronger synthesized answer.",
+    detail:
+      "This quick walkthrough shows the controls new members need first, and you can reopen it any time from Guide in the top bar.",
+    bullets: [
+      "Quick mode sends one model straight through. Super mode turns on multi-bot orchestration.",
+      "Bots answer independently first, then the merge steps compare and improve the strongest reasoning.",
+      "Your history, settings, limits, and final answers all stay inside the workspace.",
+    ],
+  },
+  {
+    id: "history",
+    eyebrow: "History",
+    title: "Your runs stay organized here.",
+    description:
+      "Every orchestration becomes a titled session so you can reopen it, compare old runs, and continue the same thread instead of starting over.",
+    detail:
+      "On desktop this lives in the left rail. On mobile, use the menu button to get back to recent sessions.",
+    selector: "[data-tour='history-panel']",
+    mobileSelector: "[data-tour='history-button']",
+    mobileTab: "chat",
+  },
+  {
+    id: "flow",
+    eyebrow: "Flow setup",
+    title: "Choose how many bots reason before you run.",
+    description:
+      "This panel controls quick versus super mode, which bots are active, and whether the merge steps synthesize Bot 1 + 2 before comparing that result against Bot 3.",
+    detail:
+      "The merge toggles are dependency-aware, so invalid orchestration chains cannot be enabled anymore.",
+    selector: "[data-tour='flow-panel']",
+    mobileSelector: "[data-tour='flow-panel']",
+    mobileTab: "flow",
+  },
+  {
+    id: "settings",
+    eyebrow: "Settings",
+    title: "Keys, billing, and routing live one tap away.",
+    description:
+      "Use Settings to manage provider keys locally, review billing limits, and control how Neural Mob routes requests.",
+    detail:
+      "If a run is blocked by missing credentials or billing rules, this is the first place to check.",
+    selector: "[data-tour='settings-button']",
+    mobileSelector: "[data-tour='settings-button']",
+    mobileTab: "chat",
+  },
+  {
+    id: "composer",
+    eyebrow: "Run it",
+    title: "Ask clearly, then let the flow do the work.",
+    description:
+      "Write your prompt here and send it. Neural Mob will stream each phase, save the final answer back into the session, and keep the conversation ready for the next turn.",
+    detail:
+      "Enter sends immediately, Shift+Enter adds a new line, and the same composer works for both quick and super mode.",
+    selector: "[data-tour='composer-shell']",
+    mobileSelector: "[data-tour='composer-shell']",
+    mobileTab: "chat",
+  },
+];
+
+type AuthMePayload = {
+  authenticated?: boolean;
+  email?: string | null;
+  provider?: string | null;
+};
 
 type UsageViewState = {
   mode?: string;
@@ -124,13 +198,11 @@ function SideNav({
   return (
     <aside className="h-screen w-72 fixed left-0 top-0 flex flex-col p-4 z-50 overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] backdrop-blur-xl">
       <div className="mb-6 px-2 pt-1 flex items-center gap-3">
-        <div className="brand-mark w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0">
-          <span className="material-symbols-outlined text-[#340080] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>hub</span>
-        </div>
+        <BrandMark className="w-11 h-11 rounded-2xl flex-shrink-0" />
         <div className="min-w-0">
           <p className="app-eyebrow mb-1">Neural Mob</p>
-          <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Studio</h1>
-          <p className="mt-1 text-[11px] text-[#b9c5df]/72">Multi-model orchestration console</p>
+          <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
+          <p className="mt-1 text-[11px] text-[#b9c5df]/72">Multi-model orchestration</p>
         </div>
       </div>
 
@@ -169,7 +241,7 @@ function SideNav({
       </nav>
 
       {/* History */}
-      <div className="flex-1 overflow-y-auto space-y-1">
+      <div data-tour="history-panel" className="flex-1 overflow-y-auto space-y-1">
         <p className="app-eyebrow px-3 mb-2 text-[#aeb9d5]/56">History</p>
         {conversations.length === 0 && (
           <div className="app-panel-soft rounded-2xl px-4 py-4 mx-1">
@@ -251,7 +323,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className="flex gap-3 sm:gap-4 max-w-3xl mx-auto px-0.5">
       <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl sm:rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", boxShadow: "0 4px 12px rgba(208,188,255,0.2)" }}>
-        <span className="material-symbols-outlined text-[#340080] text-lg sm:text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+        <BrandGlyph className="h-4 w-4 sm:h-[0.95rem] sm:w-[0.95rem]" />
       </div>
       <div className="space-y-3 sm:space-y-4 flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -331,9 +403,11 @@ function FlowPanel({
   groupedModels: typeof GROUPED_MODELS;
 }) {
   const { models, setModel } = useSettingsStore();
+  const canMerge12 = flow.bot1Enabled && flow.bot2Enabled;
+  const canMerge123 = canMerge12 && flow.bot3Enabled && flow.merge12Enabled;
 
   return (
-    <section className="w-full lg:w-80 lg:min-w-[20rem] bg-[#131b2e] overflow-y-auto p-4 sm:p-5 flex flex-col gap-5 lg:gap-6 min-h-0">
+    <section data-tour="flow-panel" className="w-full lg:w-80 lg:min-w-[20rem] bg-[#131b2e] overflow-y-auto p-4 sm:p-5 flex flex-col gap-5 lg:gap-6 min-h-0">
 
       {/* Live flow diagram */}
       <div>
@@ -443,18 +517,21 @@ function FlowPanel({
             <div className="flex justify-between items-center p-3 bg-[#171f33] rounded-xl">
               <div>
                 <p className="text-xs font-medium text-[#dae2fd]">Merge Bot 1 + 2</p>
-                <p className="text-[10px] text-[#cbc3d7]/60">Step A synthesis</p>
+                <p className="text-[10px] text-[#cbc3d7]/60">
+                  {canMerge12 ? "Step A synthesis" : "Requires Bot 1 and Bot 2"}
+                </p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={flow.merge12Enabled}
+                  disabled={!canMerge12}
                   onChange={(e) => onFlowChange({ merge12Enabled: e.target.checked })}
                   className="sr-only"
                 />
                 <div
                   className="w-8 h-4 rounded-full transition-colors relative"
-                  style={{ background: flow.merge12Enabled ? "#a078ff" : "#2d3449" }}
+                  style={{ background: flow.merge12Enabled ? "#a078ff" : "#2d3449", opacity: canMerge12 ? 1 : 0.45 }}
                 >
                   <div
                     className="absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow"
@@ -467,18 +544,21 @@ function FlowPanel({
             <div className="flex justify-between items-center p-3 bg-[#171f33] rounded-xl">
               <div>
                 <p className="text-xs font-medium text-[#dae2fd]">Merge (1+2) + 3</p>
-                <p className="text-[10px] text-[#cbc3d7]/60">Step B synthesis</p>
+                <p className="text-[10px] text-[#cbc3d7]/60">
+                  {canMerge123 ? "Step B synthesis" : "Enable Step A and Bot 3 first"}
+                </p>
               </div>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={flow.merge123Enabled}
+                  disabled={!canMerge123}
                   onChange={(e) => onFlowChange({ merge123Enabled: e.target.checked })}
                   className="sr-only"
                 />
                 <div
                   className="w-8 h-4 rounded-full transition-colors relative"
-                  style={{ background: flow.merge123Enabled ? "#a078ff" : "#2d3449" }}
+                  style={{ background: flow.merge123Enabled ? "#a078ff" : "#2d3449", opacity: canMerge123 ? 1 : 0.45 }}
                 >
                   <div
                     className="absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow"
@@ -555,10 +635,17 @@ export default function WorkspacePage() {
   const [showLocalReset, setShowLocalReset] = useState(false);
   const [ownerUnlimited, setOwnerUnlimited] = useState(false);
   const [streamBlocks, setStreamBlocks] = useState<StreamBlock[]>([]);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [tourIdentity, setTourIdentity] = useState<string | null>(null);
+  const [composerHeight, setComposerHeight] = useState(220);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(null);
+  const hasPromptedTourRef = useRef(false);
 
   const loadUsage = useCallback(async () => {
     try {
@@ -612,8 +699,9 @@ export default function WorkspacePage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d: { authenticated?: boolean }) => {
+      .then((d: AuthMePayload) => {
         setAuth(d.authenticated ? "authed" : "anon");
+        setTourIdentity(d.email ?? d.provider ?? null);
       })
       .catch(() => setAuth("anon"));
   }, []);
@@ -628,6 +716,95 @@ export default function WorkspacePage() {
       setShowLocalReset(h === "localhost" || h === "127.0.0.1");
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const updateViewport = () => {
+      setIsCompactViewport(window.innerWidth < 1024);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    const node = composerRef.current;
+    if (!node) return;
+
+    const measure = () => {
+      setComposerHeight(Math.ceil(node.getBoundingClientRect().height));
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [flow.mode, flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled, error, isLoading, prompt, mobileTab]);
+
+  useEffect(() => {
+    if (auth !== "authed" || !tourIdentity || hasPromptedTourRef.current) return;
+    hasPromptedTourRef.current = true;
+    if (typeof window === "undefined") return;
+    try {
+      const saved = window.localStorage.getItem(`${TOUR_STORAGE_PREFIX}:${tourIdentity}`);
+      if (!saved) {
+        setTourStep(0);
+        setTourOpen(true);
+      }
+    } catch {
+      setTourStep(0);
+      setTourOpen(true);
+    }
+  }, [auth, tourIdentity]);
+
+  useEffect(() => {
+    if (!tourOpen) return;
+    const step = WORKSPACE_TOUR_STEPS[tourStep];
+    if (!step) return;
+    if (step.mobileTab) setMobileTab(step.mobileTab);
+    if (historyOpen && step.id !== "history") {
+      setHistoryOpen(false);
+    }
+    const selector =
+      typeof window !== "undefined" && window.innerWidth < 1024 && step.mobileSelector
+        ? step.mobileSelector
+        : step.selector;
+    if (!selector) return;
+    const raf = window.requestAnimationFrame(() => {
+      const el = document.querySelector(selector) as HTMLElement | null;
+      el?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [tourOpen, tourStep, historyOpen]);
+
+  const handleTourClose = useCallback(
+    (reason: "dismissed" | "completed") => {
+      setTourOpen(false);
+      setTourStep(0);
+      if (!tourIdentity || typeof window === "undefined") return;
+      try {
+        const key = `${TOUR_STORAGE_PREFIX}:${tourIdentity}`;
+        const current = window.localStorage.getItem(key);
+        if (reason === "completed" || !current) {
+          window.localStorage.setItem(key, reason);
+        }
+      } catch {
+        /* ignore localStorage issues */
+      }
+    },
+    [tourIdentity]
+  );
+
+  const messageListBottomInset = useMemo(() => {
+    const fixedNavInset = isCompactViewport ? 76 : 24;
+    return `calc(${composerHeight + fixedNavInset}px + env(safe-area-inset-bottom))`;
+  }, [composerHeight, isCompactViewport]);
 
   useEffect(() => {
     if (auth !== "authed") return;
@@ -943,7 +1120,7 @@ export default function WorkspacePage() {
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-3xl app-panel rounded-[2rem] p-8 md:p-10 grid gap-8 md:grid-cols-[1.2fr_0.8fr] items-center">
             <div className="space-y-5">
-              <p className="app-eyebrow">Studio Access</p>
+              <p className="app-eyebrow">Member Access</p>
               <h1 className="app-hero-title text-4xl md:text-5xl text-[#edf2ff]">Sign in to orchestrate multiple models in one place.</h1>
               <p className="text-base text-[#b5c0d8] leading-8 max-w-xl">
                 Neural Mob gives every signed-in user starter credit for low-cost models, then unlocks the full catalog once they top up.
@@ -955,12 +1132,10 @@ export default function WorkspacePage() {
               </div>
             </div>
             <div className="rounded-[1.75rem] border border-white/8 bg-[#0e1628]/80 p-6 text-center space-y-4">
-              <div className="brand-mark float-soft mx-auto flex h-16 w-16 items-center justify-center rounded-[1.7rem]">
-                <span className="material-symbols-outlined text-3xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              </div>
+              <BrandMark className="float-soft mx-auto h-16 w-16 rounded-[1.7rem]" glyphClassName="h-8 w-8" />
               <h2 className="text-xl font-semibold text-[#edf2ff]">Continue with Clerk</h2>
               <p className="text-sm text-[#9dadcd] leading-7">
-                Use Google or email to enter the studio.
+                Use Google or email to get inside Neural Mob.
               </p>
             <Link
               href="/sign-in"
@@ -981,6 +1156,13 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#0b1326] overscroll-none app-shell">
+      <WorkspaceTour
+        open={tourOpen}
+        stepIndex={tourStep}
+        steps={WORKSPACE_TOUR_STEPS}
+        onStepChange={setTourStep}
+        onClose={handleTourClose}
+      />
       {showLocalReset && (
         <button
           type="button"
@@ -1069,6 +1251,7 @@ export default function WorkspacePage() {
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
+              data-tour="history-button"
               className="lg:hidden min-h-11 min-w-11 shrink-0 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
               aria-label="Open history"
             >
@@ -1099,6 +1282,18 @@ export default function WorkspacePage() {
             </div>
             <button
               type="button"
+              onClick={() => {
+                setTourStep(0);
+                setTourOpen(true);
+              }}
+              className="min-h-11 rounded-xl px-3 sm:px-3.5 text-sm font-medium text-[#b7c4df] bg-[#171f33] hover:bg-[#1d2740] transition-colors flex items-center justify-center gap-2"
+              aria-label="Open guide"
+            >
+              <span className="material-symbols-outlined text-[18px]">help</span>
+              <span className="hidden sm:inline">Guide</span>
+            </button>
+            <button
+              type="button"
               onClick={newChat}
               className="hidden lg:flex px-4 py-2 min-h-10 app-panel-soft rounded-xl text-sm font-semibold text-[#edf2ff]"
             >
@@ -1116,6 +1311,7 @@ export default function WorkspacePage() {
             <button
               type="button"
               onClick={() => router.push("/settings")}
+              data-tour="settings-button"
               className="min-h-11 min-w-11 rounded-xl app-panel-soft flex items-center justify-center"
               aria-label="Settings"
             >
@@ -1138,13 +1334,14 @@ export default function WorkspacePage() {
             {/* Messages */}
             <div
               ref={messagesScrollRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8 pb-[calc(12rem+env(safe-area-inset-bottom))] lg:pb-48"
+              className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-8 space-y-6 sm:space-y-8"
+              style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
                 <div className="h-full flex items-center">
                   <div className="max-w-5xl w-full mx-auto grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
                     <div className="text-left">
-                      <p className="app-eyebrow mb-4">Orchestration Studio</p>
+                      <p className="app-eyebrow mb-4">Neural Mob</p>
                       <h2 className="app-hero-title text-5xl md:text-6xl text-[#edf2ff] max-w-2xl">
                         Ask once. Compare, merge, and synthesize across models.
                       </h2>
@@ -1165,9 +1362,7 @@ export default function WorkspacePage() {
                           <p className="app-eyebrow mb-1">Current Flow</p>
                           <h3 className="text-2xl font-semibold text-[#edf2ff]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</h3>
                         </div>
-                        <div className="brand-mark h-14 w-14 rounded-[1.35rem] flex items-center justify-center float-soft">
-                          <span className="material-symbols-outlined text-3xl text-[#340080]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-                        </div>
+                        <BrandMark className="h-14 w-14 rounded-[1.35rem] float-soft" glyphClassName="h-7 w-7" />
                       </div>
                       <div className="rounded-[1.5rem] bg-[#0d1525] border border-white/6 p-4">
                         <FlowDiagram flow={flow} models={models} />
@@ -1241,6 +1436,7 @@ export default function WorkspacePage() {
 
             {/* Input area */}
             <div
+              ref={composerRef}
               className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-6"
               style={{ background: "linear-gradient(to top, #0b1326 70%, transparent)" }}
             >
@@ -1287,7 +1483,7 @@ export default function WorkspacePage() {
 
                 {/* Textarea — suppressHydrationWarning: password managers (e.g. NordPass) inject data-np-* attrs */}
                 <form onSubmit={handleSubmit} suppressHydrationWarning>
-                  <div className="app-panel rounded-[1.75rem] p-2.5 shadow-2xl">
+                  <div data-tour="composer-shell" className="app-panel rounded-[1.75rem] p-2.5 shadow-2xl">
                     <div className="flex items-end gap-2 px-2.5 py-1.5">
                       <textarea
                         suppressHydrationWarning
@@ -1312,7 +1508,7 @@ export default function WorkspacePage() {
                         }}
                         aria-label={flow.mode === "super" ? "Run orchestration" : "Send message"}
                       >
-                        <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                        <BrandGlyph className="h-[1.05rem] w-[1.05rem] sm:h-[1.15rem] sm:w-[1.15rem]" />
                         <span className="hidden sm:inline">{flow.mode === "super" ? "Run Neural Mob" : "Send"}</span>
                       </button>
                     </div>

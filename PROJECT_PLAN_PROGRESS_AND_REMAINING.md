@@ -68,19 +68,50 @@ Enable a clean handoff so any incoming AI/tool can continue development and oper
 - Switched hosted free tier from one-run gating to starter credit plus cheap-model restriction.
 - Added owner-only `/admin` dashboard for users, balances, reservations, and spend.
 - Updated core branding to `Neural Mob`.
-- Improved super-mode prompts so later bots critique and improve earlier drafts.
+- Improved orchestration so Bots 1, 2, and 3 answer independently, then merge/judge in explicit stages.
+- Enforced merge-step dependency rules so invalid flow chains cannot be enabled in the UI.
+- Added first-run guided onboarding in the workspace.
+- Added favicon/share-preview assets for production identity.
+- Added mobile compatibility fixes for auth chrome and onboarding overlays.
+- Fixed workspace message padding so final answers are not hidden behind the composer.
 - Verified `npm run lint` and `npm run build` after the refactors.
+
+## Current Production Snapshot
+
+- `neuralmob.xyz` is live.
+- The current production deployment is still behind the latest local work.
+- The screenshots indicate production still shows older branding/layout elements and does not yet reflect the most recent local UX fixes.
+- The next deploy should happen only after:
+  1. the current local work is saved,
+  2. Vercel production env vars are confirmed,
+  3. a live QA pass is ready.
 
 ## Remaining Work
 
 ### High Priority
 
-1. Add real top-up/payment flow for paid credits.
-2. Add owner admin actions:
+1. Save and deploy the latest local fixes to production after user approval.
+2. Validate production env configuration in Vercel:
+   - `DATABASE_URL`
+   - `OPENROUTER_API_KEY`
+   - Clerk production keys
+   - Stripe live keys
+   - `NEXT_PUBLIC_APP_URL`
+   - `ALLOWED_ORIGINS`
+3. Run live hosted QA:
+   - sign-in
+   - free starter credit
+   - model restrictions
+   - top-up
+   - webhook crediting
+   - chat billing behavior
+4. Add owner admin actions:
    - manual credit grants
    - tier changes
    - search/filter/export
-3. Add hosted deployment checklist and smoke-test script.
+5. Replace in-memory rate limiting with a production-safe hosted strategy.
+6. Add Clerk production-domain hardening and verify allowed origins/redirects.
+7. Add hosted deployment checklist and smoke-test script.
 
 ### Medium Priority
 
@@ -99,7 +130,9 @@ Enable a clean handoff so any incoming AI/tool can continue development and oper
 - **Production foundation:** substantially complete
 - **Strict metering core:** complete
 - **Owner admin visibility:** complete
-- **Payments / top-up:** not yet implemented
+- **Payments / top-up backend:** implemented in code, not fully live-validated
+- **Production deployment:** partially complete, needs real env + QA pass
+- **Mobile / responsive UX fixes:** implemented locally, not yet deployed
 - **Docs / generated artifact cleanup:** improved but should still be rechecked before final handoff
 
 ## Immediate Next Action Recommendation
@@ -109,4 +142,5 @@ Incoming agent should first:
 2. read `TAKEOVER_RULES.md`,
 3. treat `neuralmob` source as canonical over stale generated docs,
 4. validate local and hosted env assumptions,
-5. then build the real top-up/payment flow.
+5. compare local uncommitted work against the live deployment,
+6. then finish production deployment hardening and live QA.
