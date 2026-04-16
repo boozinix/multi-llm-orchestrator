@@ -6,6 +6,7 @@ import {
   buildMerge12SystemPrompt,
   buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
+  classifyQueryComplexity,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
 import type { FlowConfig, ModelConfig, BotRunOutput, HistoryMessage, UsageLine } from "../types";
@@ -93,9 +94,10 @@ async function safeSynthesisPass(
 
 export async function runQuickOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
   const { providerKeys, flow, models, prompt, history } = input;
+  const complexity = classifyQueryComplexity(prompt);
   const model = models[flow.primarySlot];
   const { text, usage } = await withTimeout(
-    callModel(providerKeys, model, buildQuickModeSystemPrompt(), history, prompt, {
+    callModel(providerKeys, model, buildQuickModeSystemPrompt(complexity), history, prompt, {
       forceOpenRouter: input.forceOpenRouter,
     }),
     MODEL_CALL_TIMEOUT_MS,
@@ -110,6 +112,7 @@ export async function runQuickOrchestrator(input: OrchestratorInput): Promise<Or
 
 export async function runSuperOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
   const { flow, models, prompt, history } = input;
+  const complexity = classifyQueryComplexity(prompt);
 
   const enabledSlots = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
 
@@ -127,7 +130,7 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
     const got = await safeCallModel(
       input,
       model,
-      buildIndependentSystemPrompt(index + 1),
+      buildIndependentSystemPrompt(index + 1, complexity),
       history,
       prompt
     );
@@ -153,14 +156,14 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   if (hasMerge12 && hasMerge123) {
     const combined12 = await safeSynthesisPass(
       input,
-      buildMerge12SystemPrompt(),
+      buildMerge12SystemPrompt(complexity),
       buildMerge12UserPrompt(prompt, bot1Out, bot2Out),
       usageLines
     );
     if (combined12) {
       const merged123 = await safeSynthesisPass(
         input,
-        buildFinalJudgeSystemPrompt(),
+        buildFinalJudgeSystemPrompt(complexity),
         buildFinalJudgeUserPrompt(prompt, combined12, bot3Out),
         usageLines
       );
@@ -171,7 +174,7 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   } else if (hasMerge12 && !hasMerge123) {
     const combined12 = await safeSynthesisPass(
       input,
-      buildMerge12SystemPrompt(),
+      buildMerge12SystemPrompt(complexity),
       buildMerge12UserPrompt(prompt, bot1Out, bot2Out),
       usageLines
     );
@@ -182,7 +185,7 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
       finalAnswer =
         (await safeSynthesisPass(
           input,
-          buildFinalJudgeSystemPrompt(),
+          buildFinalJudgeSystemPrompt(complexity),
           buildFinalJudgeUserPrompt(prompt, left, bot3Out),
           usageLines
         )) ?? left;

@@ -76,11 +76,7 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(124, 92, 255, 0.16), transparent 24rem),
-    radial-gradient(circle at 80% 20%, rgba(78, 222, 163, 0.1), transparent 20rem),
-    radial-gradient(circle at bottom left, rgba(208, 188, 255, 0.08), transparent 28rem),
-    linear-gradient(180deg, #091123 0%, #0b1326 42%, #0a1222 100%);
+  background: #0b1326;
   color: #dae2fd;
   font-family: var(--font-family-body);
   -webkit-font-smoothing: antialiased;
@@ -107,10 +103,13 @@ body::before {
 
 body::after {
   background:
-    radial-gradient(circle at 20% 16%, rgba(208, 188, 255, 0.1), transparent 18rem),
-    radial-gradient(circle at 78% 78%, rgba(78, 222, 163, 0.06), transparent 16rem);
-  filter: blur(36px);
-  opacity: 0.8;
+    radial-gradient(ellipse at 25% 20%, rgba(59, 7, 100, 0.32) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 75%, rgba(15, 76, 92, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 45%, rgba(30, 27, 75, 0.26) 0%, transparent 50%);
+  background-size: 200% 200%;
+  filter: blur(60px);
+  opacity: 0.75;
+  animation: mesh-drift 20s ease-in-out infinite;
 }
 
 h1,
@@ -142,8 +141,10 @@ button {
 }
 
 .glass-panel {
-  background: rgba(45, 52, 73, 0.4);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .primary-gradient {
@@ -214,6 +215,116 @@ button {
   font-weight: 700;
   letter-spacing: -0.045em;
   line-height: 0.96;
+}
+
+/* ── Glass & Animation Utilities ── */
+
+.gradient-text {
+  background: linear-gradient(135deg, #fff 60%, rgba(139, 92, 246, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.composer-glass {
+  transition: box-shadow 300ms ease;
+}
+
+.composer-glass:focus-within {
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: btn-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.nav-slide {
+  position: relative;
+  z-index: 0;
+}
+
+.nav-slide::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: inherit;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms ease;
+  z-index: -1;
+}
+
+.nav-slide:hover::before {
+  transform: scaleX(1);
+}
+
+.usage-bar-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+.usage-bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  animation: usage-shimmer 2s ease-in-out infinite;
+}
+
+.mode-toggle-active {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+  color: #f0e8ff !important;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.bot-pill {
+  transition: transform 200ms ease, box-shadow 200ms ease, background-color 300ms ease, border-color 300ms ease;
+}
+
+.bot-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bot-pill-1 { border-left: 2px solid rgba(139, 92, 246, 0.6); }
+.bot-pill-2 { border-left: 2px solid rgba(6, 182, 212, 0.6); }
+.bot-pill-3 { border-left: 2px solid rgba(34, 197, 94, 0.6); }
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+
+.dot-pulse {
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+/* Flow diagram edge animation */
+.flow-edge-active {
+  stroke-dasharray: 8 4;
+  animation: flow-pulse 1.5s linear infinite;
+}
+
+/* Flow diagram node glow */
+@keyframes node-glow {
+  0%, 100% { opacity: 0.15; r: 20; }
+  50% { opacity: 0.35; r: 24; }
 }
 
 .brand-mark {
@@ -331,6 +442,26 @@ button {
   animation: shimmer-edge 7.5s ease-in-out infinite;
 }
 
+@keyframes mesh-drift {
+  0%, 100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  33% { background-position: 100% 50%, 0% 50%, 50% 0%; }
+  66% { background-position: 50% 100%, 50% 0%, 0% 100%; }
+}
+
+@keyframes btn-shimmer {
+  0%, 60%, 100% { transform: translateX(-100%); }
+  80% { transform: translateX(100%); }
+}
+
+@keyframes usage-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes flow-pulse {
+  to { stroke-dashoffset: -12; }
+}
+
 @keyframes orbit-slow {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -361,8 +492,21 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .orbit-slow,
   .float-soft,
-  .shimmer-edge::after {
+  .shimmer-edge::after,
+  .btn-shimmer::after,
+  .usage-bar-fill::after,
+  .flow-edge-active,
+  .dot-pulse {
     animation: none;
+  }
+  body::after {
+    animation: none;
+  }
+  .bot-pill:hover {
+    transform: none;
+  }
+  .nav-slide::before {
+    transition: none;
   }
 }
 

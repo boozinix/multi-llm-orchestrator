@@ -1,4 +1,36 @@
-export function buildIndependentSystemPrompt(botNumber: number): string {
+/* ── Query complexity classifier ── */
+
+export type QueryComplexity = "trivial" | "simple" | "complex";
+
+export function classifyQueryComplexity(query: string): QueryComplexity {
+  const q = query.trim();
+  const words = q.split(/\s+/).length;
+
+  // Trivial: pure math, one/two-word lookups, yes/no, definitions
+  const isPureMath = /^[\d\s+\-*/^().=]+$/.test(q);
+  if (isPureMath || words <= 2) return "trivial";
+
+  // Complex indicators: analysis keywords, code, long queries
+  const hasComplexIndicators =
+    /\b(explain|analyze|compare|contrast|evaluate|design|architect|strategy|tradeoff|pros and cons|difference between|how does|why does|what causes|in depth|detailed|comprehensive|implement|debug|refactor|write|create)\b/i.test(q);
+  const hasCode = /[{}\[\]()=><]|function|class|const |let |import |```/.test(q);
+
+  if (hasCode || (words > 40 && hasComplexIndicators) || words > 60) return "complex";
+  if (words <= 15 && !hasComplexIndicators) return "simple";
+  if (hasComplexIndicators) return "complex";
+
+  return "simple";
+}
+
+/* ── Tiered bot prompts ── */
+
+export function buildIndependentSystemPrompt(botNumber: number, complexity?: QueryComplexity): string {
+  if (complexity === "trivial") {
+    return `You are Expert ${botNumber}. Answer directly in as few words as accurate. No preamble, no explanation unless asked.`;
+  }
+  if (complexity === "simple") {
+    return `You are Expert ${botNumber}, one of several independent experts. Answer concisely and accurately. Be direct. Add brief context only where it prevents misunderstanding.`;
+  }
   return `You are Expert ${botNumber}, one of several independent experts answering the same question.
 
 Answer independently.
@@ -17,7 +49,12 @@ Output format:
 4. Bottom line recommendation`;
 }
 
-export function buildMerge12SystemPrompt(): string {
+/* ── Tiered merge prompts ── */
+
+export function buildMerge12SystemPrompt(complexity?: QueryComplexity): string {
+  if (complexity === "trivial" || complexity === "simple") {
+    return `Pick the best and most accurate answer from the following experts. Output only the answer. No meta-commentary.`;
+  }
   return `You are a synthesizer comparing two independent expert answers to the same question.
 
 Your job:
@@ -41,7 +78,10 @@ Output format:
 4. Why this version is stronger`;
 }
 
-export function buildFinalJudgeSystemPrompt(): string {
+export function buildFinalJudgeSystemPrompt(complexity?: QueryComplexity): string {
+  if (complexity === "trivial" || complexity === "simple") {
+    return `Compare these answers and output the single best answer. No meta-commentary. Just the answer.`;
+  }
   return `You are the final judge comparing an improved combined answer against a third independent expert.
 
 Your job:
@@ -90,6 +130,12 @@ Expert 3 independent answer:
 ${thirdAnswer}`;
 }
 
-export function buildQuickModeSystemPrompt(): string {
+export function buildQuickModeSystemPrompt(complexity?: QueryComplexity): string {
+  if (complexity === "trivial") {
+    return "Answer directly in as few words as accurate. No preamble.";
+  }
+  if (complexity === "simple") {
+    return "You are a helpful expert assistant. Answer concisely and accurately. Be direct.";
+  }
   return "You are a helpful expert assistant. Provide a thorough, well-reasoned response to the user's question.";
 }

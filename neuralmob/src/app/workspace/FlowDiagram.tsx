@@ -57,15 +57,15 @@ function buildLayout(flow: FlowConfig, models: ModelConfig): { nodes: N[]; edges
   const m123 = flow.merge123Enabled && b3;
 
   // Bot row
-  nodes.push({ id: "bot1", cx: BX[0], cy: 26, label: modelLabel(models.bot1), sub: "bot 1", type: "bot", active: b1 });
-  nodes.push({ id: "bot2", cx: BX[1], cy: 26, label: modelLabel(models.bot2), sub: "bot 2", type: "bot", active: b2 });
-  nodes.push({ id: "bot3", cx: BX[2], cy: 26, label: modelLabel(models.bot3), sub: "bot 3", type: "bot", active: b3 });
+  nodes.push({ id: "bot1", cx: BX[0], cy: 26, label: modelLabel(models.bot1), sub: "mind 1", type: "bot", active: b1 });
+  nodes.push({ id: "bot2", cx: BX[1], cy: 26, label: modelLabel(models.bot2), sub: "mind 2", type: "bot", active: b2 });
+  nodes.push({ id: "bot3", cx: BX[2], cy: 26, label: modelLabel(models.bot3), sub: "mind 3", type: "bot", active: b3 });
 
   if (m12 && m123) {
     /* ─ full staged merge ─ */
     const mx12 = (BX[0] + BX[1]) / 2;
     nodes.push({ id: "m12", cx: mx12, cy: 106, label: "Merge 1+2", sub: "step a", type: "merge", active: true });
-    nodes.push({ id: "m123", cx: W / 2, cy: 186, label: "Merge + Bot 3", sub: "step b", type: "merge", active: true });
+    nodes.push({ id: "m123", cx: W / 2, cy: 186, label: "Merge + Mind 3", sub: "step b", type: "merge", active: true });
     nodes.push({ id: "out", cx: W / 2, cy: 266, label: "Final Output", sub: "synthesized", type: "out", active: true });
 
     edges.push({ from: "bot1", to: "m12" });
@@ -80,7 +80,7 @@ function buildLayout(flow: FlowConfig, models: ModelConfig): { nodes: N[]; edges
     /* ─ merge bot1+bot2 only ─ */
     const mx12 = W / 2;
     nodes.push({ id: "m12", cx: mx12, cy: 106, label: "Merge 1+2", sub: "step a", type: "merge", active: true });
-    nodes.push({ id: "out", cx: W / 2, cy: 186, label: "Final Output", sub: b3 ? "bot 3 bypassed" : "synthesized", type: "out", active: true });
+    nodes.push({ id: "out", cx: W / 2, cy: 186, label: "Final Output", sub: b3 ? "mind 3 bypassed" : "synthesized", type: "out", active: true });
 
     if (b1) edges.push({ from: "bot1", to: "m12" });
     if (b2) edges.push({ from: "bot2", to: "m12" });
@@ -124,7 +124,7 @@ function NodeRect({ n }: { n: N }) {
   const isMerge = n.type === "merge";
 
   const fill = n.active
-    ? isOut ? "#a078ff" : isMerge ? "#1e2a3e" : "#1e2a3e"
+    ? isOut ? "rgba(160,120,255,0.15)" : isMerge ? "rgba(160,120,255,0.08)" : "rgba(78,222,163,0.06)"
     : "#131b2e";
 
   const stroke = n.active
@@ -139,8 +139,29 @@ function NodeRect({ n }: { n: N }) {
     ? isOut ? "#c9aeff" : isMerge ? "#a078ff" : "#4edea3"
     : "#2d3449";
 
+  const glowColor = isOut ? "#d0bcff" : isMerge ? "#a078ff" : "#4edea3";
+
   return (
     <g opacity={n.active ? 1 : 0.35}>
+      {/* Ambient glow behind active nodes */}
+      {n.active && (
+        <ellipse
+          cx={n.cx}
+          cy={n.cy}
+          rx={NW / 2 + 6}
+          ry={NH / 2 + 4}
+          fill={glowColor}
+          opacity={0.08}
+          style={{ filter: "blur(8px)" }}
+        >
+          <animate
+            attributeName="opacity"
+            values="0.06;0.14;0.06"
+            dur="3s"
+            repeatCount="indefinite"
+          />
+        </ellipse>
+      )}
       <rect
         x={n.cx - NW / 2}
         y={n.cy - NH / 2}
@@ -151,7 +172,7 @@ function NodeRect({ n }: { n: N }) {
         stroke={stroke}
         strokeWidth={n.active ? 1.5 : 1}
       />
-      {/* Glow for output */}
+      {/* Glow ring for output */}
       {isOut && n.active && (
         <rect
           x={n.cx - NW / 2}
@@ -163,7 +184,14 @@ function NodeRect({ n }: { n: N }) {
           stroke="#d0bcff"
           strokeWidth={3}
           opacity={0.15}
-        />
+        >
+          <animate
+            attributeName="opacity"
+            values="0.1;0.3;0.1"
+            dur="2.5s"
+            repeatCount="indefinite"
+          />
+        </rect>
       )}
       <text
         x={n.cx}
@@ -227,16 +255,29 @@ export function FlowDiagram({ flow, models }: { flow: FlowConfig; models: ModelC
         const active = src.active && dst.active && !e.dashed;
         const d = cubicPath(src.cx, src.cy, dst.cx, dst.cy);
         return (
-          <path
-            key={i}
-            d={d}
-            fill="none"
-            stroke={active ? "#a078ff" : e.dashed ? "#494454" : "#2d3449"}
-            strokeWidth={active ? 1.5 : 1}
-            strokeDasharray={e.dashed ? "5 3" : undefined}
-            markerEnd={`url(#${active ? "ah-active" : e.dashed ? "ah-bypass" : "ah-dim"})`}
-            opacity={active ? 0.75 : 0.3}
-          />
+          <g key={i}>
+            {/* Glow trail for active edges */}
+            {active && (
+              <path
+                d={d}
+                fill="none"
+                stroke="#a078ff"
+                strokeWidth={4}
+                opacity={0.1}
+                style={{ filter: "blur(3px)" }}
+              />
+            )}
+            <path
+              d={d}
+              fill="none"
+              stroke={active ? "#a078ff" : e.dashed ? "#494454" : "#2d3449"}
+              strokeWidth={active ? 1.5 : 1}
+              strokeDasharray={e.dashed ? "5 3" : active ? "8 4" : undefined}
+              markerEnd={`url(#${active ? "ah-active" : e.dashed ? "ah-bypass" : "ah-dim"})`}
+              opacity={active ? 0.8 : 0.3}
+              className={active ? "flow-edge-active" : undefined}
+            />
+          </g>
         );
       })}
 

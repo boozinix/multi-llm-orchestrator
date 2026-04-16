@@ -7,6 +7,7 @@ import {
   buildMerge12SystemPrompt,
   buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
+  classifyQueryComplexity,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
 import type { BotRunOutput, CompletionUsage, FlowConfig, HistoryMessage, ModelConfig, UsageLine } from "../types";
@@ -116,10 +117,11 @@ export async function runQuickOrchestratorStream(
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
   const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const complexity = classifyQueryComplexity(prompt);
   const model = models[flow.primarySlot];
   const label = `Quick — ${modelLabel(model)}`;
   emit({ type: "status", message: `Starting ${label}…` });
-  const sys = buildQuickModeSystemPrompt();
+  const sys = buildQuickModeSystemPrompt(complexity);
   const ctx = { systemPrompt: sys, history, userPrompt: prompt };
   const { text, usage } = await withTimeout(
     runPhase("quick", label, streamModel(providerKeys, model, sys, history, prompt, orOpts), emit, ctx),
@@ -140,30 +142,35 @@ export async function runSuperOrchestratorStream(
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
   const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
 
-  emit({ type: "status", message: "Running independent bots (streaming)…" });
+  emit({ type: "status", message: `Running ${ordered.length} mind${ordered.length > 1 ? "s" : ""} in parallel (streaming)…` });
 
   const botOutputs: BotRunOutput[] = [];
   const outputMap: Partial<Record<"bot1" | "bot2" | "bot3", string>> = {};
   const usageLines: UsageLine[] = [];
 
-  for (let i = 0; i < ordered.length; i++) {
-    const slotId = ordered[i];
+  // Fire all bots simultaneously — total time = max(T1, T2, T3) instead of T1+T2+T3
+  const botPromises = ordered.map((slotId, i) => {
     const model = models[slotId];
     const n = i + 1;
-    const label = `Bot ${n} — ${modelLabel(model)} (independent)`;
-    emit({ type: "status", message: `${label}…` });
-    const sys = buildIndependentSystemPrompt(n);
+    const label = `Mind ${n} — ${modelLabel(model)}`;
+    const sys = buildIndependentSystemPrompt(n, complexity);
     const botCtx = { systemPrompt: sys, history, userPrompt: prompt };
-    const got = await tryRunPhase(
+    return tryRunPhase(
       slotId,
       label,
       streamModel(providerKeys, model, sys, history, prompt, orOpts),
       emit,
       botCtx
-    );
+    ).then((got) => ({ slotId, model, got }));
+  });
+
+  const results = await Promise.all(botPromises);
+
+  for (const { slotId, model, got } of results) {
     if (!got) continue;
     const trimmed = got.text.trim();
     if (!trimmed) continue;
@@ -189,8 +196,8 @@ export async function runSuperOrchestratorStream(
 
   let finalAnswer: string;
 
-  const merge12Sys = buildMerge12SystemPrompt();
-  const finalJudgeSys = buildFinalJudgeSystemPrompt();
+  const merge12Sys = buildMerge12SystemPrompt(complexity);
+  const finalJudgeSys = buildFinalJudgeSystemPrompt(complexity);
   const emptyHist: HistoryMessage[] = [];
 
   function pushSynthUsage(got: { usage: CompletionUsage } | null) {
@@ -203,7 +210,7 @@ export async function runSuperOrchestratorStream(
   }
 
   if (hasMerge12 && hasMerge123) {
-    emit({ type: "status", message: "Comparing Bot 1 + Bot 2 (streaming)…" });
+    emit({ type: "status", message: "Comparing Mind 1 + Mind 2 (streaming)…" });
     const up12 = buildMerge12UserPrompt(prompt, bot1Out, bot2Out);
     const ctx12 = { systemPrompt: merge12Sys, history: emptyHist, userPrompt: up12 };
     const combined12got = await tryRunPhase(
@@ -218,7 +225,7 @@ export async function runSuperOrchestratorStream(
     } else {
       pushSynthUsage(combined12got);
       const c12 = combined12got.text.trim();
-      emit({ type: "status", message: "Comparing (1 + 2) against Bot 3 (streaming)…" });
+      emit({ type: "status", message: "Comparing (1 + 2) against Mind 3 (streaming)…" });
       const up123 = buildFinalJudgeUserPrompt(prompt, c12, bot3Out);
       const ctx123 = { systemPrompt: finalJudgeSys, history: emptyHist, userPrompt: up123 };
       const merged123got = await tryRunPhase(
@@ -232,7 +239,7 @@ export async function runSuperOrchestratorStream(
       finalAnswer = merged123got?.text.trim() || c12;
     }
   } else if (hasMerge12 && !hasMerge123) {
-    emit({ type: "status", message: "Comparing Bot 1 + Bot 2 (streaming)…" });
+    emit({ type: "status", message: "Comparing Mind 1 + Mind 2 (streaming)…" });
     const up12b = buildMerge12UserPrompt(prompt, bot1Out, bot2Out);
     const ctx12b = { systemPrompt: merge12Sys, history: emptyHist, userPrompt: up12b };
     const combined12got = await tryRunPhase(
@@ -247,7 +254,7 @@ export async function runSuperOrchestratorStream(
   } else if (!hasMerge12 && hasMerge123) {
     const left = bot1Out ?? bot2Out;
     if (left && bot3Out) {
-      emit({ type: "status", message: "Comparing prior answer against Bot 3 (streaming)…" });
+      emit({ type: "status", message: "Comparing prior answer against Mind 3 (streaming)…" });
       const upLast = buildFinalJudgeUserPrompt(prompt, left.trim(), bot3Out);
       const ctxLast = { systemPrompt: finalJudgeSys, history: emptyHist, userPrompt: upLast };
       const merged123got = await tryRunPhase(

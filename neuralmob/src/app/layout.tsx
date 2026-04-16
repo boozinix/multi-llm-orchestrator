@@ -30,21 +30,34 @@ export const metadata: Metadata = {
   description: appDescription,
   applicationName: "Neural Mob",
   keywords: ["Neural Mob", "AI orchestration", "multi-model", "LLM workflow", "AI synthesis"],
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     shortcut: ["/icon.svg"],
-    apple: ["/icon.svg"],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
   },
   openGraph: {
     title: "Neural Mob",
     description: appDescription,
     siteName: "Neural Mob",
     type: "website",
+    url: "/",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Neural Mob",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Neural Mob",
     description: appDescription,
+    images: ["/twitter-image"],
   },
 };
 

@@ -32,7 +32,7 @@ const WORKSPACE_TOUR_STEPS: WorkspaceTourStep[] = [
       "This quick walkthrough shows the controls new members need first, and you can reopen it any time from Guide in the top bar.",
     bullets: [
       "Quick mode sends one model straight through. Super mode turns on multi-bot orchestration.",
-      "Bots answer independently first, then the merge steps compare and improve the strongest reasoning.",
+      "Each mind answers independently, then merge steps compare and improve the strongest reasoning.",
       "Your history, settings, limits, and final answers all stay inside the workspace.",
     ],
   },
@@ -51,9 +51,9 @@ const WORKSPACE_TOUR_STEPS: WorkspaceTourStep[] = [
   {
     id: "flow",
     eyebrow: "Flow setup",
-    title: "Choose how many bots reason before you run.",
+    title: "Choose how many minds reason before you run.",
     description:
-      "This panel controls quick versus super mode, which bots are active, and whether the merge steps synthesize Bot 1 + 2 before comparing that result against Bot 3.",
+      "This panel controls quick versus super mode, which minds are active, and whether the merge steps synthesize Mind 1 + 2 before comparing that result against Mind 3.",
     detail:
       "The merge toggles are dependency-aware, so invalid orchestration chains cannot be enabled anymore.",
     selector: "[data-tour='flow-panel']",
@@ -164,10 +164,15 @@ function CopyTextButton({ text, label = "Copy" }: { text: string; label?: string
           /* ignore clipboard errors */
         }
       }}
-      className="text-[10px] font-mono px-2 py-1 rounded-md border border-[#494454]/25 text-[#cbc3d7] hover:text-[#d0bcff] hover:border-[#d0bcff]/35 transition-colors"
+      className="p-1.5 rounded-md text-[#6b7280] hover:text-[#d0bcff] hover:bg-[#d0bcff]/10 transition-colors"
       title={label}
+      aria-label={label}
     >
-      {copied ? "Copied" : label}
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      )}
     </button>
   );
 }
@@ -179,6 +184,7 @@ function SideNav({
   onSelect,
   onNew,
   onNav,
+  onGuide,
   showAdmin,
   onAdmin,
   onSignOut,
@@ -189,6 +195,7 @@ function SideNav({
   onSelect: (id: string) => void;
   onNew: () => void;
   onNav: (page: "workspace" | "settings") => void;
+  onGuide: () => void;
   showAdmin: boolean;
   onAdmin: () => void;
   onSignOut: () => void;
@@ -198,62 +205,69 @@ function SideNav({
 
   return (
     <aside className="h-screen w-72 fixed left-0 top-0 flex flex-col p-4 z-50 overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] backdrop-blur-xl">
-      <div className="mb-6 px-2 pt-1 flex items-center gap-3">
-        <BrandMark className="w-11 h-11 rounded-2xl flex-shrink-0" />
+      <div className="mb-5 px-2 pt-1 flex items-center gap-2.5">
+        <BrandMark className="w-9 h-9 rounded-xl flex-shrink-0" />
         <div className="min-w-0">
-          <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
-          <p className="mt-1 text-[11px] text-[#b9c5df]/72">Multi-model orchestration</p>
+          <h1 className="text-lg leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
+          <p className="mt-0.5 text-[10px] text-[#b9c5df]/72">Multi-model orchestration</p>
         </div>
       </div>
 
-      <nav className="space-y-1.5 mb-5">
-        <p className="app-eyebrow px-3 pb-1 text-[#aeb9d5]/56">Navigate</p>
+      <nav className="space-y-1 mb-4">
+        <p className="font-mono tracking-[0.2em] uppercase text-xs text-[#d0bcff] px-3 pb-0.5">Navigate</p>
         <button
           onClick={() => onNav("workspace")}
-          className="w-full app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left"
+          className="w-full app-panel-soft text-[#e6dcff] rounded-xl flex items-center gap-2.5 px-3 py-2 font-semibold text-[11px] text-left"
         >
-          <AppIcon name="chat" className="h-5 w-5" />
+          <AppIcon name="chat" className="h-4 w-4" />
           Chat
         </button>
         <button
           onClick={() => onNav("settings")}
-          className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
+          className="w-full nav-slide text-[#96a5c6] rounded-xl flex items-center gap-2.5 px-3 py-2 font-medium text-[11px] text-left hover:text-[#e8eefc]"
         >
-          <AppIcon name="key" className="h-5 w-5" />
+          <AppIcon name="key" className="h-4 w-4" />
           API Keys
         </button>
         <button
           onClick={() => onNav("settings")}
-          className="w-full text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#e8eefc]"
+          className="w-full nav-slide text-[#96a5c6] rounded-xl flex items-center gap-2.5 px-3 py-2 font-medium text-[11px] text-left hover:text-[#e8eefc]"
         >
-          <AppIcon name="settings" className="h-5 w-5" />
+          <AppIcon name="settings" className="h-4 w-4" />
           Settings
+        </button>
+        <button
+          onClick={onGuide}
+          className="w-full nav-slide text-[#96a5c6] rounded-xl flex items-center gap-2.5 px-3 py-2 font-medium text-[11px] text-left hover:text-[#e8eefc]"
+        >
+          <AppIcon name="help" className="h-4 w-4" />
+          Guide
         </button>
         {showAdmin && (
           <button
             onClick={onAdmin}
-            className="w-full text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335]"
+            className="w-full nav-slide text-[#7cefc0] rounded-xl flex items-center gap-2.5 px-3 py-2.5 font-medium text-sm text-left hover:text-[#7cefc0]"
           >
-            <AppIcon name="admin" className="h-5 w-5" />
+            <AppIcon name="admin" className="h-4 w-4" />
             Admin
           </button>
         )}
       </nav>
 
       {/* History */}
-      <div data-tour="history-panel" className="flex-1 overflow-y-auto space-y-1">
-        <p className="app-eyebrow px-3 mb-2 text-[#aeb9d5]/56">History</p>
+      <div data-tour="history-panel" className="flex-1 overflow-y-auto space-y-0.5">
+        <p className="font-mono tracking-[0.2em] uppercase text-xs text-[#d0bcff] px-3 mb-1.5">History</p>
         {conversations.length === 0 && (
-          <div className="app-panel-soft rounded-2xl px-4 py-4 mx-1">
-            <p className="text-sm text-[#9dadcd]">No conversations yet</p>
-            <p className="mt-1 text-xs text-[#6f7c99]">Your orchestration runs will appear here with titles.</p>
+          <div className="app-panel-soft rounded-xl px-3 py-3 mx-1">
+            <p className="text-xs text-[#9dadcd]">No conversations yet</p>
+            <p className="mt-0.5 text-[10px] text-[#6f7c99]">Your runs will appear here.</p>
           </div>
         )}
         {conversations.map((c) => (
           <button
             key={c.id}
             onClick={() => onSelect(c.id)}
-            className={`w-full text-left px-3.5 py-3 rounded-2xl text-sm transition-colors truncate ${
+            className={`w-full text-left px-3 py-2 rounded-xl text-[11px] transition-colors truncate ${
               activeId === c.id
                 ? "app-panel-soft text-[#edf2ff]"
                 : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
@@ -265,36 +279,37 @@ function SideNav({
       </div>
 
       {/* Usage bar */}
-      <div className="mt-4 space-y-3">
-        <div className="app-panel rounded-[1.4rem] p-4 shimmer-edge">
-          <div className="flex justify-between items-center mb-2.5">
-            <span className="app-eyebrow text-[#b9c5df]/66">Usage</span>
-            <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usagePrimary}</span>
+      <div className="mt-3 space-y-2">
+        <div className="app-panel rounded-xl p-3 shimmer-edge">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[0.68rem] font-mono tracking-[0.2em] uppercase text-[#b9c5df]/66">Usage</span>
+            <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usagePrimary}</span>
           </div>
-          <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-[#2d3449] rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all"
+              className="h-full rounded-full transition-all usage-bar-fill"
               style={{ width: `${runPct}%`, background: "linear-gradient(90deg, #d0bcff 0%, #a078ff 56%, #7b5de9 100%)", boxShadow: "0 0 12px 2px rgba(160,120,255,0.3)" }}
             />
           </div>
           {usageSecondary && (
-            <p className="text-[11px] text-[#9eadcc] mt-2">{usageSecondary}</p>
+            <p className="text-[10px] text-[#9eadcc] mt-1.5">{usageSecondary}</p>
           )}
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <button
             onClick={onNew}
-            className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#edf2ff] bg-[#171f33] hover:bg-[#1d2740] transition-colors rounded-2xl"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold text-[#edf2ff] rounded-2xl transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, rgba(160,120,255,0.25) 0%, rgba(100,60,200,0.2) 100%)", border: "1px solid rgba(160,120,255,0.3)" }}
           >
-            <AppIcon name="add" className="h-[1.05rem] w-[1.05rem]" />
+            <AppIcon name="add" className="h-4 w-4 text-[#d0bcff]" />
             New Chat
           </button>
           <button
             onClick={onSignOut}
-            className="w-full flex items-center gap-3 px-3.5 py-3 text-sm font-medium text-[#9aa8c7] hover:bg-[#161f33] hover:text-[#edf2ff] transition-colors rounded-2xl"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[#9aa8c7] hover:bg-[#161f33] hover:text-[#edf2ff] transition-colors rounded-xl"
           >
-            <AppIcon name="logout" className="h-[1.05rem] w-[1.05rem]" />
+            <AppIcon name="logout" className="h-4 w-4" />
             Sign Out
           </button>
         </div>
@@ -339,7 +354,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         <div className="bg-[#131b2e] p-4 sm:p-6 rounded-2xl space-y-3 sm:space-y-4 border border-[#494454]/10">
           {msg.botOutputs && msg.botOutputs.length > 1 && (
             <div className="space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/70 font-mono">Bot Answers</p>
+              <p className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/70 font-mono">Mind Outputs</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {msg.botOutputs.map((bot) => (
                   <BotOutputCard key={bot.slotId} bot={bot} />
@@ -350,7 +365,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
           <div className="pt-2 border-t border-[#494454]/10 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] uppercase tracking-widest text-[#d0bcff] font-mono">Final Answer</p>
+              <p className="text-[15px] sm:text-base font-medium text-[#d0bcff]">Final Answer</p>
               <CopyTextButton text={msg.content} label="Copy final" />
             </div>
             <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">{msg.content}</p>
@@ -378,7 +393,7 @@ function BotOutputCard({ bot }: { bot: BotRunOutput }) {
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
           <span className="text-[10px] text-[#cbc3d7] uppercase" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-            {slot.toUpperCase()} · {label}
+            MIND {slot.replace("bot", "")} · {label}
           </span>
         </div>
         <CopyTextButton text={bot.output} label="Copy" />
@@ -407,7 +422,7 @@ function FlowPanel({
   const canMerge123 = canMerge12 && flow.bot3Enabled && flow.merge12Enabled;
 
   return (
-    <section data-tour="flow-panel" className="w-full lg:w-80 lg:min-w-[20rem] bg-[#131b2e] overflow-y-auto p-4 sm:p-5 flex flex-col gap-5 lg:gap-6 min-h-0">
+    <section data-tour="flow-panel" className="w-full lg:w-80 lg:min-w-[20rem] bg-[#131b2e] overflow-y-auto p-4 sm:p-5 pt-5 sm:pt-6 flex flex-col gap-4 lg:gap-5 min-h-0">
 
       {/* Live flow diagram */}
       <div>
@@ -424,22 +439,21 @@ function FlowPanel({
         <div className="flex gap-2">
           <button
             onClick={() => onFlowChange({ mode: "quick" })}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               flow.mode === "quick"
-                ? "bg-[#d0bcff] text-[#340080]"
-                : "bg-[#222a3d] text-[#94a3b8] hover:text-[#dae2fd]"
+                ? "mode-toggle-active"
+                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
             }`}
           >
             Quick
           </button>
           <button
             onClick={() => onFlowChange({ mode: "super" })}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               flow.mode === "super"
-                ? "text-[#340080]"
-                : "bg-[#222a3d] text-[#94a3b8] hover:text-[#dae2fd]"
+                ? "mode-toggle-active"
+                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
             }`}
-            style={flow.mode === "super" ? { background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)" } : {}}
           >
             Super
           </button>
@@ -465,7 +479,7 @@ function FlowPanel({
               </optgroup>
             ))}
           </select>
-          <p className="text-[10px] text-[#cbc3d7]/50">Uses Bot 1 slot. Switch to Super for multi-model.</p>
+          <p className="text-[10px] text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Super for multi-model.</p>
         </div>
       )}
 
@@ -474,9 +488,9 @@ function FlowPanel({
           <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Orchestration Flow</h3>
 
           {BOT_SLOTS.map((slot, i) => (
-            <div key={slot} className={`p-3 bg-[#2d3449] rounded-xl border-l-2 ${flow[`${slot}Enabled`] ? "border-[#4edea3]" : "border-[#494454]"}`}>
+            <div key={slot} className={`p-3 bg-[#2d3449] rounded-xl border-l-2 ${flow[`${slot}Enabled`] ? (i === 0 ? "border-l-[rgba(139,92,246,0.6)]" : i === 1 ? "border-l-[rgba(6,182,212,0.6)]" : "border-l-[rgba(34,197,94,0.6)]") : "border-l-[#494454]"}`}>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-[#dae2fd]">Bot {i + 1}</span>
+                <span className="text-xs font-semibold text-[#dae2fd]">Mind {i + 1}</span>
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -518,11 +532,11 @@ function FlowPanel({
           <div className="space-y-2 pt-2 border-t border-[#494454]/20">
             <h4 className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/60" style={{ fontFamily: "JetBrains Mono, monospace" }}>Merge Steps</h4>
 
-            <div className="flex justify-between items-center p-3 bg-[#171f33] rounded-xl">
+            <div className="flex justify-between items-center p-3 app-panel-soft rounded-xl">
               <div>
-                <p className="text-xs font-medium text-[#dae2fd]">Merge Bot 1 + 2</p>
+                <p className="text-xs font-medium text-[#dae2fd]">Merge Mind 1 + 2</p>
                 <p className="text-[10px] text-[#cbc3d7]/60">
-                  {canMerge12 ? "Step A synthesis" : "Requires Bot 1 and Bot 2"}
+                  {canMerge12 ? "Step A synthesis" : "Requires Mind 1 and Mind 2"}
                 </p>
               </div>
               <label className="flex items-center cursor-pointer">
@@ -545,11 +559,11 @@ function FlowPanel({
               </label>
             </div>
 
-            <div className="flex justify-between items-center p-3 bg-[#171f33] rounded-xl">
+            <div className="flex justify-between items-center p-3 app-panel-soft rounded-xl">
               <div>
                 <p className="text-xs font-medium text-[#dae2fd]">Merge (1+2) + 3</p>
                 <p className="text-[10px] text-[#cbc3d7]/60">
-                  {canMerge123 ? "Step B synthesis" : "Enable Step A and Bot 3 first"}
+                  {canMerge123 ? "Step B synthesis" : "Enable Step A and Mind 3 first"}
                 </p>
               </div>
               <label className="flex items-center cursor-pointer">
@@ -588,7 +602,7 @@ function FlowPanel({
           <AppIcon name="verified" className="h-4 w-4 text-[#d0bcff]" />
           <span className="text-[10px] uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
         </div>
-        <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active bots.</p>
+        <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active minds.</p>
       </div>
     </section>
   );
@@ -1259,6 +1273,7 @@ export default function WorkspacePage() {
           onSelect={selectConversation}
           onNew={newChat}
           onNav={(page) => router.push(page === "settings" ? "/settings" : "/workspace")}
+          onGuide={() => { setTourStep(0); setTourOpen(true); }}
           showAdmin={ownerUnlimited}
           onAdmin={() => router.push("/admin")}
           onSignOut={handleSignOut}
@@ -1267,26 +1282,22 @@ export default function WorkspacePage() {
 
       {/* Main area */}
       <div className="flex flex-1 lg:ml-72 flex-col overflow-hidden min-h-0">
-        {/* Top bar */}
-        <header className="flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8 min-h-14 py-2 lg:py-0 lg:h-16 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
+        {/* Mobile-only top bar — desktop has no header since sidebar covers everything */}
+        <header className="lg:hidden flex items-center justify-between gap-2 px-3 sm:px-4 min-h-14 py-2 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
           <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
               data-tour="history-button"
-              className="lg:hidden min-h-11 min-w-11 shrink-0 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
+              className="min-h-11 min-w-11 shrink-0 rounded-xl bg-[#222a3d] flex items-center justify-center text-[#d0bcff]"
               aria-label="Open history"
             >
               <AppIcon name="menu" className="h-[1.35rem] w-[1.35rem]" />
             </button>
-            <div className="min-w-0">
-              <span className="font-semibold text-[#edf2ff] hidden lg:block truncate">Neural Mob</span>
-              <span className="font-semibold text-[#edf2ff] lg:hidden text-sm truncate">Neural Mob</span>
-              <p className="hidden lg:block text-[11px] text-[#93a1c1] mt-0.5">Orchestration workspace</p>
-            </div>
+            <span className="font-semibold text-[#edf2ff] text-sm truncate">Neural Mob</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="flex lg:hidden gap-0.5 bg-[#222a3d] rounded-xl p-1">
+            <div className="flex gap-0.5 bg-[#222a3d] rounded-xl p-1">
               <button
                 type="button"
                 onClick={() => setMobileTab("chat")}
@@ -1302,34 +1313,6 @@ export default function WorkspacePage() {
                 Flow
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setTourStep(0);
-                setTourOpen(true);
-              }}
-              className="min-h-11 rounded-xl px-3 sm:px-3.5 text-sm font-medium text-[#b7c4df] bg-[#171f33] hover:bg-[#1d2740] transition-colors flex items-center justify-center gap-2"
-              aria-label="Open guide"
-            >
-              <AppIcon name="help" className="h-[1.05rem] w-[1.05rem]" />
-              <span className="hidden sm:inline">Guide</span>
-            </button>
-            <button
-              type="button"
-              onClick={newChat}
-              className="hidden lg:flex px-4 py-2 min-h-10 app-panel-soft rounded-xl text-sm font-semibold text-[#edf2ff]"
-            >
-              New Chat
-            </button>
-            {ownerUnlimited && (
-              <button
-                type="button"
-                onClick={() => router.push("/admin")}
-                className="hidden lg:flex px-4 py-2 min-h-10 rounded-xl text-sm font-semibold text-[#4edea3] border border-[#4edea3]/18 bg-[#111d2f] hover:bg-[#13253a] transition-all"
-              >
-                Admin
-              </button>
-            )}
             <button
               type="button"
               onClick={() => router.push("/settings")}
@@ -1360,44 +1343,20 @@ export default function WorkspacePage() {
               style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="h-full flex items-center">
-                  <div className="max-w-5xl w-full mx-auto grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
-                    <div className="text-left">
-                      <p className="app-eyebrow mb-4">Neural Mob</p>
-                      <h2 className="app-hero-title text-3xl md:text-4xl xl:text-[4.3rem] text-[#edf2ff] max-w-xl">
-                        Ask once. Compare, merge, and synthesize across models.
-                      </h2>
-                      <p className="mt-5 max-w-xl text-base md:text-lg text-[#b4bed6] leading-8">
-                        {flow.mode === "super"
-                          ? `${enabledCount} bots are active right now. Neural Mob runs them in sequence, streams each phase live, and merges where your flow allows it.`
-                          : "Quick mode sends a single model straight through with full streaming and conversation history."}
-                      </p>
-                      <div className="mt-8 flex flex-wrap gap-3">
-                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Live phase streaming</div>
-                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Model-by-model reasoning</div>
-                        <div className="app-panel-soft rounded-full px-4 py-2 text-sm text-[#edf2ff]">Final synthesis layer</div>
-                      </div>
-                    </div>
-                    <div className="app-panel rounded-[2rem] p-5 sm:p-6">
-                      <div className="flex items-center justify-between gap-3 mb-5">
-                        <div>
-                          <p className="app-eyebrow mb-1">Current Flow</p>
-                          <h3 className="text-2xl font-semibold text-[#edf2ff]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</h3>
-                        </div>
-                        <BrandMark className="h-14 w-14 rounded-[1.35rem] float-soft" glyphClassName="h-7 w-7" />
-                      </div>
-                      <div className="rounded-[1.5rem] bg-[#0d1525] border border-white/6 p-4">
-                        <FlowDiagram flow={flow} models={models} />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 mt-4">
-                        {BOT_SLOTS.map((slot, i) => (
-                          <div key={slot} className="rounded-2xl bg-[#111b2f] px-3 py-2 border border-white/6">
-                            <p className="text-[10px] uppercase tracking-widest text-[#8e9ab8] font-mono">Bot {i + 1}</p>
-                            <p className="mt-1 text-sm text-[#edf2ff] truncate">{modelLabel(models[slot])}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-8">
+                  <BrandMark className="h-12 w-12 rounded-2xl float-soft mb-5" glyphClassName="h-6 w-6" />
+                  <h2 className="app-hero-title text-2xl md:text-3xl text-[#edf2ff] max-w-md">
+                    What would you like to explore?
+                  </h2>
+                  <p className="mt-2 max-w-sm text-xs text-[#8e9ab8] leading-5">
+                    {flow.mode === "super"
+                      ? `${enabledCount} minds will answer independently, then Neural Mob merges the strongest reasoning.`
+                      : "One model answers directly with full streaming."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Parallel streaming</span>
+                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Cross-model synthesis</span>
+                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</span>
                   </div>
                 </div>
               )}
@@ -1462,25 +1421,31 @@ export default function WorkspacePage() {
               className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-6"
               style={{ background: "linear-gradient(to top, #0b1326 70%, transparent)" }}
             >
-              <div className="max-w-5xl mx-auto space-y-3">
-                {/* Model quick-select row */}
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="max-w-5xl mx-auto space-y-2">
+                {/* Mind pills — compact model status */}
+                <div className="flex flex-wrap items-center gap-1.5 px-1">
                   {flow.mode === "super" ? (
-                    BOT_SLOTS.map((slot, i) => (
-                      <ModelPill
-                        key={slot}
-                        slotLabel={`Bot ${i + 1}`}
-                        slot={slot}
-                        enabled={flow[`${slot}Enabled`]}
-                        onToggle={(v) => setFlow({ [`${slot}Enabled`]: v })}
-                      />
-                    ))
+                    BOT_SLOTS.map((slot, i) => {
+                      const enabled = flow[`${slot}Enabled`];
+                      const pillColors = ["border-l-[rgba(139,92,246,0.5)]", "border-l-[rgba(6,182,212,0.5)]", "border-l-[rgba(34,197,94,0.5)]"];
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setFlow({ [`${slot}Enabled`]: !enabled })}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-medium border-l-2 transition-all active:scale-[0.97] ${pillColors[i]} ${
+                            enabled ? "app-panel-soft text-[#cbc3d7]" : "bg-[#131b2e]/50 text-[#6b7280] border-l-[#494454]/40"
+                          }`}
+                        >
+                          <span className={`w-1 h-1 rounded-full ${enabled ? "bg-[#4edea3]" : "bg-[#494454]"}`} />
+                          Mind {i + 1}: {modelLabel(models[slot]).split("—")[0].trim()}
+                        </button>
+                      );
+                    })
                   ) : (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a2237] rounded-full border border-white/6">
-                      <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                        Quick → {modelLabel(models[flow.primarySlot])}
-                      </span>
-                    </div>
+                    <span className="text-[9px] text-[#8e9ab8] font-mono px-1">
+                      Quick → {modelLabel(models[flow.primarySlot]).split("—")[0].trim()}
+                    </span>
                   )}
                 </div>
 
@@ -1505,7 +1470,7 @@ export default function WorkspacePage() {
 
                 {/* Textarea — suppressHydrationWarning: password managers (e.g. NordPass) inject data-np-* attrs */}
                 <form onSubmit={handleSubmit} suppressHydrationWarning>
-                  <div data-tour="composer-shell" className="app-panel rounded-[1.75rem] p-2.5 shadow-2xl">
+                  <div data-tour="composer-shell" className="app-panel composer-glass rounded-[1.75rem] p-2.5 shadow-2xl">
                     <div className="flex items-end gap-2 px-2.5 py-1.5">
                       <textarea
                         suppressHydrationWarning
@@ -1522,7 +1487,7 @@ export default function WorkspacePage() {
                       <button
                         type="submit"
                         disabled={showcaseMode || isLoading || !prompt.trim()}
-                        className="rounded-[1.15rem] min-h-14 min-w-14 sm:min-w-0 sm:px-5 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40 flex-shrink-0 shadow-lg"
+                        className="btn-shimmer rounded-[1.15rem] min-h-14 min-w-14 sm:min-w-0 sm:px-5 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.96] disabled:opacity-40 flex-shrink-0 shadow-lg"
                         style={{
                           background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
                           color: "#340080",
@@ -1589,26 +1554,29 @@ function ModelPill({
   slot,
   enabled,
   onToggle,
+  isStreaming,
 }: {
   slotLabel: string;
   slot: "bot1" | "bot2" | "bot3";
   enabled: boolean;
   onToggle: (v: boolean) => void;
+  isStreaming?: boolean;
 }) {
   const models = useSettingsStore((s) => s.models);
   const label = modelLabel(models[slot]);
+  const pillIdx = slot === "bot1" ? 1 : slot === "bot2" ? 2 : 3;
 
   return (
     <button
       type="button"
       onClick={() => onToggle(!enabled)}
-      className={`flex items-center gap-1.5 min-h-10 px-3 py-2 rounded-full text-[11px] sm:text-[11px] font-medium transition-all active:scale-[0.98] ${
+      className={`bot-pill bot-pill-${pillIdx} flex items-center gap-1 min-h-8 px-2.5 py-1.5 rounded-full text-[10px] font-medium active:scale-[0.98] ${
         enabled
-          ? "bg-[#222a3d] border border-[#d0bcff]/20 text-[#dae2fd]"
-          : "bg-[#131b2e] border border-[#494454]/20 text-[#94a3b8]"
+          ? "app-panel-soft text-[#dae2fd]"
+          : "bg-[#131b2e]/60 border border-[#494454]/20 text-[#94a3b8]"
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${enabled ? "bg-[#4edea3]" : "bg-[#494454]"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${enabled ? (isStreaming ? "bg-[#4edea3] dot-pulse" : "bg-[#4edea3]") : "bg-[#494454]"}`} />
       {slotLabel}: {label}
     </button>
   );
