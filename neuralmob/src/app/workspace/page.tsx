@@ -426,7 +426,7 @@ function FlowPanel({
 
       {/* Live flow diagram */}
       <div>
-        <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7] mb-3" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+        <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7] mb-3" style={{ fontFamily: "JetBrains Mono, monospace" }}>
           Execution Flow
         </h3>
         <div className="bg-[#0d1525] rounded-2xl p-3 border border-[#494454]/15">
@@ -435,7 +435,7 @@ function FlowPanel({
       </div>
 
       <div>
-        <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7] mb-4" style={{ fontFamily: "JetBrains Mono, monospace" }}>Mode</h3>
+        <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7] mb-4" style={{ fontFamily: "JetBrains Mono, monospace" }}>Mode</h3>
         <div className="flex gap-2">
           <button
             onClick={() => onFlowChange({ mode: "quick" })}
@@ -462,7 +462,7 @@ function FlowPanel({
 
       {flow.mode === "quick" && (
         <div className="space-y-3">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Primary Model</h3>
+          <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Primary Model</h3>
           <select
             value={models[flow.primarySlot]}
             onChange={(e) => setModel(flow.primarySlot, e.target.value)}
@@ -479,13 +479,13 @@ function FlowPanel({
               </optgroup>
             ))}
           </select>
-          <p className="text-[10px] text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Super for multi-model.</p>
+          <p className="text-xs text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Super for multi-model.</p>
         </div>
       )}
 
       {flow.mode === "super" && (
         <div className="space-y-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Orchestration Flow</h3>
+          <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Orchestration Flow</h3>
 
           {BOT_SLOTS.map((slot, i) => (
             <div key={slot} className={`p-3 bg-[#2d3449] rounded-xl border-l-2 ${flow[`${slot}Enabled`] ? (i === 0 ? "border-l-[rgba(139,92,246,0.6)]" : i === 1 ? "border-l-[rgba(6,182,212,0.6)]" : "border-l-[rgba(34,197,94,0.6)]") : "border-l-[#494454]"}`}>
@@ -530,12 +530,12 @@ function FlowPanel({
           ))}
 
           <div className="space-y-2 pt-2 border-t border-[#494454]/20">
-            <h4 className="text-[10px] uppercase tracking-widest text-[#cbc3d7]/60" style={{ fontFamily: "JetBrains Mono, monospace" }}>Merge Steps</h4>
+            <h4 className="text-xs uppercase tracking-widest text-[#cbc3d7]/60" style={{ fontFamily: "JetBrains Mono, monospace" }}>Merge Steps</h4>
 
             <div className="flex justify-between items-center p-3 app-panel-soft rounded-xl">
               <div>
                 <p className="text-xs font-medium text-[#dae2fd]">Merge Mind 1 + 2</p>
-                <p className="text-[10px] text-[#cbc3d7]/60">
+                <p className="text-xs text-[#cbc3d7]/60">
                   {canMerge12 ? "Step A synthesis" : "Requires Mind 1 and Mind 2"}
                 </p>
               </div>
@@ -562,7 +562,7 @@ function FlowPanel({
             <div className="flex justify-between items-center p-3 app-panel-soft rounded-xl">
               <div>
                 <p className="text-xs font-medium text-[#dae2fd]">Merge (1+2) + 3</p>
-                <p className="text-[10px] text-[#cbc3d7]/60">
+                <p className="text-xs text-[#cbc3d7]/60">
                   {canMerge123 ? "Step B synthesis" : "Enable Step A and Mind 3 first"}
                 </p>
               </div>
@@ -592,7 +592,7 @@ function FlowPanel({
       {/* Synthesis model */}
       {flow.mode === "super" && (
         <div>
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#cbc3d7] mb-3" style={{ fontFamily: "JetBrains Mono, monospace" }}>Synthesis Model</h3>
+          <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7] mb-3" style={{ fontFamily: "JetBrains Mono, monospace" }}>Synthesis Model</h3>
           <SynthModelSelector groupedModels={groupedModels} />
         </div>
       )}
@@ -600,7 +600,7 @@ function FlowPanel({
       <div className="p-4 bg-[#2d3449] rounded-xl border border-[#d0bcff]/10">
         <div className="flex items-center gap-2 mb-2">
           <AppIcon name="verified" className="h-4 w-4 text-[#d0bcff]" />
-          <span className="text-[10px] uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
+          <span className="text-xs uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
         </div>
         <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active minds.</p>
       </div>
@@ -666,6 +666,7 @@ export default function WorkspacePage() {
   const composerRef = useRef<HTMLDivElement>(null);
   const lastConversationIdRef = useRef<string | null>(null);
   const hasPromptedTourRef = useRef(false);
+  const userScrolledUpRef = useRef(false);
 
   const loadUsage = useCallback(async () => {
     try {
@@ -747,6 +748,17 @@ export default function WorkspacePage() {
     updateViewport();
     window.addEventListener("resize", updateViewport);
     return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    const root = messagesScrollRef.current;
+    if (!root) return;
+    const onScroll = () => {
+      const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
+      userScrolledUpRef.current = fromBottom > 140;
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
@@ -877,15 +889,15 @@ export default function WorkspacePage() {
     };
 
     if (convChanged) {
+      userScrolledUpRef.current = false;
       scrollToEnd("auto");
       return;
     }
 
+    if (userScrolledUpRef.current) return;
+
     const root = messagesScrollRef.current;
-    if (!root) {
-      scrollToEnd("auto");
-      return;
-    }
+    if (!root) return;
 
     const thresholdPx = 140;
     const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
@@ -1433,7 +1445,7 @@ export default function WorkspacePage() {
                           key={slot}
                           type="button"
                           onClick={() => setFlow({ [`${slot}Enabled`]: !enabled })}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-medium border-l-2 transition-all active:scale-[0.97] ${pillColors[i]} ${
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border-l-2 transition-all active:scale-[0.97] ${pillColors[i]} ${
                             enabled ? "app-panel-soft text-[#cbc3d7]" : "bg-[#131b2e]/50 text-[#6b7280] border-l-[#494454]/40"
                           }`}
                         >
@@ -1443,7 +1455,7 @@ export default function WorkspacePage() {
                       );
                     })
                   ) : (
-                    <span className="text-[9px] text-[#8e9ab8] font-mono px-1">
+                    <span className="text-[11px] text-[#8e9ab8] font-mono px-1">
                       Quick → {modelLabel(models[flow.primarySlot]).split("—")[0].trim()}
                     </span>
                   )}

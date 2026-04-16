@@ -122,11 +122,13 @@ h6 {
   letter-spacing: -0.03em;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 a,
