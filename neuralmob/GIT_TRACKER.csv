@@ -1,3 +1,4 @@
 save_number,datetime,branch,commit_hash,changes_summary
 1,2026-04-15 00:00,main,2adca7b,feat: UX redesign + parallel streaming + adaptive prompts + Mind rename
 2,2026-04-15 00:00,main,e29ef82,fix: sidebar + right panel font sizes; fix CSS layer so Tailwind text utilities apply; fix scroll lock during streaming
+3,2026-04-17 00:00,feature/claude-design-ux,TBD,feat: Orchestra landing page — animated hero card + modes + proof + pricing; updated Google Fonts import; .landing-u underline animation
