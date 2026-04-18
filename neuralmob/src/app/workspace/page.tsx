@@ -1388,9 +1388,10 @@ export default function WorkspacePage() {
               style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="flex flex-col justify-start px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
+                <div className="flex flex-col justify-start py-8 lg:py-10">
+                  <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", padding: "0 24px" }}>
                   {/* Greeting */}
-                  <div style={{ maxWidth: 780 }}>
+                  <div>
                     <p className="mb-4" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#4edea3" }}>
                       ● {getTimeGreeting()} · {flow.mode === "super" ? `${enabledCount} mind${enabledCount !== 1 ? "s" : ""} on call` : "Quick mode · 1 mind"}
                     </p>
@@ -1403,7 +1404,7 @@ export default function WorkspacePage() {
                   </div>
 
                   {/* Modes mini row */}
-                  <div style={{ maxWidth: 780, margin: "24px 0 20px" }}>
+                  <div style={{ margin: "24px 0 20px" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
                       {([
                         { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
@@ -1422,7 +1423,7 @@ export default function WorkspacePage() {
                   </div>
 
                   {/* Suggested prompt cards */}
-                  <div style={{ maxWidth: 780 }}>
+                  <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                       <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#6b6889" }}>§ try one of these</span>
                     </div>
@@ -1440,6 +1441,7 @@ export default function WorkspacePage() {
                         </button>
                       ))}
                     </div>
+                  </div>
                   </div>
                 </div>
               )}
