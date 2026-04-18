@@ -1388,7 +1388,7 @@ export default function WorkspacePage() {
               style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="h-full flex flex-col justify-start px-4 sm:px-6 lg:px-10 py-8 lg:py-10 overflow-y-auto">
+                <div className="flex flex-col justify-start px-4 sm:px-6 lg:px-10 py-8 lg:py-10">
                   {/* Greeting */}
                   <div style={{ maxWidth: 780 }}>
                     <p className="mb-4" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#4edea3" }}>
@@ -1404,15 +1404,15 @@ export default function WorkspacePage() {
 
                   {/* Modes mini row */}
                   <div style={{ maxWidth: 780, margin: "24px 0 20px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", border: "1px solid rgba(208,188,255,.1)", borderRadius: 12, overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
                       {([
                         { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
                         { label: "Super", sub: "default", kbd: "⌘S", mode: "super" as const, stat: "3 + judge" },
                       ] as const).map((m, i) => (
                         <button key={m.mode} type="button" onClick={() => setFlow({ mode: m.mode })}
-                          style={{ padding: "13px 15px", borderRight: i === 0 ? "1px solid rgba(208,188,255,.08)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.05)" : "transparent", border: flow.mode === m.mode ? "1px solid rgba(208,188,255,.15)" : "1px solid transparent" }}>
+                          style={{ padding: "13px 15px", borderRight: i === 0 ? "2px solid rgba(208,188,255,.35)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.38)" : "transparent", transition: "background .15s" }}>
                           <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-                            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, padding: "2px 6px", border: `1px solid ${flow.mode === m.mode ? "#d0bcff" : "rgba(208,188,255,.2)"}`, borderRadius: 4, color: flow.mode === m.mode ? "#d0bcff" : "#6b6889" }}>{m.kbd}</span>
+                            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, padding: "2px 6px", border: `2px solid ${flow.mode === m.mode ? "#d0bcff" : "rgba(208,188,255,.35)"}`, borderRadius: 4, color: flow.mode === m.mode ? "#d0bcff" : "#6b6889" }}>{m.kbd}</span>
                             <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#e9e6f5", letterSpacing: "-0.01em" }}>{m.label} <em style={{ fontStyle: "italic", color: "#d0bcff", fontWeight: 300, fontSize: 12, marginLeft: 2 }}>{m.sub}</em></span>
                           </div>
                           <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#4edea3", letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{m.stat}</span>
@@ -1429,8 +1429,8 @@ export default function WorkspacePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {PROMPT_SUGGESTIONS.map((s) => (
                         <button key={s.q} type="button" onClick={() => setPrompt(s.q)}
-                          style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, padding: "16px 18px", background: "rgba(255,255,255,.015)", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10, transition: "all .18s" }}
-                          className="hover:border-[#d0bcff]/30 hover:bg-[#d0bcff]/[0.04] hover:-translate-y-px">
+                          style={{ border: "2px solid rgba(208,188,255,.28)", borderRadius: 10, padding: "16px 18px", background: "rgba(255,255,255,.015)", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10, transition: "all .18s" }}
+                          className="hover:border-[#d0bcff]/60 hover:bg-[#d0bcff]/[0.06] hover:-translate-y-px">
                           <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d0bcff" }}>{s.tag}</div>
                           <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontStyle: "italic", fontSize: 17, lineHeight: 1.35, color: "#e9e6f5", letterSpacing: "-0.01em" }}>&ldquo;{s.q}&rdquo;</div>
                           <div style={{ display: "flex", gap: 5, alignItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: "auto" }}>
