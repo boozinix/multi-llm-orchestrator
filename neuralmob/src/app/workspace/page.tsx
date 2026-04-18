@@ -21,6 +21,21 @@ import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "
 const BOT_SLOTS = ["bot1", "bot2", "bot3"] as const;
 const TOUR_STORAGE_PREFIX = "neuralmob-tour";
 
+function getTimeGreeting(): string {
+  if (typeof window === "undefined") return "Good morning";
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+const PROMPT_SUGGESTIONS = [
+  { tag: "strategy", q: "Raise a seed round at $5M, or bootstrap to $1M ARR first?", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "code review", q: "Review this PR for load-bearing risks before I merge.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "writing", q: "Rewrite this email to be less corporate and more me.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "pricing", q: "Price this product at $29 or $39 — gut vs. data.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+];
+
 const WORKSPACE_TOUR_STEPS: WorkspaceTourStep[] = [
   {
     id: "overview",
@@ -142,11 +157,18 @@ type StreamBlock = {
   text: string;
 };
 
+function phaseColor(phase: string): string {
+  if (phase === "bot1") return "#4edea3";
+  if (phase === "bot2") return "#ff8a6b";
+  if (phase === "bot3") return "#d0bcff";
+  return "#d0bcff";
+}
+
 function phaseAccentClass(phase: string): string {
-  if (phase === "bot1") return "border-[#8b5cf6]/40 bg-[#8b5cf6]/10";
-  if (phase === "bot2") return "border-[#06b6d4]/40 bg-[#06b6d4]/10";
-  if (phase === "bot3") return "border-[#22c55e]/40 bg-[#22c55e]/10";
-  if (phase.startsWith("merge")) return "border-[#f59e0b]/40 bg-[#f59e0b]/10";
+  if (phase === "bot1") return "border-[#4edea3]/40 bg-[#4edea3]/[0.06]";
+  if (phase === "bot2") return "border-[#ff8a6b]/40 bg-[#ff8a6b]/[0.06]";
+  if (phase === "bot3") return "border-[#d0bcff]/40 bg-[#d0bcff]/[0.06]";
+  if (phase.startsWith("merge")) return "border-[#d0bcff]/25 bg-[#d0bcff]/[0.04]";
   return "border-[#494454]/20 bg-[#131b2e]";
 }
 
@@ -205,11 +227,11 @@ function SideNav({
 
   return (
     <aside className="h-screen w-72 fixed left-0 top-0 flex flex-col p-4 z-50 overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] backdrop-blur-xl">
-      <div className="mb-5 px-2 pt-1 flex items-center gap-2.5">
-        <BrandMark className="w-9 h-9 rounded-xl flex-shrink-0" />
+      <div className="mb-5 px-1.5 pt-1 flex items-center gap-2.5 pb-3.5 border-b border-dashed border-[#d0bcff]/10">
+        <div className="w-7 h-7 rounded-lg flex-shrink-0 grid place-items-center" style={{ background: "linear-gradient(135deg, #d0bcff, #9d87d9)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, fontWeight: 700, color: "#1a0f3a" }}>NM</div>
         <div className="min-w-0">
-          <h1 className="text-lg leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
-          <p className="mt-0.5 text-[10px] text-[#b9c5df]/72">Multi-model orchestration</p>
+          <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, letterSpacing: "-0.01em", color: "#e9e6f5", lineHeight: 1.1 }}>Neural Mob</h1>
+          <span style={{ display: "block", fontFamily: "JetBrains Mono, monospace", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b6889", marginTop: 2 }}>multi-model orchestration</span>
         </div>
       </div>
 
@@ -263,19 +285,29 @@ function SideNav({
             <p className="mt-0.5 text-[10px] text-[#6f7c99]">Your runs will appear here.</p>
           </div>
         )}
-        {conversations.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onSelect(c.id)}
-            className={`w-full text-left px-3 py-2 rounded-xl text-[11px] transition-colors truncate ${
-              activeId === c.id
-                ? "app-panel-soft text-[#edf2ff]"
-                : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
-            }`}
-          >
-            {c.title}
-          </button>
-        ))}
+        {conversations.map((c) => {
+          const ago = (() => {
+            const diff = Date.now() - c.updatedAt;
+            if (diff < 60000) return "just now";
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return `${Math.floor(diff / 86400000)}d ago`;
+          })();
+          return (
+            <button
+              key={c.id}
+              onClick={() => onSelect(c.id)}
+              className={`w-full text-left px-3 py-2 rounded-xl text-[11px] transition-colors ${
+                activeId === c.id
+                  ? "app-panel-soft text-[#edf2ff]"
+                  : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
+              }`}
+            >
+              <span className="block truncate">{c.title}</span>
+              <span className="block mt-0.5 truncate" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9.5, color: "#6b6889", letterSpacing: "0.04em" }}>{ago}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Usage bar */}
@@ -380,19 +412,20 @@ function BotOutputCard({ bot }: { bot: BotRunOutput }) {
   const [expanded, setExpanded] = useState(false);
   const label = modelLabel(bot.model);
   const slot = bot.slotId;
+  const slotColor = slot === "bot1" ? "#4edea3" : slot === "bot2" ? "#ff8a6b" : "#d0bcff";
   const slotAccent =
     slot === "bot1"
-      ? "border-[#8b5cf6]/35 bg-[#8b5cf6]/10"
+      ? "border-[#4edea3]/35 bg-[#4edea3]/[0.06]"
       : slot === "bot2"
-        ? "border-[#06b6d4]/35 bg-[#06b6d4]/10"
-        : "border-[#22c55e]/35 bg-[#22c55e]/10";
+        ? "border-[#ff8a6b]/35 bg-[#ff8a6b]/[0.06]"
+        : "border-[#d0bcff]/35 bg-[#d0bcff]/[0.06]";
 
   return (
     <div className={`p-3 rounded-xl border ${slotAccent}`}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
-          <span className="text-[10px] text-[#cbc3d7] uppercase" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: slotColor, boxShadow: `0 0 5px ${slotColor}` }} />
+          <span className="text-[10px] uppercase" style={{ fontFamily: "JetBrains Mono, monospace", color: slotColor, letterSpacing: "0.06em" }}>
             MIND {slot.replace("bot", "")} · {label}
           </span>
         </div>
@@ -1355,20 +1388,58 @@ export default function WorkspacePage() {
               style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-8">
-                  <BrandMark className="h-12 w-12 rounded-2xl float-soft mb-5" glyphClassName="h-6 w-6" />
-                  <h2 className="app-hero-title text-2xl md:text-3xl text-[#edf2ff] max-w-md">
-                    What would you like to explore?
-                  </h2>
-                  <p className="mt-2 max-w-sm text-xs text-[#8e9ab8] leading-5">
-                    {flow.mode === "super"
-                      ? `${enabledCount} minds will answer independently, then Neural Mob merges the strongest reasoning.`
-                      : "One model answers directly with full streaming."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Parallel streaming</span>
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Cross-model synthesis</span>
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</span>
+                <div className="h-full flex flex-col justify-start px-4 sm:px-6 lg:px-10 py-8 lg:py-10 overflow-y-auto">
+                  {/* Greeting */}
+                  <div style={{ maxWidth: 780 }}>
+                    <p className="mb-4" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#4edea3" }}>
+                      ● {getTimeGreeting()} · {flow.mode === "super" ? `${enabledCount} mind${enabledCount !== 1 ? "s" : ""} on call` : "Quick mode · 1 mind"}
+                    </p>
+                    <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(36px,4.5vw,68px)", lineHeight: 0.96, letterSpacing: "-0.03em", margin: "0 0 18px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
+                      What should <em style={{ fontStyle: "italic", color: "#d0bcff" }}>the mob</em><br />think about today?
+                    </h1>
+                    <p style={{ fontSize: 14, lineHeight: 1.65, color: "#a7a2c2", maxWidth: 500, margin: 0 }}>
+                      Drop a prompt. I&apos;ll send it to all three in parallel, then have Claude read the transcripts and pick the best answer.
+                    </p>
+                  </div>
+
+                  {/* Modes mini row */}
+                  <div style={{ maxWidth: 780, margin: "24px 0 20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", border: "1px solid rgba(208,188,255,.1)", borderRadius: 12, overflow: "hidden" }}>
+                      {([
+                        { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
+                        { label: "Super", sub: "default", kbd: "⌘S", mode: "super" as const, stat: "3 + judge" },
+                      ] as const).map((m, i) => (
+                        <button key={m.mode} type="button" onClick={() => setFlow({ mode: m.mode })}
+                          style={{ padding: "13px 15px", borderRight: i === 0 ? "1px solid rgba(208,188,255,.08)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.05)" : "transparent", border: flow.mode === m.mode ? "1px solid rgba(208,188,255,.15)" : "1px solid transparent" }}>
+                          <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, padding: "2px 6px", border: `1px solid ${flow.mode === m.mode ? "#d0bcff" : "rgba(208,188,255,.2)"}`, borderRadius: 4, color: flow.mode === m.mode ? "#d0bcff" : "#6b6889" }}>{m.kbd}</span>
+                            <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#e9e6f5", letterSpacing: "-0.01em" }}>{m.label} <em style={{ fontStyle: "italic", color: "#d0bcff", fontWeight: 300, fontSize: 12, marginLeft: 2 }}>{m.sub}</em></span>
+                          </div>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#4edea3", letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{m.stat}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Suggested prompt cards */}
+                  <div style={{ maxWidth: 780 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#6b6889" }}>§ try one of these</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {PROMPT_SUGGESTIONS.map((s) => (
+                        <button key={s.q} type="button" onClick={() => setPrompt(s.q)}
+                          style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, padding: "16px 18px", background: "rgba(255,255,255,.015)", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10, transition: "all .18s" }}
+                          className="hover:border-[#d0bcff]/30 hover:bg-[#d0bcff]/[0.04] hover:-translate-y-px">
+                          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d0bcff" }}>{s.tag}</div>
+                          <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontStyle: "italic", fontSize: 17, lineHeight: 1.35, color: "#e9e6f5", letterSpacing: "-0.01em" }}>&ldquo;{s.q}&rdquo;</div>
+                          <div style={{ display: "flex", gap: 5, alignItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: "auto" }}>
+                            {s.minds.map((m) => <span key={m} style={{ width: 6, height: 6, borderRadius: "50%", display: "inline-block", background: m === "gpt" ? "#4edea3" : m === "claude" ? "#ff8a6b" : "#d0bcff", boxShadow: `0 0 4px ${m === "gpt" ? "#4edea3" : m === "claude" ? "#ff8a6b" : "#d0bcff"}` }} />)}
+                            <span style={{ marginLeft: 2 }}>{s.minds.length} mind{s.minds.length !== 1 ? "s" : ""} · {s.mode}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1397,27 +1468,53 @@ export default function WorkspacePage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#d0bcff]/30" />
                         </span>
                       </div>
-                      {streamBlocks.length > 0 ? (
-                        <div className="space-y-2">
-                          {streamBlocks.map((block) => (
-                            <div
-                              key={block.phase}
-                              className={`rounded-xl border p-3 ${phaseAccentClass(block.phase)}`}
-                            >
-                              <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <span className="text-[10px] uppercase tracking-wide text-[#d0bcff] font-mono">
-                                  {block.label}
-                                </span>
-                                {block.text ? <CopyTextButton text={block.text} label="Copy" /> : null}
+                      {streamBlocks.length > 0 ? (() => {
+                        const botBlocks = streamBlocks.filter((b) => ["bot1","bot2","bot3"].includes(b.phase));
+                        const otherBlocks = streamBlocks.filter((b) => !["bot1","bot2","bot3"].includes(b.phase));
+                        return (
+                          <div className="space-y-2.5">
+                            {botBlocks.length > 0 && (
+                              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(botBlocks.length, 3)}, 1fr)`, gap: 8 }}>
+                                {botBlocks.map((block) => {
+                                  const color = phaseColor(block.phase);
+                                  return (
+                                    <div key={block.phase} style={{ border: `1px solid ${color}40`, borderRadius: 12, background: "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: `0 0 20px -6px ${color}30` }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#e9e6f5" }}>
+                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
+                                          <span style={{ fontWeight: 500 }}>{block.label}</span>
+                                        </div>
+                                        <span style={{ color }}>● live</span>
+                                      </div>
+                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: 200, overflow: "hidden" }}>
+                                        {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <p className="text-xs text-[#dae2fd]/90 whitespace-pre-wrap font-mono leading-relaxed">
-                                {block.text || "Waiting…"}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-[#cbc3d7]/70">Waiting for first tokens…</p>
+                            )}
+                            {otherBlocks.map((block) => (
+                              <div key={block.phase} style={{ border: "1px solid rgba(208,188,255,.2)", borderRadius: 12, background: "rgba(208,188,255,.03)", overflow: "hidden" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 9, color: "#e9e6f5" }}>
+                                    <span style={{ width: 20, height: 20, borderRadius: "50%", border: "1px solid #d0bcff", display: "grid", placeItems: "center", fontSize: 10, color: "#d0bcff", flexShrink: 0 }}>Σ</span>
+                                    <span>{block.label}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    {block.text && <CopyTextButton text={block.text} label="Copy" />}
+                                    <span style={{ color: "#d0bcff" }}>● synthesising</span>
+                                  </div>
+                                </div>
+                                <div style={{ padding: "14px 20px", fontSize: 15, lineHeight: 1.6, color: "#e9e6f5", letterSpacing: "-0.005em", fontFamily: "'Fraunces', Georgia, serif" }}>
+                                  {block.text || <span style={{ color: "#6b6889", fontFamily: "Manrope, sans-serif", fontSize: 13 }}>Reading transcripts…</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })() : (
+                        <p className="text-sm text-[#cbc3d7]/70">Starting up…</p>
                       )}
                     </div>
                   </div>
