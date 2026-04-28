@@ -13,6 +13,9 @@ const HIDDEN_PATH_PREFIXES = ["/workspace", "/settings", "/admin", "/sign-in", "
 export function AuthChrome({ localOwnerBypass, localOwnerEmail }: AuthChromeProps) {
   const pathname = usePathname();
 
+  // Landing page has its own nav with sign-in link — no need for the overlay chrome.
+  if (pathname === "/") return null;
+
   if (pathname && HIDDEN_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
     return null;
   }

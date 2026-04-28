@@ -11,6 +11,7 @@ import {
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
 import type { BotRunOutput, CompletionUsage, FlowConfig, HistoryMessage, ModelConfig, UsageLine } from "../types";
+import { registerSlotSkipper } from "./run-registry";
 
 export type StreamPhase =
   | "quick"
@@ -22,6 +23,7 @@ export type StreamPhase =
   | "merge_chain";
 
 export type StreamEvent =
+  | { type: "run_id"; runId: string }
   | { type: "status"; message: string }
   | { type: "phase_start"; phase: StreamPhase; label: string }
   | { type: "token"; phase: StreamPhase; delta: string }
@@ -34,6 +36,8 @@ interface StreamInput {
   prompt: string;
   history: HistoryMessage[];
   forceOpenRouter?: boolean;
+  /** Identifies this run in the skip registry so individual slots can be skipped. */
+  runId?: string;
 }
 
 const STREAM_PHASE_TIMEOUT_MS = Number(process.env.STREAM_PHASE_TIMEOUT_MS ?? 45000);
@@ -159,13 +163,30 @@ export async function runSuperOrchestratorStream(
     const label = `Mind ${n} — ${modelLabel(model)}`;
     const sys = buildIndependentSystemPrompt(n, complexity);
     const botCtx = { systemPrompt: sys, history, userPrompt: prompt };
-    return tryRunPhase(
+
+    // Create a skip promise: if the user clicks "Skip Mind X", this resolves early.
+    let skipResolve!: () => void;
+    const skipPromise = new Promise<null>((resolve) => {
+      skipResolve = () => resolve(null);
+    });
+    if (input.runId) {
+      registerSlotSkipper(input.runId, slotId, skipResolve);
+    }
+
+    const phasePromise = tryRunPhase(
       slotId,
       label,
       streamModel(providerKeys, model, sys, history, prompt, orOpts),
       emit,
       botCtx
     ).then((got) => ({ slotId, model, got }));
+
+    const skipRacePromise = skipPromise.then(() => {
+      emit({ type: "status", message: `${label} skipped by user.` });
+      return { slotId, model, got: null as null };
+    });
+
+    return Promise.race([phasePromise, skipRacePromise]);
   });
 
   const results = await Promise.all(botPromises);

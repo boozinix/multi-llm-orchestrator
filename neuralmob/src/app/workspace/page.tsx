@@ -157,6 +157,16 @@ type StreamBlock = {
   text: string;
 };
 
+/** GPT and Gemini routed through OpenRouter often have higher cold-start latency. */
+function isSlowStartModel(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.includes("gpt") || m.includes("gemini") || m.includes("o1") || m.includes("o3") || m.includes("o4");
+}
+
+function getSlotTimeoutMs(model: string): number {
+  return isSlowStartModel(model) ? 25_000 : 12_000;
+}
+
 function phaseColor(phase: string): string {
   if (phase === "bot1") return "#4edea3";
   if (phase === "bot2") return "#ff8a6b";
@@ -688,6 +698,9 @@ export default function WorkspacePage() {
   const [showLocalReset, setShowLocalReset] = useState(false);
   const [ownerUnlimited, setOwnerUnlimited] = useState(false);
   const [streamBlocks, setStreamBlocks] = useState<StreamBlock[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [slotWaiting, setSlotWaiting] = useState<Partial<Record<string, "waiting" | "timed_out" | "responding" | "skipped" | "done">>>({});
+  const slotTimerRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({});
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [tourIdentity, setTourIdentity] = useState<string | null>(null);
@@ -932,13 +945,21 @@ export default function WorkspacePage() {
     const root = messagesScrollRef.current;
     if (!root) return;
 
-    const thresholdPx = 140;
+    // During active streaming, always follow the bottom — DOM growth doesn't fire a
+    // scroll event so fromBottom silently grows beyond the threshold without the user
+    // having actually scrolled up.
+    const activeStreaming = Boolean(isLoading && (streamingPreview || streamingStatus));
+    if (activeStreaming) {
+      scrollToEnd("auto");
+      return;
+    }
+
+    const thresholdPx = 200;
     const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
     if (fromBottom <= thresholdPx) {
-      const streaming = Boolean(isLoading && (streamingPreview || streamingStatus));
-      scrollToEnd(streaming ? "auto" : "smooth");
+      scrollToEnd("smooth");
     }
-  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading]);
+  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading, slotWaiting]);
 
   async function selectConversation(id: string) {
     setHistoryOpen(false);
@@ -972,6 +993,38 @@ export default function WorkspacePage() {
     }
   }
 
+  function handleWaitMore(phase: string) {
+    if (slotTimerRef.current[phase]) {
+      clearTimeout(slotTimerRef.current[phase]);
+      delete slotTimerRef.current[phase];
+    }
+    setSlotWaiting((prev) => ({ ...prev, [phase]: "waiting" }));
+    const slotModel = models[phase as "bot1" | "bot2" | "bot3"] ?? "";
+    const timeoutMs = getSlotTimeoutMs(slotModel);
+    const timer = setTimeout(() => {
+      setSlotWaiting((prev) => ({ ...prev, [phase]: "timed_out" }));
+    }, timeoutMs);
+    slotTimerRef.current[phase] = timer;
+  }
+
+  async function handleSkipSlot(phase: string) {
+    if (!activeRunId) return;
+    if (slotTimerRef.current[phase]) {
+      clearTimeout(slotTimerRef.current[phase]);
+      delete slotTimerRef.current[phase];
+    }
+    setSlotWaiting((prev) => ({ ...prev, [phase]: "skipped" }));
+    try {
+      await fetch("/api/chat/skip-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: activeRunId, slotId: phase }),
+      });
+    } catch {
+      /* skip request is best-effort */
+    }
+  }
+
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (showcaseMode) return;
@@ -982,6 +1035,13 @@ export default function WorkspacePage() {
     setStreamingPreview("");
     setStreamingStatus("Starting…");
     setStreamBlocks([]);
+    setActiveRunId(null);
+    // Clear any lingering slot timers from a previous run
+    Object.values(slotTimerRef.current).forEach((t) => t && clearTimeout(t));
+    slotTimerRef.current = {};
+    setSlotWaiting({});
+    // Reset scroll lock so a new run always auto-scrolls from the start
+    userScrolledUpRef.current = false;
     setLoading(true);
     setPrompt("");
 
@@ -1066,6 +1126,8 @@ export default function WorkspacePage() {
       // Object holder: TS does not narrow `let` assigned inside nested functions.
       const streamResult: { payload: DonePayload | null } = { payload: null };
 
+      const BOT_PHASES = new Set(["bot1", "bot2", "bot3"]);
+
       const processSseBlock = (block: string) => {
         const line = block.trim();
         if (!line.startsWith("data: ")) return;
@@ -1076,6 +1138,10 @@ export default function WorkspacePage() {
           return;
         }
         const typ = evt.type as string;
+
+        if (typ === "run_id") {
+          setActiveRunId(String(evt.runId ?? ""));
+        }
         if (typ === "status") setStreamingStatus(String(evt.message ?? ""));
         if (typ === "phase_start") {
           const phase = String(evt.phase ?? "");
@@ -1084,10 +1150,37 @@ export default function WorkspacePage() {
             if (prev.some((b) => b.phase === phase)) return prev;
             return [...prev, { phase, label, text: "" }];
           });
+          // Start per-model timeout for bot slots
+          if (BOT_PHASES.has(phase)) {
+            const slotModel = models[phase as "bot1" | "bot2" | "bot3"] ?? "";
+            const timeoutMs = getSlotTimeoutMs(slotModel);
+            setSlotWaiting((prev) => ({ ...prev, [phase]: "waiting" }));
+            const timer = setTimeout(() => {
+              setSlotWaiting((prev) => {
+                // Only fire if still waiting (not already responding/skipped)
+                if (prev[phase] === "waiting") return { ...prev, [phase]: "timed_out" };
+                return prev;
+              });
+            }, timeoutMs);
+            slotTimerRef.current[phase] = timer;
+          }
         }
         if (typ === "token") {
           const phase = String(evt.phase ?? "");
           const delta = String(evt.delta ?? "");
+          // First token from a bot slot — cancel timeout, mark as responding
+          if (BOT_PHASES.has(phase)) {
+            if (slotTimerRef.current[phase]) {
+              clearTimeout(slotTimerRef.current[phase]);
+              delete slotTimerRef.current[phase];
+            }
+            setSlotWaiting((prev) => {
+              if (prev[phase] === "waiting" || prev[phase] === "timed_out") {
+                return { ...prev, [phase]: "responding" };
+              }
+              return prev;
+            });
+          }
           setStreamBlocks((prev) => {
             const idx = prev.findIndex((b) => b.phase === phase);
             if (idx === -1) return prev;
@@ -1096,6 +1189,17 @@ export default function WorkspacePage() {
             return next;
           });
           setStreamingPreview((p) => p + delta);
+        }
+        if (typ === "phase_end") {
+          const phase = String(evt.phase ?? "");
+          if (slotTimerRef.current[phase]) {
+            clearTimeout(slotTimerRef.current[phase]);
+            delete slotTimerRef.current[phase];
+          }
+          setSlotWaiting((prev) => {
+            if (prev[phase] === "skipped") return prev; // keep skipped state
+            return { ...prev, [phase]: "done" };
+          });
         }
         if (typ === "error") {
           throw new Error(String(evt.message ?? "Stream error"));
@@ -1159,6 +1263,11 @@ export default function WorkspacePage() {
       setStreamingStatus("");
       setStreamBlocks([]);
     } finally {
+      // Always clean up slot timers when a run ends
+      Object.values(slotTimerRef.current).forEach((t) => t && clearTimeout(t));
+      slotTimerRef.current = {};
+      setSlotWaiting({});
+      setActiveRunId(null);
       setLoading(false);
     }
   }
@@ -1479,17 +1588,61 @@ export default function WorkspacePage() {
                               <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(botBlocks.length, 3)}, 1fr)`, gap: 8 }}>
                                 {botBlocks.map((block) => {
                                   const color = phaseColor(block.phase);
+                                  const ws = slotWaiting[block.phase];
+                                  const isSkipped = ws === "skipped";
+                                  const isTimedOut = ws === "timed_out";
+                                  const isWaiting = ws === "waiting";
+                                  const slotModel = models[block.phase as "bot1" | "bot2" | "bot3"] ?? "";
+                                  const slowModel = isSlowStartModel(slotModel);
+                                  const waitLabel = getSlotTimeoutMs(slotModel) / 1000;
+                                  const headerStatusColor = isSkipped ? "#6b7280" : isTimedOut ? "#f59e0b" : color;
+                                  const headerStatusText = isSkipped ? "○ skipped" : isTimedOut ? "⏱ still waiting" : "● live";
                                   return (
-                                    <div key={block.phase} style={{ border: `1px solid ${color}40`, borderRadius: 12, background: "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: `0 0 20px -6px ${color}30` }}>
+                                    <div key={block.phase} style={{ border: `1px solid ${isSkipped ? "rgba(255,255,255,.06)" : isTimedOut ? "rgba(245,158,11,.35)" : `${color}40`}`, borderRadius: 12, background: isTimedOut ? "rgba(245,158,11,.04)" : "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: isSkipped || isTimedOut ? "none" : `0 0 20px -6px ${color}30` }}>
                                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#e9e6f5" }}>
-                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
+                                        <div style={{ display: "flex", alignItems: "center", gap: 7, color: isSkipped ? "#6b7280" : "#e9e6f5" }}>
+                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isSkipped ? "#6b7280" : color, boxShadow: isSkipped ? "none" : `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
                                           <span style={{ fontWeight: 500 }}>{block.label}</span>
                                         </div>
-                                        <span style={{ color }}>● live</span>
+                                        <span style={{ color: headerStatusColor }}>{headerStatusText}</span>
                                       </div>
-                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: 200, overflow: "hidden" }}>
-                                        {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: isTimedOut ? "none" : 200, overflow: "hidden" }}>
+                                        {isSkipped ? (
+                                          <span style={{ color: "#6b7280", fontStyle: "italic" }}>Skipped by you.</span>
+                                        ) : isTimedOut ? (
+                                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                            <span style={{ color: "#f59e0b", fontSize: 11.5 }}>
+                                              {slowModel
+                                                ? `GPT and Gemini models can take up to ${waitLabel}s to start — still waiting.`
+                                                : "Still waiting… taking longer than expected."}
+                                            </span>
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleWaitMore(block.phase)}
+                                                style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid rgba(245,158,11,.4)", background: "rgba(245,158,11,.1)", color: "#f59e0b", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.04em", cursor: "pointer" }}
+                                              >
+                                                Wait {waitLabel}s more
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleSkipSlot(block.phase)}
+                                                style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#9dadcd", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.04em", cursor: "pointer" }}
+                                              >
+                                                Skip {block.label.split(" — ")[0]}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                            {isWaiting && !block.text && slowModel && (
+                                              <div style={{ marginTop: 8, fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.04em" }}>
+                                                GPT &amp; Gemini typically take 15–25s to start.
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   );

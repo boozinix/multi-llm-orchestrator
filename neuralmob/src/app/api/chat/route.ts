@@ -27,6 +27,7 @@ import type { UsageLine } from "@/lib/types";
 import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
 import { runQuickOrchestratorStream, runSuperOrchestratorStream } from "@/lib/server/orchestrator-stream";
 import type { StreamEvent } from "@/lib/server/orchestrator-stream";
+import { createRunEntry, removeRunEntry } from "@/lib/server/run-registry";
 import { isShowcaseMode } from "@/lib/server/showcase";
 import {
   findMissingProviderKeys,
@@ -235,7 +236,10 @@ export async function POST(req: NextRequest) {
     reservationId = reservation.id;
   }
 
-  const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter };
+  const runId = crypto.randomUUID();
+  createRunEntry(runId);
+
+  const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter, runId };
 
   if (useStream) {
     const encoder = new TextEncoder();
@@ -245,6 +249,8 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
         };
         try {
+          // Emit runId first so the client can reference it for skip requests.
+          send({ type: "run_id", runId });
           const emit = (e: StreamEvent) => send(e);
           const result =
             flow.mode === "quick"
@@ -277,6 +283,7 @@ export async function POST(req: NextRequest) {
           }
           send({ type: "error", message: clientSafeModelError(err) });
         } finally {
+          removeRunEntry(runId);
           controller.close();
         }
       },
@@ -302,8 +309,10 @@ export async function POST(req: NextRequest) {
     if (reservationId) {
       await releaseCreditReservation(userRow.id, reservationId);
     }
+    removeRunEntry(runId);
     return NextResponse.json({ error: clientSafeModelError(err) }, { status: 502 });
   }
+  removeRunEntry(runId);
 
   await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
   const allMessages = await getMessages(convId);
