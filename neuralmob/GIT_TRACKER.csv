@@ -5,4 +5,4 @@ save_number,datetime,branch,commit_hash,changes_summary
 4,2026-04-17 00:00,feature/claude-design-ux,afb38ab,feat: app pages UX redesign — workspace home + stream lanes + settings board layout; design tokens in globals.css
 5,2026-04-17 00:00,feature/claude-design-ux,f1c8779,fix: workspace idle — bolder borders + solid mode fill + scroll fix; dev server port → 3040
 6,2026-04-17 00:00,feature/claude-design-ux,1524fc0,fix: workspace idle content centering — maxWidth 780 wrapper with mx-auto; PROGRESS_TRACKER + HANDOFF updated
-7,2026-04-28 00:00,feature/claude-design-ux,TBD,feat: slow-bot timeout UX — per-model wait timers + skip mechanic + scroll fix + auth-chrome landing fix
+7,2026-04-28 00:00,feature/claude-design-ux,9e632b0,feat: slow-bot timeout UX — per-model wait timers + skip mechanic + scroll fix + auth-chrome landing fix
