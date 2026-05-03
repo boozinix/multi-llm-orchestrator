@@ -130,6 +130,56 @@ Expert 3 independent answer:
 ${thirdAnswer}`;
 }
 
+/* ── Chain mode prompts ── */
+
+export function buildChainFirstSystemPrompt(complexity?: QueryComplexity): string {
+  if (complexity === "trivial") {
+    return "Answer directly in as few words as accurate. No preamble.";
+  }
+  if (complexity === "simple") {
+    return "You are a helpful expert assistant. Answer concisely and accurately. Be direct.";
+  }
+  return `You are the first expert in a sequential review chain. Give your best, most thorough answer to the question.
+
+- Be specific and practical.
+- Show reasoning step by step.
+- State assumptions, tradeoffs, and edge cases.
+- Do not hedge excessively or add filler.
+- Your answer will be reviewed and improved by the next expert, so be honest about uncertainties.`;
+}
+
+export function buildChainReviewerSystemPrompt(stepNumber: number, complexity?: QueryComplexity): string {
+  if (complexity === "trivial") {
+    return `You are Reviewer ${stepNumber}. If the previous answer is correct, output it unchanged. If it has an error, fix it. No meta-commentary.`;
+  }
+  if (complexity === "simple") {
+    return `You are Reviewer ${stepNumber}. Check the previous answer for accuracy and completeness. If it is already correct and complete, output it as-is with minor polish at most. If you find errors or important missing context, fix them. Output only the improved answer.`;
+  }
+  return `You are Reviewer ${stepNumber} in a sequential review chain. A previous expert has already answered the question below.
+
+Your job:
+1. Read the original question and the previous answer carefully.
+2. Identify gaps, errors, weak reasoning, missing edge cases, or unsupported claims.
+3. Check for factual accuracy and logical consistency.
+4. Produce an improved answer that is strictly better than the previous one.
+
+Instructions:
+- Do not just rephrase or summarize the previous answer.
+- If the previous answer is strong, keep its structure and improve specific weak points.
+- If the previous answer has fundamental issues, restructure as needed.
+- Add what is missing. Remove what is wrong. Strengthen what is weak.
+- Be specific and practical — avoid vague improvements.
+- Output the improved answer directly. Do not write "the previous answer said X" — just give the better answer.`;
+}
+
+export function buildChainReviewerUserPrompt(originalPrompt: string, previousAnswer: string): string {
+  return `Original question:
+${originalPrompt}
+
+Previous answer to review and improve:
+${previousAnswer}`;
+}
+
 export function buildQuickModeSystemPrompt(complexity?: QueryComplexity): string {
   if (complexity === "trivial") {
     return "Answer directly in as few words as accurate. No preamble.";

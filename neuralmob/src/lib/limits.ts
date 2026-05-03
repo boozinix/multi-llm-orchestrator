@@ -18,6 +18,8 @@ export function estimateApiCalls(flow: FlowConfig): number {
 
   const enabledBots = [flow.bot1Enabled, flow.bot2Enabled, flow.bot3Enabled].filter(Boolean).length;
 
+  if (flow.mode === "chain") return enabledBots;
+
   let mergeCalls = 0;
   if (flow.merge12Enabled && flow.bot1Enabled && flow.bot2Enabled) mergeCalls++;
   if (flow.merge123Enabled && flow.bot3Enabled) mergeCalls++;

@@ -49,6 +49,33 @@ function buildLayout(flow: FlowConfig, models: ModelConfig): { nodes: N[]; edges
     return { nodes, edges, svgH: 148 };
   }
 
+  /* ── CHAIN MODE ── */
+  if (flow.mode === "chain") {
+    const slots = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
+    const cx = W / 2;
+    let cy = 26;
+    const step = 80;
+
+    slots.forEach((slot, i) => {
+      const m = models[slot];
+      const sub = i === 0 ? "first pass" : "reviewing";
+      nodes.push({ id: slot, cx, cy, label: modelLabel(m), sub: `step ${i + 1} · ${sub}`, type: "bot", active: true });
+      cy += step;
+    });
+
+    nodes.push({ id: "out", cx, cy, label: "Final Output", sub: "refined", type: "out", active: slots.length > 0 });
+
+    for (let i = 0; i < slots.length; i++) {
+      const to = i < slots.length - 1 ? slots[i + 1] : "out";
+      edges.push({ from: slots[i], to });
+    }
+    if (slots.length === 0) {
+      nodes.push({ id: "out", cx, cy: 26, label: "Output", sub: "no minds", type: "out", active: false });
+    }
+
+    return { nodes, edges, svgH: cy + 38 };
+  }
+
   /* ── SUPER MODE ── */
   const b1 = flow.bot1Enabled;
   const b2 = flow.bot2Enabled;

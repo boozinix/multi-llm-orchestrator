@@ -24,8 +24,8 @@ import { resolveChatProviderKeys } from "@/lib/server/chat-keys";
 import { FREE_MODEL_SET, calculateCostCents, estimateWorstCaseRunReserveCents } from "@/lib/pricing";
 import { modelsRequiredForFlow } from "@/lib/provider-keys";
 import type { UsageLine } from "@/lib/types";
-import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
-import { runQuickOrchestratorStream, runSuperOrchestratorStream } from "@/lib/server/orchestrator-stream";
+import { runQuickOrchestrator, runSuperOrchestrator, runChainOrchestrator } from "@/lib/server/orchestrator";
+import { runQuickOrchestratorStream, runSuperOrchestratorStream, runChainOrchestratorStream } from "@/lib/server/orchestrator-stream";
 import type { StreamEvent } from "@/lib/server/orchestrator-stream";
 import { createRunEntry, removeRunEntry } from "@/lib/server/run-registry";
 import { isShowcaseMode } from "@/lib/server/showcase";
@@ -255,7 +255,9 @@ export async function POST(req: NextRequest) {
           const result =
             flow.mode === "quick"
               ? await runQuickOrchestratorStream(orchestratorInput, emit)
-              : await runSuperOrchestratorStream(orchestratorInput, emit);
+              : flow.mode === "chain"
+                ? await runChainOrchestratorStream(orchestratorInput, emit)
+                : await runSuperOrchestratorStream(orchestratorInput, emit);
 
           await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
           const allMessages = await getMessages(convId);
@@ -302,6 +304,8 @@ export async function POST(req: NextRequest) {
   try {
     if (flow.mode === "quick") {
       result = await runQuickOrchestrator(orchestratorInput);
+    } else if (flow.mode === "chain") {
+      result = await runChainOrchestrator(orchestratorInput);
     } else {
       result = await runSuperOrchestrator(orchestratorInput);
     }

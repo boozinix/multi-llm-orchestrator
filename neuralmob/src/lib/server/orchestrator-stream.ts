@@ -7,6 +7,9 @@ import {
   buildMerge12SystemPrompt,
   buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
+  buildChainFirstSystemPrompt,
+  buildChainReviewerSystemPrompt,
+  buildChainReviewerUserPrompt,
   classifyQueryComplexity,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
@@ -20,7 +23,10 @@ export type StreamPhase =
   | "bot3"
   | "merge12"
   | "merge123"
-  | "merge_chain";
+  | "merge_chain"
+  | "chain1"
+  | "chain2"
+  | "chain3";
 
 export type StreamEvent =
   | { type: "run_id"; runId: string }
@@ -293,6 +299,70 @@ export async function runSuperOrchestratorStream(
   } else {
     finalAnswer = bot1Out ?? bot2Out ?? bot3Out ?? "";
   }
+
+  return { finalAnswer, botOutputs, usageLines };
+}
+
+export async function runChainOrchestratorStream(
+  input: StreamInput,
+  emit: (e: StreamEvent) => void
+): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
+  const { providerKeys, flow, models, prompt, history } = input;
+  const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const complexity = classifyQueryComplexity(prompt);
+  const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
+  if (ordered.length === 0) throw new Error("No bot slots enabled");
+
+  const chainPhases = ["chain1", "chain2", "chain3"] as const;
+  const botOutputs: BotRunOutput[] = [];
+  const usageLines: UsageLine[] = [];
+  let previousAnswer = "";
+
+  for (let i = 0; i < ordered.length; i++) {
+    const slotId = ordered[i];
+    const model = models[slotId];
+    const phase = chainPhases[i];
+    const stepNum = i + 1;
+
+    const isFirst = i === 0;
+    const sys = isFirst
+      ? buildChainFirstSystemPrompt(complexity)
+      : buildChainReviewerSystemPrompt(stepNum, complexity);
+    const userPrompt = isFirst
+      ? prompt
+      : buildChainReviewerUserPrompt(prompt, previousAnswer);
+    const label = isFirst
+      ? `Step ${stepNum} — ${modelLabel(model)}`
+      : `Step ${stepNum} — ${modelLabel(model)} (reviewing)`;
+
+    emit({ type: "status", message: `${label}…` });
+
+    const ctx = { systemPrompt: sys, history: isFirst ? history : [], userPrompt };
+    const got = await tryRunPhase(
+      phase,
+      label,
+      streamModel(providerKeys, model, sys, isFirst ? history : [], userPrompt, orOpts),
+      emit,
+      ctx
+    );
+
+    if (got) {
+      const trimmed = got.text.trim();
+      previousAnswer = trimmed;
+      botOutputs.push({ slotId, model, output: trimmed });
+      usageLines.push({
+        model,
+        promptTokens: got.usage.promptTokens,
+        completionTokens: got.usage.completionTokens,
+      });
+    } else if (i === 0) {
+      throw new Error("First model in chain failed. Cannot continue.");
+    }
+    // If a reviewer fails, we continue with the previous answer
+  }
+
+  const finalAnswer = previousAnswer;
+  if (!finalAnswer) throw new Error("All chain steps failed.");
 
   return { finalAnswer, botOutputs, usageLines };
 }

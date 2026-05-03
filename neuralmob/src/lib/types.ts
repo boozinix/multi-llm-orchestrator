@@ -8,7 +8,7 @@ export interface ModelConfig {
 }
 
 export interface FlowConfig {
-  mode: "quick" | "super";
+  mode: "quick" | "chain" | "super";
   primarySlot: BotSlotId;
   bot1Enabled: boolean;
   bot2Enabled: boolean;

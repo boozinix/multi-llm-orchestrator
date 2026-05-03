@@ -6,6 +6,9 @@ import {
   buildMerge12SystemPrompt,
   buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
+  buildChainFirstSystemPrompt,
+  buildChainReviewerSystemPrompt,
+  buildChainReviewerUserPrompt,
   classifyQueryComplexity,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
@@ -197,4 +200,41 @@ export async function runSuperOrchestrator(input: OrchestratorInput): Promise<Or
   }
 
   return { finalAnswer, botOutputs, usageLines };
+}
+
+export async function runChainOrchestrator(input: OrchestratorInput): Promise<OrchestratorResult> {
+  const { flow, models, prompt, history } = input;
+  const complexity = classifyQueryComplexity(prompt);
+  const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
+  if (ordered.length === 0) throw new Error("No bot slots enabled");
+
+  const botOutputs: BotRunOutput[] = [];
+  const usageLines: UsageLine[] = [];
+  let previousAnswer = "";
+
+  for (let i = 0; i < ordered.length; i++) {
+    const slotId = ordered[i];
+    const model = models[slotId];
+    const isFirst = i === 0;
+
+    const sys = isFirst
+      ? buildChainFirstSystemPrompt(complexity)
+      : buildChainReviewerSystemPrompt(i + 1, complexity);
+    const userPrompt = isFirst
+      ? prompt
+      : buildChainReviewerUserPrompt(prompt, previousAnswer);
+
+    const got = await safeCallModel(input, model, sys, isFirst ? history : [], userPrompt);
+
+    if (got) {
+      previousAnswer = got.text;
+      botOutputs.push({ slotId, model, output: got.text });
+      usageLines.push({ model, promptTokens: got.usage.promptTokens, completionTokens: got.usage.completionTokens });
+    } else if (i === 0) {
+      throw new Error("First model in chain failed. Cannot continue.");
+    }
+  }
+
+  if (!previousAnswer) throw new Error("All chain steps failed.");
+  return { finalAnswer: previousAnswer, botOutputs, usageLines };
 }

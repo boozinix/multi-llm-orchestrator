@@ -168,16 +168,16 @@ function getSlotTimeoutMs(model: string): number {
 }
 
 function phaseColor(phase: string): string {
-  if (phase === "bot1") return "#4edea3";
-  if (phase === "bot2") return "#ff8a6b";
-  if (phase === "bot3") return "#d0bcff";
+  if (phase === "bot1" || phase === "chain1") return "#4edea3";
+  if (phase === "bot2" || phase === "chain2") return "#ff8a6b";
+  if (phase === "bot3" || phase === "chain3") return "#d0bcff";
   return "#d0bcff";
 }
 
 function phaseAccentClass(phase: string): string {
-  if (phase === "bot1") return "border-[#4edea3]/40 bg-[#4edea3]/[0.06]";
-  if (phase === "bot2") return "border-[#ff8a6b]/40 bg-[#ff8a6b]/[0.06]";
-  if (phase === "bot3") return "border-[#d0bcff]/40 bg-[#d0bcff]/[0.06]";
+  if (phase === "bot1" || phase === "chain1") return "border-[#4edea3]/40 bg-[#4edea3]/[0.06]";
+  if (phase === "bot2" || phase === "chain2") return "border-[#ff8a6b]/40 bg-[#ff8a6b]/[0.06]";
+  if (phase === "bot3" || phase === "chain3") return "border-[#d0bcff]/40 bg-[#d0bcff]/[0.06]";
   if (phase.startsWith("merge")) return "border-[#d0bcff]/25 bg-[#d0bcff]/[0.04]";
   return "border-[#494454]/20 bg-[#131b2e]";
 }
@@ -479,27 +479,20 @@ function FlowPanel({
 
       <div>
         <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7] mb-4" style={{ fontFamily: "JetBrains Mono, monospace" }}>Mode</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onFlowChange({ mode: "quick" })}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              flow.mode === "quick"
-                ? "mode-toggle-active"
-                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
-            }`}
-          >
-            Quick
-          </button>
-          <button
-            onClick={() => onFlowChange({ mode: "super" })}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              flow.mode === "super"
-                ? "mode-toggle-active"
-                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
-            }`}
-          >
-            Super
-          </button>
+        <div className="flex bg-[#222a3d]/60 rounded-xl p-1 gap-0.5">
+          {(["quick", "chain", "super"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => onFlowChange({ mode: m })}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+                flow.mode === m
+                  ? "mode-toggle-active"
+                  : "text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
+              }`}
+            >
+              {m === "quick" ? "Quick" : m === "chain" ? "Chain" : "Super"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -522,7 +515,62 @@ function FlowPanel({
               </optgroup>
             ))}
           </select>
-          <p className="text-xs text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Super for multi-model.</p>
+          <p className="text-xs text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Chain or Super for multi-model.</p>
+        </div>
+      )}
+
+      {flow.mode === "chain" && (
+        <div className="space-y-4">
+          <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Sequential Chain</h3>
+
+          {BOT_SLOTS.map((slot, i) => (
+            <div key={slot} className={`p-3 bg-[#2d3449] rounded-xl border-l-2 ${flow[`${slot}Enabled`] ? (i === 0 ? "border-l-[#4edea3]" : i === 1 ? "border-l-[#ff8a6b]" : "border-l-[#d0bcff]") : "border-l-[#494454]"}`}>
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <span className="text-xs font-semibold text-[#dae2fd]">Step {i + 1}</span>
+                  <span className="text-[10px] text-[#cbc3d7]/50 ml-2" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                    {i === 0 ? "first pass" : "reviews prev."}
+                  </span>
+                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={flow[`${slot}Enabled`]}
+                    onChange={(e) => onFlowChange({ [`${slot}Enabled`]: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-8 h-4 rounded-full transition-colors relative"
+                    style={{ background: flow[`${slot}Enabled`] ? "#a078ff" : "#494454" }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow"
+                      style={{ left: flow[`${slot}Enabled`] ? "calc(100% - 14px)" : "2px" }}
+                    />
+                  </div>
+                </label>
+              </div>
+              <select
+                value={models[slot]}
+                onChange={(e) => setModel(slot, e.target.value)}
+                disabled={!flow[`${slot}Enabled`]}
+                className="w-full bg-[#060e20] text-[#dae2fd] rounded-lg px-2 py-1.5 text-xs border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40 disabled:opacity-40"
+                style={{ fontFamily: "JetBrains Mono, monospace" }}
+              >
+                {groupedModels.map((g) => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.models.map((m) => (
+                      <option key={m.value} value={m.value} disabled={m.disabled}>
+                        {m.displayLabel}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          ))}
+
+          <p className="text-xs text-[#cbc3d7]/50">Each step reviews and improves the previous answer.</p>
         </div>
       )}
 
@@ -645,7 +693,11 @@ function FlowPanel({
           <AppIcon name="verified" className="h-4 w-4 text-[#d0bcff]" />
           <span className="text-xs uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
         </div>
-        <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active minds.</p>
+        <p className="text-xs text-[#cbc3d7] leading-relaxed">
+          {flow.mode === "chain"
+            ? "Each step reviews and refines the previous answer for iteratively improved output."
+            : "Cross-model synthesis captures the strongest insights from all active minds."}
+        </p>
       </div>
     </section>
   );
@@ -1502,25 +1554,28 @@ export default function WorkspacePage() {
                   {/* Greeting */}
                   <div>
                     <p className="mb-4" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#4edea3" }}>
-                      ● {getTimeGreeting()} · {flow.mode === "super" ? `${enabledCount} mind${enabledCount !== 1 ? "s" : ""} on call` : "Quick mode · 1 mind"}
+                      ● {getTimeGreeting()} · {flow.mode === "super" ? `${enabledCount} mind${enabledCount !== 1 ? "s" : ""} on call` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : "Quick mode · 1 mind"}
                     </p>
                     <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(36px,4.5vw,68px)", lineHeight: 0.96, letterSpacing: "-0.03em", margin: "0 0 18px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
                       What should <em style={{ fontStyle: "italic", color: "#d0bcff" }}>the mob</em><br />think about today?
                     </h1>
                     <p style={{ fontSize: 14, lineHeight: 1.65, color: "#a7a2c2", maxWidth: 500, margin: 0 }}>
-                      Drop a prompt. I&apos;ll send it to all three in parallel, then have Claude read the transcripts and pick the best answer.
+                      {flow.mode === "chain"
+                        ? "Drop a prompt. Each model reviews and improves the previous answer, refining it step by step."
+                        : "Drop a prompt. I\u2019ll send it to all three in parallel, then have Claude read the transcripts and pick the best answer."}
                     </p>
                   </div>
 
                   {/* Modes mini row */}
                   <div style={{ margin: "24px 0 20px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
                       {([
                         { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
+                        { label: "Chain", sub: "review", kbd: "⌘C", mode: "chain" as const, stat: "sequential" },
                         { label: "Super", sub: "default", kbd: "⌘S", mode: "super" as const, stat: "3 + judge" },
-                      ] as const).map((m, i) => (
+                      ] as const).map((m, i, arr) => (
                         <button key={m.mode} type="button" onClick={() => setFlow({ mode: m.mode })}
-                          style={{ padding: "13px 15px", borderRight: i === 0 ? "2px solid rgba(208,188,255,.35)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.38)" : "transparent", transition: "background .15s" }}>
+                          style={{ padding: "13px 15px", borderRight: i < arr.length - 1 ? "2px solid rgba(208,188,255,.35)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.38)" : "transparent", transition: "background .15s" }}>
                           <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
                             <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, padding: "2px 6px", border: `2px solid ${flow.mode === m.mode ? "#d0bcff" : "rgba(208,188,255,.35)"}`, borderRadius: 4, color: flow.mode === m.mode ? "#d0bcff" : "#6b6889" }}>{m.kbd}</span>
                             <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#e9e6f5", letterSpacing: "-0.01em" }}>{m.label} <em style={{ fontStyle: "italic", color: "#d0bcff", fontWeight: 300, fontSize: 12, marginLeft: 2 }}>{m.sub}</em></span>
@@ -1580,10 +1635,35 @@ export default function WorkspacePage() {
                         </span>
                       </div>
                       {streamBlocks.length > 0 ? (() => {
-                        const botBlocks = streamBlocks.filter((b) => ["bot1","bot2","bot3"].includes(b.phase));
-                        const otherBlocks = streamBlocks.filter((b) => !["bot1","bot2","bot3"].includes(b.phase));
+                        const isChainMode = flow.mode === "chain";
+                        const chainPhases = new Set(["chain1","chain2","chain3"]);
+                        const botBlocks = isChainMode ? [] : streamBlocks.filter((b) => ["bot1","bot2","bot3"].includes(b.phase));
+                        const chainBlocks = isChainMode ? streamBlocks.filter((b) => chainPhases.has(b.phase)) : [];
+                        const otherBlocks = streamBlocks.filter((b) => !["bot1","bot2","bot3"].includes(b.phase) && !chainPhases.has(b.phase));
                         return (
                           <div className="space-y-2.5">
+                            {/* Chain mode: sequential full-width cards */}
+                            {chainBlocks.length > 0 && chainBlocks.map((block) => {
+                              const color = phaseColor(block.phase);
+                              return (
+                                <div key={block.phase} style={{ border: `1px solid ${color}40`, borderRadius: 12, background: "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: `0 0 20px -6px ${color}30` }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#e9e6f5" }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500 }}>{block.label}</span>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      {block.text && <CopyTextButton text={block.text} label="Copy" />}
+                                      <span style={{ color }}>● live</span>
+                                    </div>
+                                  </div>
+                                  <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.6, color: "#dae2fd", maxHeight: 300, overflow: "hidden" }}>
+                                    {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+
                             {botBlocks.length > 0 && (
                               <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(botBlocks.length, 3)}, 1fr)`, gap: 8 }}>
                                 {botBlocks.map((block) => {
@@ -1688,10 +1768,11 @@ export default function WorkspacePage() {
               <div className="max-w-5xl mx-auto space-y-2">
                 {/* Mind pills — compact model status */}
                 <div className="flex flex-wrap items-center gap-1.5 px-1">
-                  {flow.mode === "super" ? (
+                  {flow.mode === "super" || flow.mode === "chain" ? (
                     BOT_SLOTS.map((slot, i) => {
                       const enabled = flow[`${slot}Enabled`];
                       const pillColors = ["border-l-[rgba(139,92,246,0.5)]", "border-l-[rgba(6,182,212,0.5)]", "border-l-[rgba(34,197,94,0.5)]"];
+                      const stepLabel = flow.mode === "chain" ? `Step ${i + 1}` : `Mind ${i + 1}`;
                       return (
                         <button
                           key={slot}
@@ -1702,7 +1783,7 @@ export default function WorkspacePage() {
                           }`}
                         >
                           <span className={`w-1 h-1 rounded-full ${enabled ? "bg-[#4edea3]" : "bg-[#494454]"}`} />
-                          Mind {i + 1}: {modelLabel(models[slot]).split("—")[0].trim()}
+                          {stepLabel}: {modelLabel(models[slot]).split("—")[0].trim()}
                         </button>
                       );
                     })
@@ -1757,15 +1838,15 @@ export default function WorkspacePage() {
                           color: "#340080",
                           boxShadow: "0 14px 36px rgba(160,120,255,0.22)",
                         }}
-                        aria-label={flow.mode === "super" ? "Run orchestration" : "Send message"}
+                        aria-label={flow.mode === "quick" ? "Send message" : "Run orchestration"}
                       >
                         <BrandGlyph className="h-[1.05rem] w-[1.05rem] sm:h-[1.15rem] sm:w-[1.15rem]" />
-                        <span className="hidden sm:inline">{flow.mode === "super" ? "Run Neural Mob" : "Send"}</span>
+                        <span className="hidden sm:inline">{flow.mode === "quick" ? "Send" : flow.mode === "chain" ? "Run Chain" : "Run Neural Mob"}</span>
                       </button>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-2 border-t border-white/6">
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                        {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : `Quick mode`}
+                        {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : `Quick mode`}
                       </span>
                       <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
                     </div>
