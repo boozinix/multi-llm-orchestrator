@@ -204,430 +204,319 @@ export default function SettingsPage() {
   const configuredCount = KEY_ROWS.filter((r) => draft[r.id]?.trim()).length;
 
   return (
-    <div className="flex min-h-[100dvh] lg:h-screen overflow-hidden bg-[#0b1326] app-shell">
-      <aside className="h-screen w-72 fixed left-0 top-0 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] flex-col p-4 z-50 hidden lg:flex border-r border-white/6 backdrop-blur-xl">
-        <div className="mb-8 px-2 pt-1 flex items-center gap-3">
-          <BrandMark className="w-11 h-11 rounded-2xl flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="app-eyebrow mb-1">Neural Mob</p>
-            <h1 className="text-[1.75rem] leading-none font-semibold text-[#edf2ff]">Settings</h1>
-            <p className="mt-1 text-[11px] text-[#b9c5df]/72">Provider keys, routing, and model mapping</p>
+    <div className="flex min-h-[100dvh] bg-[#0b1326] app-shell">
+      <aside className="w-60 flex-shrink-0 hidden lg:flex flex-col sticky top-0 h-screen overflow-auto" style={{ borderRight: "1px solid rgba(208,188,255,.1)", padding: "18px 16px" }}>
+        {/* Brand */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "4px 6px 14px", borderBottom: "1px dashed rgba(208,188,255,.1)", marginBottom: 16 }}>
+          <div style={{ width: 26, height: 26, borderRadius: 7, background: "linear-gradient(135deg,#d0bcff,#9d87d9)", display: "grid", placeItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10, fontWeight: 700, color: "#1a0f3a", flexShrink: 0 }}>NM</div>
+          <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 16, color: "#e9e6f5", letterSpacing: "-0.01em" }}>Neural Mob</div>
+        </div>
+
+        {/* Nav */}
+        <div className="mb-4">
+          <p style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6b6889", margin: "4px 6px 6px", fontWeight: 500 }}>Navigate</p>
+          <nav className="space-y-0.5">
+            <button type="button" onClick={() => router.push("/workspace")} className="w-full flex justify-between items-center px-2.5 py-2 rounded-lg text-[#a7a2c2] text-[12.5px] hover:bg-white/5 hover:text-[#e9e6f5] transition-colors">Home</button>
+            <button type="button" onClick={() => router.push("/workspace")} className="w-full flex justify-between items-center px-2.5 py-2 rounded-lg text-[#a7a2c2] text-[12.5px] hover:bg-white/5 hover:text-[#e9e6f5] transition-colors">Chat</button>
+            <button type="button" className="w-full flex justify-between items-center px-2.5 py-2 rounded-lg text-[12.5px] transition-colors" style={{ background: "rgba(208,188,255,.08)", color: "#e9e6f5", boxShadow: "inset 2px 0 0 #d0bcff" }}>Providers</button>
+          </nav>
+          <div className="ml-3 mt-1 pl-2.5 space-y-0.5" style={{ borderLeft: "1px solid rgba(208,188,255,.08)" }}>
+            <a href="#providers" className="block text-[12px] py-1 px-2.5 rounded" style={{ color: "#d0bcff" }}>Provider status</a>
+            <a href="#routing" className="block text-[12px] py-1 px-2.5 rounded text-[#6b6889] hover:text-[#a7a2c2]">Routing</a>
+            <a href="#models" className="block text-[12px] py-1 px-2.5 rounded text-[#6b6889] hover:text-[#a7a2c2]">Model assignments</a>
+            <a href="#keys" className="block text-[12px] py-1 px-2.5 rounded text-[#6b6889] hover:text-[#a7a2c2]">Keys (BYOK)</a>
+            <a href="#billing" className="block text-[12px] py-1 px-2.5 rounded text-[#6b6889] hover:text-[#a7a2c2]">Billing</a>
           </div>
         </div>
-        <nav className="flex-1 space-y-1.5">
-          <p className="app-eyebrow px-3 pb-1 text-[#aeb9d5]/56">Navigate</p>
-          <button
-            type="button"
-            onClick={() => router.push("/workspace")}
-            className="w-full min-h-11 text-[#96a5c6] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#1a2237] hover:text-[#edf2ff] transition-colors"
-          >
-            <AppIcon name="chat" className="h-5 w-5" />
-            Chat
+
+        {billing?.owner_unlimited && (
+          <button type="button" onClick={() => router.push("/admin")} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[#4edea3] text-[12.5px] hover:bg-white/5 transition-colors">
+            <AppIcon name="admin" className="h-4 w-4" /> Admin
           </button>
-          <button
-            type="button"
-            onClick={() => router.push("/settings")}
-            className="w-full min-h-11 app-panel-soft text-[#e6dcff] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-semibold text-sm text-left transition-colors"
-          >
-            <AppIcon name="settings" className="h-5 w-5" />
-            Settings
+        )}
+
+        <div className="mt-auto space-y-2">
+          <button type="button" onClick={() => router.push("/workspace")} className="w-full flex justify-between items-center px-3.5 py-3 rounded-xl font-semibold text-[12.5px]" style={{ background: "#d0bcff", color: "#1a0f3a" }}>
+            + New run
           </button>
-          {billing?.owner_unlimited && (
-            <button
-              type="button"
-              onClick={() => router.push("/admin")}
-              className="w-full min-h-11 text-[#7cefc0] rounded-2xl flex items-center gap-3 px-3.5 py-3 font-medium text-sm text-left hover:bg-[#132335] transition-colors"
-            >
-              <AppIcon name="admin" className="h-5 w-5" />
-              Admin
-            </button>
-          )}
-        </nav>
-        <div className="mt-auto space-y-4">
-          <div className="app-panel rounded-[1.4rem] p-4">
-            <div className="flex justify-between mb-2">
-              <span className="app-eyebrow text-[#b9c5df]/66">Usage</span>
-              <span className="text-[11px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usage.runs}/{usage.runLimit}</span>
-            </div>
-            <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${runPct}%`, background: "linear-gradient(90deg, #d0bcff 0%, #a078ff 56%, #7b5de9 100%)" }} />
-            </div>
-          </div>
-          <button type="button" onClick={handleSignOut} className="w-full min-h-11 flex items-center gap-3 px-3.5 py-3 text-sm text-[#9aa8c7] hover:text-[#edf2ff] hover:bg-[#161f33] rounded-2xl transition-colors">
-            <AppIcon name="logout" className="h-[1.05rem] w-[1.05rem]" />
-            Sign Out
+          <button type="button" onClick={handleSignOut} className="w-full flex items-center gap-2 px-2.5 py-2 text-[12px] text-[#6b6889] hover:text-[#a7a2c2] rounded-lg transition-colors">
+            <AppIcon name="logout" className="h-4 w-4" /> Sign out
           </button>
         </div>
       </aside>
 
-      <div className="lg:ml-72 flex-1 flex flex-col overflow-hidden w-full min-w-0">
-        <header className="sticky top-0 z-40 flex justify-between items-center gap-2 px-4 sm:px-6 min-h-14 py-3 lg:px-8 lg:h-16 lg:min-h-0 bg-[#0b1326]/95 backdrop-blur-xl border-b border-white/6 safe-top">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div>
-              <p className="app-eyebrow mb-1">Configuration</p>
-              <h2 className="font-semibold text-[#edf2ff] text-sm sm:text-base truncate">Provider access and routing</h2>
-            </div>
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-14 py-6 lg:py-10 pb-mobile-nav lg:pb-10" style={{ maxWidth: 1080 }}>
+        {/* Top bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6b6889" }}>
+          <span><span style={{ color: "#4edea3" }}>●</span> Configuration · {saved ? "saved ✓" : "unsaved"}</span>
+          <span>v0.4.x</span>
+        </div>
+
+        {/* Hero */}
+        <div style={{ padding: "18px 0 36px", maxWidth: 700, borderBottom: "1px solid rgba(208,188,255,.1)", marginBottom: 32 }}>
+          <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(32px,3.8vw,50px)", lineHeight: 1.02, letterSpacing: "-0.025em", margin: "0 0 14px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
+            Tune how the mob<br /><em style={{ fontStyle: "italic", color: "#d0bcff" }}>routes, bills, and decides.</em>
+          </h1>
+          <p style={{ fontSize: 14, lineHeight: 1.55, color: "#a7a2c2", maxWidth: 540, margin: 0 }}>
+            Configure provider access, pick a routing mode, assign models to each mind and to the synthesis judge. Keys stay in your browser until you save.
+          </p>
+        </div>
+
+        {showcaseMode && (
+          <div className="mb-6 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-sm leading-snug">
+            <span className="font-semibold">Showcase mode</span>
+            <span className="text-amber-100/80"> — LLM calls are disabled on this deployment.</span>
           </div>
-          <button
-            type="button"
-            onClick={() => router.push("/workspace")}
-            className="shrink-0 min-h-10 px-3 sm:px-4 py-2 text-sm font-semibold text-[#edf2ff] rounded-xl app-panel-soft"
-          >
-            Chat
-          </button>
-        </header>
+        )}
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 sm:py-6 lg:px-8 lg:py-8 pb-mobile-nav">
-          <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
-            <section className="app-panel rounded-[2rem] p-6 sm:p-8">
-              <p className="app-eyebrow mb-3">Control Deck</p>
-              <h3 className="app-hero-title text-4xl sm:text-5xl text-[#edf2ff] max-w-2xl">Tune how Neural Mob routes, bills, and assigns models.</h3>
-              <p className="mt-4 text-[#b4bed6] max-w-2xl leading-8">
-                Keep this page simple: configure provider access, choose your routing mode, then save model assignments for each bot and synthesis stage.
-              </p>
-            </section>
-            {showcaseMode && (
-              <div className="px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-100/95 text-sm leading-snug">
-                <span className="font-semibold">Showcase mode</span>
-                <span className="text-amber-100/80"> — LLM calls are disabled on this deployment.</span>
-              </div>
-            )}
-
-            {process.env.NODE_ENV === "development" && (
-              <div className="app-panel-soft px-5 py-4 rounded-[1.5rem] text-sm text-[#dae2fd]">
-                <div className="font-semibold text-[#d0bcff] mb-2">Local routing</div>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useOpenRouterDev}
-                    onChange={(e) => setUseOpenRouterDev(e.target.checked)}
-                    className="mt-1 rounded border-[#494454] text-[#a078ff] focus:ring-[#d0bcff]/40"
-                  />
-                  <span className="text-[#cbc3d7] leading-snug">
-                    <span className="text-[#dae2fd] font-medium">Use OpenRouter</span> — all models (
-                    <code className="text-[11px] text-[#d0bcff]">openai/</code>,{" "}
-                    <code className="text-[11px] text-[#d0bcff]">anthropic/</code>, etc.) go through OpenRouter using{" "}
-                    <code className="text-[11px] text-[#d0bcff]">OPENROUTER_API_KEY</code> from{" "}
-                    <code className="text-[11px] text-[#d0bcff]">.env.local</code> (or the browser key if set).
-                    Uncheck to call each provider directly with keys from Settings /{" "}
-                    <code className="text-[11px]">.env.local</code> (<code className="text-[11px]">BYOK_ONLY=0</code>{" "}
-                    helps for env keys).
-                  </span>
-                </label>
-              </div>
-            )}
-
-            {billing && !showcaseMode && (
-              <div className="app-panel rounded-[1.75rem] p-5 sm:p-6 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-[#dae2fd]">Billing</h3>
-                  <span className="text-xs font-mono uppercase tracking-wider text-[#d0bcff]/80">
-                    {billing.owner_unlimited ? "Owner" : billing.tier === "paid" ? "Paid" : "Free"}
-                  </span>
-                </div>
-                {billing.owner_unlimited && (
-                  <p className="text-sm text-[#4edea3]/95 rounded-lg border border-[#4edea3]/25 bg-[#4edea3]/10 px-3 py-2">
-                    Owner bypass active — no usage limits or charges (set{" "}
-                    <code className="text-[11px] text-[#d0bcff]">OWNER_UNLIMITED_EMAILS</code> on the server).
-                  </p>
-                )}
-                {!billing.owner_unlimited && billing.tier === "free" && (
-                  <p className="text-sm text-[#cbc3d7]">
-                    Free users get starter credit and only low-cost models on production. Top up to unlock the full model catalog.
-                  </p>
-                )}
-                {!billing.owner_unlimited && billing.tier === "paid" && (
-                  <p className="text-sm text-[#cbc3d7]">
-                    Available:{" "}
-                    <span className="font-mono text-[#d0bcff]">
-                      ${((billing.available_credit_cents ?? billing.credit_balance_cents) / 100).toFixed(2)}
-                    </span>{" "}
-                    remaining
-                  </p>
-                )}
-                {!billing.owner_unlimited && !showcaseMode && (
-                  <div className="flex flex-wrap gap-2">
-                    {[500, 1000, 2000].map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => void handleTopUp(amount)}
-                        disabled={topupLoading !== null}
-                        className="min-h-10 px-4 rounded-xl text-sm font-medium bg-[#222a3d] text-[#d0bcff] border border-[#d0bcff]/20 hover:bg-[#2d3449] disabled:opacity-60 disabled:cursor-wait"
-                      >
-                        {topupLoading === amount ? "Redirecting…" : `Top up $${(amount / 100).toFixed(0)}`}
+        {/* ── Provider status board ── */}
+        <div id="providers">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <h3 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: 22, color: "#e9e6f5", margin: 0, letterSpacing: "-0.01em" }}><em style={{ color: "#d0bcff" }}>Providers</em> · live status</h3>
+            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b6889" }}>
+              ● <b style={{ color: "#4edea3" }}>{configuredCount} UP</b> · {KEY_ROWS.length - configuredCount} OFF
+            </span>
+          </div>
+          <div style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, overflow: "hidden", marginBottom: 36, background: "#0e1830" }}>
+            <div className="hidden lg:grid" style={{ gridTemplateColumns: "14px 1fr 220px 100px 80px", gap: 14, padding: "10px 18px", borderBottom: "1px solid rgba(208,188,255,.1)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6b6889", background: "rgba(0,0,0,.2)" }}>
+              <span /><span>Provider · Model</span><span>Key</span><span>Status</span><span />
+            </div>
+            {KEY_ROWS.map((row, rowIdx) => {
+              const keyVal = draft[row.id]?.trim();
+              const isSet = Boolean(keyVal);
+              const maskedKey = keyVal ? `${keyVal.slice(0, 8)}●●●${keyVal.slice(-4)}` : null;
+              const isOpen = openAccordion === row.id;
+              return (
+                <div key={row.id} style={{ borderBottom: rowIdx < KEY_ROWS.length - 1 ? "1px dashed rgba(208,188,255,.06)" : "none" }}>
+                  <div className="flex lg:grid gap-3 items-center flex-wrap" style={{ gridTemplateColumns: "14px 1fr 220px 100px 80px", padding: "14px 18px" }}>
+                    <span className="flex-shrink-0" style={{ width: 8, height: 8, borderRadius: "50%", background: isSet ? "#4edea3" : "#6b6889", boxShadow: isSet ? "0 0 8px #4edea3" : "none", display: "block" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: 7, background: "#162449", display: "grid", placeItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: isSet ? "#d0bcff" : "#6b6889", flexShrink: 0 }}>
+                        {row.title.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: isSet ? "#e9e6f5" : "#6b6889", letterSpacing: "-0.005em" }}>{row.title}</div>
+                        <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.04em", marginTop: 2 }}>{row.hint}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5 }}>
+                      {isSet
+                        ? <span style={{ background: "rgba(78,222,163,.08)", padding: "3px 7px", borderRadius: 4, color: "#4edea3" }}>{showSecrets ? draft[row.id] : maskedKey}</span>
+                        : <span style={{ color: "#6b6889", fontStyle: "italic", fontSize: 11 }}>no key — disabled</span>
+                      }
+                    </div>
+                    <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, color: isSet ? "#4edea3" : "#6b6889", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      {isSet ? "● ready" : "○ off"}
+                    </div>
+                    <div>
+                      <button type="button" onClick={() => setOpenAccordion(isOpen ? null : row.id)}
+                        style={{ padding: "5px 10px", border: "1px solid rgba(208,188,255,.14)", background: "transparent", borderRadius: 6, color: "#a7a2c2", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+                        {isSet ? "Edit" : "Add"}
                       </button>
-                    ))}
+                    </div>
                   </div>
-                )}
-                {billing.recent_events.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <div className="text-xs text-[#cbc3d7]/70 mb-2">Recent usage (server, production billing)</div>
-                    <table className="w-full text-left text-xs text-[#cbc3d7]">
-                      <thead>
-                        <tr className="border-b border-[#494454]/20 text-[#94a3b8]">
-                          <th className="py-2 pr-2 font-medium">Date</th>
-                          <th className="py-2 pr-2 font-medium">Model</th>
-                          <th className="py-2 pr-2 font-medium">Tokens</th>
-                          <th className="py-2 font-medium">Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {billing.recent_events.map((ev) => (
-                          <tr key={ev.id} className="border-b border-[#494454]/10">
-                            <td className="py-2 pr-2 font-mono whitespace-nowrap">
-                              {new Date(ev.created_at).toLocaleString()}
-                            </td>
-                            <td className="py-2 pr-2 font-mono truncate max-w-[140px]" title={ev.model}>
-                              {ev.model}
-                            </td>
-                            <td className="py-2 pr-2 font-mono">
-                              {ev.prompt_tokens}+{ev.completion_tokens}
-                            </td>
-                            <td className="py-2 font-mono">${(ev.cost_cents / 100).toFixed(4)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <p className="text-sm text-[#c3cbe0] leading-relaxed app-panel-soft rounded-[1.5rem] px-5 py-4">
-              Keys stay in <strong className="text-[#dae2fd] font-medium">this browser</strong> until you save. They are sent to this app only when you send a chat message, to forward to the provider. Add only the providers you use — e.g. Anthropic + OpenRouter for Gemini; DeepSeek stays off until you add a DeepSeek key.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#cbc3d7]/70">
-              <span className="font-mono">{configuredCount}/{KEY_ROWS.length} keys filled</span>
-              <button
-                type="button"
-                onClick={() => setShowSecrets(!showSecrets)}
-                className="min-h-9 px-3 rounded-lg bg-[#222a3d] text-[#d0bcff] text-xs font-medium"
-              >
+                  {isOpen && (
+                    <div style={{ padding: "0 18px 14px", borderTop: "1px solid rgba(208,188,255,.06)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 8px" }}>
+                        <a href={row.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#d0bcff", fontFamily: "JetBrains Mono, monospace" }}>Get key →</a>
+                      </div>
+                      <input type={showSecrets ? "text" : "password"} autoComplete="off" value={draft[row.id]}
+                        onChange={(e) => setDraft((d) => ({ ...d, [row.id]: e.target.value }))}
+                        placeholder={`Paste ${row.title} API key`}
+                        className="w-full min-h-10 bg-[#060e20] rounded-lg px-3 py-2 text-[#dae2fd] text-sm border border-[rgba(208,188,255,0.12)] outline-none focus:ring-1 focus:ring-[#d0bcff]/40 font-mono"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 18px", background: "rgba(0,0,0,.2)", borderTop: "1px solid rgba(208,188,255,.1)", fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: "#6b6889", alignItems: "center" }}>
+              <div>Keys filled · <b style={{ color: "#e9e6f5" }}>{configuredCount}/{KEY_ROWS.length}</b></div>
+              <button type="button" onClick={() => setShowSecrets(!showSecrets)} style={{ padding: "5px 10px", border: "1px dashed rgba(208,188,255,.18)", background: "transparent", color: "#a7a2c2", borderRadius: 6, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
                 {showSecrets ? "Hide" : "Show"} secrets
               </button>
             </div>
+          </div>
+        </div>
 
-            {/* Mobile: accordion */}
-            <div className="lg:hidden space-y-2">
-              {KEY_ROWS.map((row) => {
-                const open = openAccordion === row.id;
-                return (
-                  <div key={row.id} className="app-panel rounded-[1.4rem] overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setOpenAccordion(open ? null : row.id)}
-                      className="w-full min-h-14 flex items-center justify-between gap-3 px-4 py-3 text-left"
-                    >
-                      <div>
-                        <div className="font-semibold text-[#dae2fd]">{row.title}</div>
-                        <div className="text-[11px] text-[#cbc3d7]/60">{row.hint}</div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`w-2 h-2 rounded-full ${draft[row.id]?.trim() ? "bg-[#4edea3]" : "bg-[#ffb4ab]/60"}`} />
-                        <AppIcon
-                          name={open ? "expandUp" : "expandDown"}
-                          className="h-[1.05rem] w-[1.05rem] text-[#cbc3d7]"
-                        />
-                      </div>
-                    </button>
-                    {open && (
-                      <div className="px-4 pb-4 pt-0 border-t border-[#494454]/10">
-                        <a href={row.href} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#d0bcff] underline mb-3 inline-block min-h-8 leading-8">
-                          Get API key →
-                        </a>
-                        <input
-                          type={showSecrets ? "text" : "password"}
-                          autoComplete="off"
-                          value={draft[row.id]}
-                          onChange={(e) => setDraft((d) => ({ ...d, [row.id]: e.target.value }))}
-                          placeholder={`Paste ${row.title} key`}
-                          className="w-full min-h-12 bg-[#060e20] rounded-xl px-4 py-3 text-[#dae2fd] text-base border-none outline-none focus:ring-2 focus:ring-[#d0bcff]/30 font-mono text-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop: all visible */}
-            <div className="hidden lg:block space-y-4">
-              {KEY_ROWS.map((row) => (
-                <div key={row.id} className="app-panel rounded-[1.6rem] p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                    <div>
-                      <h4 className="text-base font-bold text-[#dae2fd]">{row.title}</h4>
-                      <p className="text-xs text-[#cbc3d7]/60 mt-0.5">{row.hint}</p>
-                    </div>
-                    <a
-                      href={row.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-[#d0bcff] border border-[#d0bcff]/20 px-3 py-1.5 rounded-full hover:bg-[#d0bcff]/10 font-mono shrink-0 min-h-9 inline-flex items-center"
-                    >
-                      Get key →
-                    </a>
-                  </div>
-                  <input
-                    type={showSecrets ? "text" : "password"}
-                    autoComplete="off"
-                    value={draft[row.id]}
-                    onChange={(e) => setDraft((d) => ({ ...d, [row.id]: e.target.value }))}
-                    placeholder={`Paste ${row.title} API key`}
-                    className="w-full min-h-11 bg-[#060e20] rounded-xl px-4 py-3 text-[#dae2fd] text-sm border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40 font-mono"
-                  />
+        {/* ── Routing + Billing ── */}
+        <div id="routing" className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-9">
+          <div style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, padding: 20, background: "rgba(255,255,255,.01)" }}>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6b6889", marginBottom: 4 }}>§ Routing <em style={{ color: "#4edea3", fontStyle: "normal" }}>· how requests leave your browser</em></div>
+            <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, color: "#e9e6f5", margin: "0 0 14px", letterSpacing: "-0.01em", lineHeight: 1.35 }}>Send all providers through <em style={{ fontStyle: "italic", color: "#d0bcff" }}>one router</em>, or call each directly.</p>
+            {process.env.NODE_ENV === "development" && (
+              <label style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "flex-start", padding: 13, border: `1px dashed ${useOpenRouterDev ? "#d0bcff" : "rgba(208,188,255,.1)"}`, borderRadius: 10, cursor: "pointer", background: useOpenRouterDev ? "rgba(208,188,255,.04)" : "transparent" }}>
+                <div style={{ width: 34, height: 19, borderRadius: 999, background: useOpenRouterDev ? "#d0bcff" : "rgba(208,188,255,.12)", position: "relative", flexShrink: 0, marginTop: 2, cursor: "pointer" }} onClick={() => setUseOpenRouterDev(!useOpenRouterDev)}>
+                  <div style={{ position: "absolute", top: 2, width: 15, height: 15, borderRadius: "50%", background: "#1a0f3a", transition: "left .2s", left: useOpenRouterDev ? 17 : 2 }} />
                 </div>
-              ))}
-            </div>
-
-            <div className="app-panel rounded-[1.75rem] p-5 sm:p-6">
-              <h4 className="text-base font-bold text-[#dae2fd] mb-1">Models</h4>
-              <p className="text-xs text-[#cbc3d7]/70 mb-4">Per-slot assignments (large touch targets on phone).</p>
-              <div className="space-y-4">
-                {MODEL_SLOTS.map(({ key, label }) => (
-                  <div key={key}>
-                    <label className="block text-[10px] uppercase tracking-wider text-[#cbc3d7] mb-2 font-mono">{label}</label>
-                    <select
-                      value={models[key]}
-                      onChange={(e) => setModel(key, e.target.value)}
-                      className="w-full min-h-12 bg-[#060e20] text-[#dae2fd] rounded-xl px-4 py-3 text-base sm:text-sm border-none outline-none focus:ring-2 focus:ring-[#d0bcff]/30 font-mono"
-                    >
-                      {modelGroups.map((g) => (
-                        <optgroup key={g.group} label={g.group}>
-                          {g.models.map((m) => (
-                            <option key={m.value} value={m.value} disabled={m.disabled}>
-                              {m.displayLabel}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="hidden lg:grid grid-cols-1 gap-4">
-              <div className="app-panel rounded-[1.8rem] p-6">
-                <h3 className="font-semibold text-[#dae2fd] mb-4">
-                  {usage.mode === "paid_credits"
-                      ? "Credits"
-                      : usage.mode === "free_credits"
-                        ? "Starter credit"
-                      : usage.mode === "owner_unlimited"
-                        ? "Usage"
-                        : "Daily usage"}
-                </h3>
-                <div className="space-y-3">
-                  {usage.mode === "daily" && (
-                    <>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-[#cbc3d7]">Runs</span>
-                          <span className="text-[#d0bcff] font-mono">
-                            {usage.runs}/{usage.runLimit}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${runPct}%`,
-                              background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-[#cbc3d7]">API calls</span>
-                          <span className="text-[#d0bcff] font-mono">
-                            {usage.apiCalls}/{usage.apiCallLimit}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${apiPct}%`, background: "linear-gradient(135deg, #4edea3 0%, #00a572 100%)" }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  {usage.mode === "free_credits" && (
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-[#cbc3d7]">Available free credit</span>
-                        <span className="text-[#d0bcff] font-mono">
-                          ${((usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full bg-[#2d3449] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${(usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) > 0 ? 100 : 0}%`,
-                            background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
-                          }}
-                        />
-                      </div>
-                      <p className="text-xs text-[#cbc3d7]/70 mt-2">Only low-cost models until you top up.</p>
-                    </div>
-                  )}
-                  {usage.mode === "paid_credits" && (
-                    <p className="text-sm text-[#dae2fd]">
-                      Available:{" "}
-                      <span className="font-mono text-[#d0bcff]">
-                        ${((usage.available_credit_cents ?? usage.credit_balance_cents ?? 0) / 100).toFixed(2)}
-                      </span>
-                    </p>
-                  )}
-                  {usage.mode === "owner_unlimited" && (
-                    <p className="text-sm text-[#4edea3]">Owner unlimited — no limits applied.</p>
-                  )}
+                <div style={{ fontSize: 13, color: "#a7a2c2", lineHeight: 1.5 }}>
+                  <b style={{ color: "#e9e6f5", display: "block", fontWeight: 500, fontSize: 13, marginBottom: 3 }}>Use OpenRouter as proxy</b>
+                  All models route through OpenRouter using <code style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#4edea3", background: "rgba(78,222,163,.06)", padding: "1px 5px", borderRadius: 3 }}>OPENROUTER_API_KEY</code>.
                 </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pb-4">
-              <button
-                type="button"
-                onClick={handleDiscard}
-                className="min-h-12 px-6 rounded-xl text-sm font-medium text-[#cbc3d7] border border-[#494454]/40 hover:bg-[#222a3d] transition-colors order-2 sm:order-1"
-              >
-                Discard
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="min-h-12 px-8 rounded-xl text-sm font-bold shadow-lg order-1 sm:order-2"
-                style={{
-                  background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)",
-                  color: "#340080",
-                  boxShadow: "0 4px 16px rgba(208,188,255,0.3)",
-                }}
-              >
-                {saved ? "Saved" : "Save keys & models"}
-              </button>
+              </label>
+            )}
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.04em", color: "#6b6889", marginTop: 10, paddingTop: 10, borderTop: "1px dashed rgba(208,188,255,.08)" }}>
+              Keys stay in this browser · never logged server-side
             </div>
           </div>
-        </main>
-      </div>
 
+          {!showcaseMode && (
+            <div id="billing" style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, padding: 20, background: "rgba(255,255,255,.01)" }}>
+              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6b6889", marginBottom: 4 }}>§ Billing <em style={{ color: "#d0bcff", fontStyle: "normal" }}>· {billing ? (billing.owner_unlimited ? "owner" : billing.tier) : "loading"}</em></div>
+              <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, color: "#e9e6f5", margin: "0 0 12px", letterSpacing: "-0.01em", lineHeight: 1.35 }}>Top up when you run dry. <em style={{ fontStyle: "italic", color: "#d0bcff" }}>No subscription</em> — credits don&apos;t expire.</p>
+              {billing && !billing.owner_unlimited && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0 4px" }}>
+                    <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 30, fontWeight: 300, color: "#e9e6f5", letterSpacing: "-0.02em", fontVariationSettings: '"opsz" 144' }}>
+                      $<em style={{ color: "#4edea3", fontStyle: "italic" }}>{((billing.available_credit_cents ?? billing.credit_balance_cents) / 100).toFixed(2)}</em>
+                    </span>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#6b6889" }}>remaining</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
+                    {[500, 1000, 2000].map((amount) => (
+                      <button key={amount} type="button" onClick={() => void handleTopUp(amount)} disabled={topupLoading !== null}
+                        style={{ padding: "9px 13px", border: "1px solid rgba(208,188,255,.2)", background: amount === 2000 ? "#d0bcff" : "transparent", color: amount === 2000 ? "#1a0f3a" : "#e9e6f5", borderRadius: 8, fontFamily: "Manrope, sans-serif", fontSize: 12.5, cursor: "pointer", opacity: topupLoading !== null ? 0.6 : 1 }}>
+                        {topupLoading === amount ? "Redirecting…" : `+ $${(amount / 100).toFixed(0)}`}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {billing?.owner_unlimited && <p style={{ fontSize: 13, color: "#4edea3" }}>Owner bypass active — no limits or charges.</p>}
+              {!billing && <p style={{ fontSize: 13, color: "#6b6889" }}>Loading billing info…</p>}
+              {billing?.recent_events && billing.recent_events.length > 0 && (
+                <div className="mt-3 overflow-x-auto">
+                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Recent usage</div>
+                  <table className="w-full text-left text-xs" style={{ fontFamily: "JetBrains Mono, monospace", color: "#a7a2c2" }}>
+                    <tbody>
+                      {billing.recent_events.slice(0, 5).map((ev) => (
+                        <tr key={ev.id} style={{ borderBottom: "1px dashed rgba(208,188,255,.06)" }}>
+                          <td className="py-1.5 pr-2 truncate max-w-[120px]" title={ev.model}>{ev.model.split("/").pop()}</td>
+                          <td className="py-1.5 pr-2">{ev.prompt_tokens}+{ev.completion_tokens}t</td>
+                          <td className="py-1.5" style={{ color: "#4edea3" }}>${(ev.cost_cents / 100).toFixed(4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Model assignments ── */}
+        <div id="models">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <h3 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: 22, color: "#e9e6f5", margin: 0, letterSpacing: "-0.01em" }}><em style={{ color: "#d0bcff" }}>Model assignments</em> · who plays which role</h3>
+          </div>
+          <div style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, marginBottom: 36, overflow: "hidden", background: "#0e1830" }}>
+            <div className="hidden lg:grid" style={{ gridTemplateColumns: "56px 1fr 1fr 90px", gap: 14, padding: "10px 18px", borderBottom: "1px solid rgba(208,188,255,.1)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6b6889", background: "rgba(0,0,0,.2)" }}>
+              <span>Slot</span><span>Role · Model</span><span>Fallback</span><span>Status</span>
+            </div>
+            {MODEL_SLOTS.map(({ key, label }, i) => {
+              const slotColor = key === "bot1" ? "#4edea3" : key === "bot2" ? "#ff8a6b" : key === "bot3" ? "#d0bcff" : "#d0bcff";
+              const roleDesc = key === "bot1" ? "speed" : key === "bot2" ? "nuance" : key === "bot3" ? "reach" : "synthesis";
+              const isJudge = key === "synth";
+              return (
+                <div key={key} className="flex lg:grid gap-3 items-center flex-wrap" style={{ gridTemplateColumns: "56px 1fr 1fr 90px", padding: "14px 18px", borderBottom: i < MODEL_SLOTS.length - 1 ? "1px dashed rgba(208,188,255,.06)" : "none", alignItems: "center" }}>
+                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, color: isJudge ? "#d0bcff" : "#e9e6f5", letterSpacing: "0.06em", textTransform: "uppercase", padding: "3px 7px", background: isJudge ? "rgba(208,188,255,.1)" : "rgba(255,255,255,.03)", borderRadius: 6, width: "fit-content" }}>
+                    {isJudge ? "Σ" : `0${i + 1}`}
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontStyle: "italic", fontSize: 13, color: "#a7a2c2", marginBottom: 5, letterSpacing: "-0.005em" }}>
+                      {label} · <em style={{ color: slotColor, fontStyle: "normal" }}>{roleDesc}</em>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: "1px solid rgba(208,188,255,.1)", borderRadius: 8, background: "rgba(11,19,38,.5)" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: slotColor, boxShadow: `0 0 5px ${slotColor}`, flexShrink: 0 }} />
+                      <select value={models[key]} onChange={(e) => setModel(key, e.target.value)}
+                        className="bg-transparent border-none outline-none text-[12.5px] w-full" style={{ fontFamily: "JetBrains Mono, monospace", color: "#e9e6f5" }}>
+                        {modelGroups.map((g) => (
+                          <optgroup key={g.group} label={g.group}>
+                            {g.models.map((m) => (<option key={m.value} value={m.value} disabled={m.disabled}>{m.displayLabel}</option>))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="hidden lg:block" style={{ color: "#6b6889", fontSize: 12, fontStyle: "italic", fontFamily: "'Fraunces', Georgia, serif" }}>—</div>
+                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: isJudge ? "#d0bcff" : "#4edea3" }}>
+                    {isJudge ? "● active judge" : "● ready"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Keys / BYOK ── */}
+        <div id="keys">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+            <h3 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: 22, color: "#e9e6f5", margin: 0, letterSpacing: "-0.01em" }}><em style={{ color: "#d0bcff" }}>Keys</em> · BYOK receipts</h3>
+            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b6889" }}>{configuredCount}/{KEY_ROWS.length} PROVIDERS</span>
+          </div>
+          <div style={{ border: "1px solid rgba(208,188,255,.1)", borderRadius: 14, background: "#0e1830", overflow: "hidden", marginBottom: 28 }}>
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(208,188,255,.1)", background: "rgba(0,0,0,.2)", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "#6b6889" }}>
+              <span><b style={{ color: "#e9e6f5" }}>browser-stored</b> · cleared on sign-out</span>
+              <button type="button" onClick={() => setShowSecrets(!showSecrets)} style={{ padding: "4px 9px", border: "1px solid rgba(208,188,255,.14)", background: "transparent", color: "#a7a2c2", borderRadius: 6, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+                {showSecrets ? "Hide" : "Show"} secrets
+              </button>
+            </div>
+            {KEY_ROWS.map((row, i) => {
+              const keyVal = draft[row.id]?.trim();
+              const isSet = Boolean(keyVal);
+              return (
+                <div key={row.id} className="flex lg:grid gap-3 items-center flex-wrap" style={{ gridTemplateColumns: "1fr 1fr auto", padding: "12px 18px", borderBottom: i < KEY_ROWS.length - 1 ? "1px dashed rgba(208,188,255,.06)" : "none", alignItems: "center" }}>
+                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#e9e6f5", letterSpacing: "0.04em" }}>{row.id.toUpperCase()}_API_KEY</div>
+                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11 }}>
+                    {isSet
+                      ? <span style={{ color: "#4edea3", background: "rgba(78,222,163,.05)", padding: "4px 8px", borderRadius: 5 }}>{showSecrets ? draft[row.id] : `${keyVal.slice(0, 8)}●●●${keyVal.slice(-4)}`}</span>
+                      : <span style={{ color: "#6b6889", fontStyle: "italic", fontSize: 10 }}>not set — add to enable</span>
+                    }
+                  </div>
+                  <input type={showSecrets ? "text" : "password"} autoComplete="off" value={draft[row.id]}
+                    onChange={(e) => setDraft((d) => ({ ...d, [row.id]: e.target.value }))}
+                    placeholder={isSet ? "Replace…" : `Paste ${row.title} key`}
+                    className="min-h-9 bg-[#060e20] rounded-lg px-3 py-1.5 text-[#dae2fd] text-xs border border-[rgba(208,188,255,0.1)] outline-none focus:ring-1 focus:ring-[#d0bcff]/40 font-mono"
+                    style={{ minWidth: 140 }}
+                  />
+                </div>
+              );
+            })}
+            <div style={{ padding: "10px 18px", background: "rgba(0,0,0,.2)", borderTop: "1px solid rgba(208,188,255,.1)", display: "flex", justifyContent: "space-between", fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: "#6b6889" }}>
+              <span><b style={{ color: "#e9e6f5" }}>{configuredCount}/{KEY_ROWS.length}</b> keys filled</span>
+              <span>keys stay in this browser · never logged server-side</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Privacy note */}
+        <div style={{ padding: "18px 20px", border: "1px dashed rgba(208,188,255,.12)", borderRadius: 12, display: "grid", gridTemplateColumns: "24px 1fr", gap: 14, marginBottom: 36 }}>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#d0bcff", width: 24, height: 24, border: "1px solid #d0bcff", borderRadius: 6, display: "grid", placeItems: "center" }}>§</div>
+          <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 14.5, lineHeight: 1.5, color: "#a7a2c2", letterSpacing: "-0.005em" }}>
+            <b style={{ color: "#e9e6f5", fontWeight: 500, fontStyle: "normal" }}>The privacy contract.</b> Keys stay in this browser until you save. They&apos;re sent to this app <em style={{ color: "#d0bcff", fontStyle: "italic" }}>only when you send a chat message</em>, to be forwarded to the provider.
+          </div>
+        </div>
+
+        {/* Save / Discard */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pb-6">
+          <button type="button" onClick={handleDiscard} className="min-h-11 px-6 rounded-xl text-sm font-medium text-[#a7a2c2] border border-[rgba(208,188,255,0.12)] hover:bg-[#222a3d] transition-colors">Discard</button>
+          <button type="button" onClick={handleSave} className="min-h-11 px-8 rounded-xl text-sm font-bold shadow-lg" style={{ background: "linear-gradient(135deg, #d0bcff 0%, #a078ff 100%)", color: "#340080", boxShadow: "0 4px 16px rgba(208,188,255,0.3)" }}>
+            {saved ? "Saved ✓" : "Save keys & models"}
+          </button>
+        </div>
+      </main>
+
+      {/* Mobile bottom nav */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-white/8 bg-[#10182b]/95 backdrop-blur-xl z-50 safe-bottom pt-1">
         <button type="button" onClick={() => router.push("/workspace")} className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]">
-          <AppIcon name="chat" className="h-6 w-6" />
-          <span className="text-[10px]">Chat</span>
+          <AppIcon name="chat" className="h-6 w-6" /><span className="text-[10px]">Chat</span>
         </button>
         <button type="button" className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#d0bcff]">
-          <AppIcon name="key" className="h-6 w-6" />
-          <span className="text-[10px]">Keys</span>
+          <AppIcon name="key" className="h-6 w-6" /><span className="text-[10px]">Keys</span>
         </button>
         <button type="button" onClick={handleSignOut} className="flex-1 min-h-14 flex flex-col items-center justify-center gap-0.5 text-[#94a3b8]">
-          <AppIcon name="logout" className="h-6 w-6" />
-          <span className="text-[10px]">Out</span>
+          <AppIcon name="logout" className="h-6 w-6" /><span className="text-[10px]">Out</span>
         </button>
       </div>
 

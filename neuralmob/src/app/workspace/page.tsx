@@ -21,6 +21,21 @@ import type { ConversationRecord, ChatMessage, BotRunOutput, FlowConfig } from "
 const BOT_SLOTS = ["bot1", "bot2", "bot3"] as const;
 const TOUR_STORAGE_PREFIX = "neuralmob-tour";
 
+function getTimeGreeting(): string {
+  if (typeof window === "undefined") return "Good morning";
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+const PROMPT_SUGGESTIONS = [
+  { tag: "strategy", q: "Raise a seed round at $5M, or bootstrap to $1M ARR first?", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "code review", q: "Review this PR for load-bearing risks before I merge.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "writing", q: "Rewrite this email to be less corporate and more me.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+  { tag: "pricing", q: "Price this product at $29 or $39 — gut vs. data.", minds: ["gpt", "claude", "gemini"], mode: "super" },
+];
+
 const WORKSPACE_TOUR_STEPS: WorkspaceTourStep[] = [
   {
     id: "overview",
@@ -142,11 +157,28 @@ type StreamBlock = {
   text: string;
 };
 
+/** GPT and Gemini routed through OpenRouter often have higher cold-start latency. */
+function isSlowStartModel(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.includes("gpt") || m.includes("gemini") || m.includes("o1") || m.includes("o3") || m.includes("o4");
+}
+
+function getSlotTimeoutMs(model: string): number {
+  return isSlowStartModel(model) ? 25_000 : 12_000;
+}
+
+function phaseColor(phase: string): string {
+  if (phase === "bot1" || phase === "chain1") return "#4edea3";
+  if (phase === "bot2" || phase === "chain2") return "#ff8a6b";
+  if (phase === "bot3" || phase === "chain3") return "#d0bcff";
+  return "#d0bcff";
+}
+
 function phaseAccentClass(phase: string): string {
-  if (phase === "bot1") return "border-[#8b5cf6]/40 bg-[#8b5cf6]/10";
-  if (phase === "bot2") return "border-[#06b6d4]/40 bg-[#06b6d4]/10";
-  if (phase === "bot3") return "border-[#22c55e]/40 bg-[#22c55e]/10";
-  if (phase.startsWith("merge")) return "border-[#f59e0b]/40 bg-[#f59e0b]/10";
+  if (phase === "bot1" || phase === "chain1") return "border-[#4edea3]/40 bg-[#4edea3]/[0.06]";
+  if (phase === "bot2" || phase === "chain2") return "border-[#ff8a6b]/40 bg-[#ff8a6b]/[0.06]";
+  if (phase === "bot3" || phase === "chain3") return "border-[#d0bcff]/40 bg-[#d0bcff]/[0.06]";
+  if (phase.startsWith("merge")) return "border-[#d0bcff]/25 bg-[#d0bcff]/[0.04]";
   return "border-[#494454]/20 bg-[#131b2e]";
 }
 
@@ -205,11 +237,11 @@ function SideNav({
 
   return (
     <aside className="h-screen w-72 fixed left-0 top-0 flex flex-col p-4 z-50 overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(11,19,38,0.94),rgba(9,16,30,0.98))] backdrop-blur-xl">
-      <div className="mb-5 px-2 pt-1 flex items-center gap-2.5">
-        <BrandMark className="w-9 h-9 rounded-xl flex-shrink-0" />
+      <div className="mb-5 px-1.5 pt-1 flex items-center gap-2.5 pb-3.5 border-b border-dashed border-[#d0bcff]/10">
+        <div className="w-7 h-7 rounded-lg flex-shrink-0 grid place-items-center" style={{ background: "linear-gradient(135deg, #d0bcff, #9d87d9)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, fontWeight: 700, color: "#1a0f3a" }}>NM</div>
         <div className="min-w-0">
-          <h1 className="text-lg leading-none font-semibold text-[#edf2ff]">Neural Mob</h1>
-          <p className="mt-0.5 text-[10px] text-[#b9c5df]/72">Multi-model orchestration</p>
+          <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 17, letterSpacing: "-0.01em", color: "#e9e6f5", lineHeight: 1.1 }}>Neural Mob</h1>
+          <span style={{ display: "block", fontFamily: "JetBrains Mono, monospace", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6b6889", marginTop: 2 }}>multi-model orchestration</span>
         </div>
       </div>
 
@@ -263,19 +295,29 @@ function SideNav({
             <p className="mt-0.5 text-[10px] text-[#6f7c99]">Your runs will appear here.</p>
           </div>
         )}
-        {conversations.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onSelect(c.id)}
-            className={`w-full text-left px-3 py-2 rounded-xl text-[11px] transition-colors truncate ${
-              activeId === c.id
-                ? "app-panel-soft text-[#edf2ff]"
-                : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
-            }`}
-          >
-            {c.title}
-          </button>
-        ))}
+        {conversations.map((c) => {
+          const ago = (() => {
+            const diff = Date.now() - c.updatedAt;
+            if (diff < 60000) return "just now";
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return `${Math.floor(diff / 86400000)}d ago`;
+          })();
+          return (
+            <button
+              key={c.id}
+              onClick={() => onSelect(c.id)}
+              className={`w-full text-left px-3 py-2 rounded-xl text-[11px] transition-colors ${
+                activeId === c.id
+                  ? "app-panel-soft text-[#edf2ff]"
+                  : "text-[#96a5c6] hover:bg-[#161f33] hover:text-[#edf2ff]"
+              }`}
+            >
+              <span className="block truncate">{c.title}</span>
+              <span className="block mt-0.5 truncate" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9.5, color: "#6b6889", letterSpacing: "0.04em" }}>{ago}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Usage bar */}
@@ -380,19 +422,20 @@ function BotOutputCard({ bot }: { bot: BotRunOutput }) {
   const [expanded, setExpanded] = useState(false);
   const label = modelLabel(bot.model);
   const slot = bot.slotId;
+  const slotColor = slot === "bot1" ? "#4edea3" : slot === "bot2" ? "#ff8a6b" : "#d0bcff";
   const slotAccent =
     slot === "bot1"
-      ? "border-[#8b5cf6]/35 bg-[#8b5cf6]/10"
+      ? "border-[#4edea3]/35 bg-[#4edea3]/[0.06]"
       : slot === "bot2"
-        ? "border-[#06b6d4]/35 bg-[#06b6d4]/10"
-        : "border-[#22c55e]/35 bg-[#22c55e]/10";
+        ? "border-[#ff8a6b]/35 bg-[#ff8a6b]/[0.06]"
+        : "border-[#d0bcff]/35 bg-[#d0bcff]/[0.06]";
 
   return (
     <div className={`p-3 rounded-xl border ${slotAccent}`}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]" />
-          <span className="text-[10px] text-[#cbc3d7] uppercase" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: slotColor, boxShadow: `0 0 5px ${slotColor}` }} />
+          <span className="text-[10px] uppercase" style={{ fontFamily: "JetBrains Mono, monospace", color: slotColor, letterSpacing: "0.06em" }}>
             MIND {slot.replace("bot", "")} · {label}
           </span>
         </div>
@@ -436,27 +479,20 @@ function FlowPanel({
 
       <div>
         <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7] mb-4" style={{ fontFamily: "JetBrains Mono, monospace" }}>Mode</h3>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onFlowChange({ mode: "quick" })}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              flow.mode === "quick"
-                ? "mode-toggle-active"
-                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
-            }`}
-          >
-            Quick
-          </button>
-          <button
-            onClick={() => onFlowChange({ mode: "super" })}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              flow.mode === "super"
-                ? "mode-toggle-active"
-                : "bg-[#222a3d]/60 text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
-            }`}
-          >
-            Super
-          </button>
+        <div className="flex bg-[#222a3d]/60 rounded-xl p-1 gap-0.5">
+          {(["quick", "chain", "super"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => onFlowChange({ mode: m })}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+                flow.mode === m
+                  ? "mode-toggle-active"
+                  : "text-[#94a3b8] hover:text-[#dae2fd] hover:bg-[#222a3d]"
+              }`}
+            >
+              {m === "quick" ? "Quick" : m === "chain" ? "Chain" : "Super"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -479,7 +515,62 @@ function FlowPanel({
               </optgroup>
             ))}
           </select>
-          <p className="text-xs text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Super for multi-model.</p>
+          <p className="text-xs text-[#cbc3d7]/50">Uses Mind 1 slot. Switch to Chain or Super for multi-model.</p>
+        </div>
+      )}
+
+      {flow.mode === "chain" && (
+        <div className="space-y-4">
+          <h3 className="text-xs uppercase tracking-[0.2em] text-[#cbc3d7]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Sequential Chain</h3>
+
+          {BOT_SLOTS.map((slot, i) => (
+            <div key={slot} className={`p-3 bg-[#2d3449] rounded-xl border-l-2 ${flow[`${slot}Enabled`] ? (i === 0 ? "border-l-[#4edea3]" : i === 1 ? "border-l-[#ff8a6b]" : "border-l-[#d0bcff]") : "border-l-[#494454]"}`}>
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <span className="text-xs font-semibold text-[#dae2fd]">Step {i + 1}</span>
+                  <span className="text-[10px] text-[#cbc3d7]/50 ml-2" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                    {i === 0 ? "first pass" : "reviews prev."}
+                  </span>
+                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={flow[`${slot}Enabled`]}
+                    onChange={(e) => onFlowChange({ [`${slot}Enabled`]: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-8 h-4 rounded-full transition-colors relative"
+                    style={{ background: flow[`${slot}Enabled`] ? "#a078ff" : "#494454" }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow"
+                      style={{ left: flow[`${slot}Enabled`] ? "calc(100% - 14px)" : "2px" }}
+                    />
+                  </div>
+                </label>
+              </div>
+              <select
+                value={models[slot]}
+                onChange={(e) => setModel(slot, e.target.value)}
+                disabled={!flow[`${slot}Enabled`]}
+                className="w-full bg-[#060e20] text-[#dae2fd] rounded-lg px-2 py-1.5 text-xs border-none outline-none focus:ring-1 focus:ring-[#d0bcff]/40 disabled:opacity-40"
+                style={{ fontFamily: "JetBrains Mono, monospace" }}
+              >
+                {groupedModels.map((g) => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.models.map((m) => (
+                      <option key={m.value} value={m.value} disabled={m.disabled}>
+                        {m.displayLabel}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          ))}
+
+          <p className="text-xs text-[#cbc3d7]/50">Each step reviews and improves the previous answer.</p>
         </div>
       )}
 
@@ -602,7 +693,11 @@ function FlowPanel({
           <AppIcon name="verified" className="h-4 w-4 text-[#d0bcff]" />
           <span className="text-xs uppercase tracking-tighter text-[#dae2fd]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Verified Output</span>
         </div>
-        <p className="text-xs text-[#cbc3d7] leading-relaxed">Cross-model synthesis captures the strongest insights from all active minds.</p>
+        <p className="text-xs text-[#cbc3d7] leading-relaxed">
+          {flow.mode === "chain"
+            ? "Each step reviews and refines the previous answer for iteratively improved output."
+            : "Cross-model synthesis captures the strongest insights from all active minds."}
+        </p>
       </div>
     </section>
   );
@@ -655,6 +750,9 @@ export default function WorkspacePage() {
   const [showLocalReset, setShowLocalReset] = useState(false);
   const [ownerUnlimited, setOwnerUnlimited] = useState(false);
   const [streamBlocks, setStreamBlocks] = useState<StreamBlock[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [slotWaiting, setSlotWaiting] = useState<Partial<Record<string, "waiting" | "timed_out" | "responding" | "skipped" | "done">>>({});
+  const slotTimerRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({});
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [tourIdentity, setTourIdentity] = useState<string | null>(null);
@@ -899,13 +997,21 @@ export default function WorkspacePage() {
     const root = messagesScrollRef.current;
     if (!root) return;
 
-    const thresholdPx = 140;
+    // During active streaming, always follow the bottom — DOM growth doesn't fire a
+    // scroll event so fromBottom silently grows beyond the threshold without the user
+    // having actually scrolled up.
+    const activeStreaming = Boolean(isLoading && (streamingPreview || streamingStatus));
+    if (activeStreaming) {
+      scrollToEnd("auto");
+      return;
+    }
+
+    const thresholdPx = 200;
     const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
     if (fromBottom <= thresholdPx) {
-      const streaming = Boolean(isLoading && (streamingPreview || streamingStatus));
-      scrollToEnd(streaming ? "auto" : "smooth");
+      scrollToEnd("smooth");
     }
-  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading]);
+  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading, slotWaiting]);
 
   async function selectConversation(id: string) {
     setHistoryOpen(false);
@@ -939,6 +1045,38 @@ export default function WorkspacePage() {
     }
   }
 
+  function handleWaitMore(phase: string) {
+    if (slotTimerRef.current[phase]) {
+      clearTimeout(slotTimerRef.current[phase]);
+      delete slotTimerRef.current[phase];
+    }
+    setSlotWaiting((prev) => ({ ...prev, [phase]: "waiting" }));
+    const slotModel = models[phase as "bot1" | "bot2" | "bot3"] ?? "";
+    const timeoutMs = getSlotTimeoutMs(slotModel);
+    const timer = setTimeout(() => {
+      setSlotWaiting((prev) => ({ ...prev, [phase]: "timed_out" }));
+    }, timeoutMs);
+    slotTimerRef.current[phase] = timer;
+  }
+
+  async function handleSkipSlot(phase: string) {
+    if (!activeRunId) return;
+    if (slotTimerRef.current[phase]) {
+      clearTimeout(slotTimerRef.current[phase]);
+      delete slotTimerRef.current[phase];
+    }
+    setSlotWaiting((prev) => ({ ...prev, [phase]: "skipped" }));
+    try {
+      await fetch("/api/chat/skip-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: activeRunId, slotId: phase }),
+      });
+    } catch {
+      /* skip request is best-effort */
+    }
+  }
+
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (showcaseMode) return;
@@ -949,6 +1087,13 @@ export default function WorkspacePage() {
     setStreamingPreview("");
     setStreamingStatus("Starting…");
     setStreamBlocks([]);
+    setActiveRunId(null);
+    // Clear any lingering slot timers from a previous run
+    Object.values(slotTimerRef.current).forEach((t) => t && clearTimeout(t));
+    slotTimerRef.current = {};
+    setSlotWaiting({});
+    // Reset scroll lock so a new run always auto-scrolls from the start
+    userScrolledUpRef.current = false;
     setLoading(true);
     setPrompt("");
 
@@ -1033,6 +1178,8 @@ export default function WorkspacePage() {
       // Object holder: TS does not narrow `let` assigned inside nested functions.
       const streamResult: { payload: DonePayload | null } = { payload: null };
 
+      const BOT_PHASES = new Set(["bot1", "bot2", "bot3"]);
+
       const processSseBlock = (block: string) => {
         const line = block.trim();
         if (!line.startsWith("data: ")) return;
@@ -1043,6 +1190,10 @@ export default function WorkspacePage() {
           return;
         }
         const typ = evt.type as string;
+
+        if (typ === "run_id") {
+          setActiveRunId(String(evt.runId ?? ""));
+        }
         if (typ === "status") setStreamingStatus(String(evt.message ?? ""));
         if (typ === "phase_start") {
           const phase = String(evt.phase ?? "");
@@ -1051,10 +1202,37 @@ export default function WorkspacePage() {
             if (prev.some((b) => b.phase === phase)) return prev;
             return [...prev, { phase, label, text: "" }];
           });
+          // Start per-model timeout for bot slots
+          if (BOT_PHASES.has(phase)) {
+            const slotModel = models[phase as "bot1" | "bot2" | "bot3"] ?? "";
+            const timeoutMs = getSlotTimeoutMs(slotModel);
+            setSlotWaiting((prev) => ({ ...prev, [phase]: "waiting" }));
+            const timer = setTimeout(() => {
+              setSlotWaiting((prev) => {
+                // Only fire if still waiting (not already responding/skipped)
+                if (prev[phase] === "waiting") return { ...prev, [phase]: "timed_out" };
+                return prev;
+              });
+            }, timeoutMs);
+            slotTimerRef.current[phase] = timer;
+          }
         }
         if (typ === "token") {
           const phase = String(evt.phase ?? "");
           const delta = String(evt.delta ?? "");
+          // First token from a bot slot — cancel timeout, mark as responding
+          if (BOT_PHASES.has(phase)) {
+            if (slotTimerRef.current[phase]) {
+              clearTimeout(slotTimerRef.current[phase]);
+              delete slotTimerRef.current[phase];
+            }
+            setSlotWaiting((prev) => {
+              if (prev[phase] === "waiting" || prev[phase] === "timed_out") {
+                return { ...prev, [phase]: "responding" };
+              }
+              return prev;
+            });
+          }
           setStreamBlocks((prev) => {
             const idx = prev.findIndex((b) => b.phase === phase);
             if (idx === -1) return prev;
@@ -1063,6 +1241,17 @@ export default function WorkspacePage() {
             return next;
           });
           setStreamingPreview((p) => p + delta);
+        }
+        if (typ === "phase_end") {
+          const phase = String(evt.phase ?? "");
+          if (slotTimerRef.current[phase]) {
+            clearTimeout(slotTimerRef.current[phase]);
+            delete slotTimerRef.current[phase];
+          }
+          setSlotWaiting((prev) => {
+            if (prev[phase] === "skipped") return prev; // keep skipped state
+            return { ...prev, [phase]: "done" };
+          });
         }
         if (typ === "error") {
           throw new Error(String(evt.message ?? "Stream error"));
@@ -1126,6 +1315,11 @@ export default function WorkspacePage() {
       setStreamingStatus("");
       setStreamBlocks([]);
     } finally {
+      // Always clean up slot timers when a run ends
+      Object.values(slotTimerRef.current).forEach((t) => t && clearTimeout(t));
+      slotTimerRef.current = {};
+      setSlotWaiting({});
+      setActiveRunId(null);
       setLoading(false);
     }
   }
@@ -1355,20 +1549,63 @@ export default function WorkspacePage() {
               style={{ paddingBottom: messageListBottomInset }}
             >
               {messages.length === 0 && !isLoading && (
-                <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-8">
-                  <BrandMark className="h-12 w-12 rounded-2xl float-soft mb-5" glyphClassName="h-6 w-6" />
-                  <h2 className="app-hero-title text-2xl md:text-3xl text-[#edf2ff] max-w-md">
-                    What would you like to explore?
-                  </h2>
-                  <p className="mt-2 max-w-sm text-xs text-[#8e9ab8] leading-5">
-                    {flow.mode === "super"
-                      ? `${enabledCount} minds will answer independently, then Neural Mob merges the strongest reasoning.`
-                      : "One model answers directly with full streaming."}
-                  </p>
-                  <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Parallel streaming</span>
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">Cross-model synthesis</span>
-                    <span className="app-panel-soft rounded-full px-2.5 py-1 text-[10px] text-[#cbc3d7]">{flow.mode === "super" ? "Super mode" : "Quick mode"}</span>
+                <div className="flex flex-col justify-start py-8 lg:py-10">
+                  <div style={{ maxWidth: 780, width: "100%", margin: "0 auto", padding: "0 24px" }}>
+                  {/* Greeting */}
+                  <div>
+                    <p className="mb-4" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#4edea3" }}>
+                      ● {getTimeGreeting()} · {flow.mode === "super" ? `${enabledCount} mind${enabledCount !== 1 ? "s" : ""} on call` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : "Quick mode · 1 mind"}
+                    </p>
+                    <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(36px,4.5vw,68px)", lineHeight: 0.96, letterSpacing: "-0.03em", margin: "0 0 18px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
+                      What should <em style={{ fontStyle: "italic", color: "#d0bcff" }}>the mob</em><br />think about today?
+                    </h1>
+                    <p style={{ fontSize: 14, lineHeight: 1.65, color: "#a7a2c2", maxWidth: 500, margin: 0 }}>
+                      {flow.mode === "chain"
+                        ? "Drop a prompt. Each model reviews and improves the previous answer, refining it step by step."
+                        : "Drop a prompt. I\u2019ll send it to all three in parallel, then have Claude read the transcripts and pick the best answer."}
+                    </p>
+                  </div>
+
+                  {/* Modes mini row */}
+                  <div style={{ margin: "24px 0 20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
+                      {([
+                        { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
+                        { label: "Chain", sub: "review", kbd: "⌘C", mode: "chain" as const, stat: "sequential" },
+                        { label: "Super", sub: "default", kbd: "⌘S", mode: "super" as const, stat: "3 + judge" },
+                      ] as const).map((m, i, arr) => (
+                        <button key={m.mode} type="button" onClick={() => setFlow({ mode: m.mode })}
+                          style={{ padding: "13px 15px", borderRight: i < arr.length - 1 ? "2px solid rgba(208,188,255,.35)" : "none", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: flow.mode === m.mode ? "rgba(208,188,255,.38)" : "transparent", transition: "background .15s" }}>
+                          <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                            <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, padding: "2px 6px", border: `2px solid ${flow.mode === m.mode ? "#d0bcff" : "rgba(208,188,255,.35)"}`, borderRadius: 4, color: flow.mode === m.mode ? "#d0bcff" : "#6b6889" }}>{m.kbd}</span>
+                            <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#e9e6f5", letterSpacing: "-0.01em" }}>{m.label} <em style={{ fontStyle: "italic", color: "#d0bcff", fontWeight: 300, fontSize: 12, marginLeft: 2 }}>{m.sub}</em></span>
+                          </div>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#4edea3", letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{m.stat}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Suggested prompt cards */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "#6b6889" }}>§ try one of these</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {PROMPT_SUGGESTIONS.map((s) => (
+                        <button key={s.q} type="button" onClick={() => setPrompt(s.q)}
+                          style={{ border: "2px solid rgba(208,188,255,.28)", borderRadius: 10, padding: "16px 18px", background: "rgba(255,255,255,.015)", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10, transition: "all .18s" }}
+                          className="hover:border-[#d0bcff]/60 hover:bg-[#d0bcff]/[0.06] hover:-translate-y-px">
+                          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d0bcff" }}>{s.tag}</div>
+                          <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontStyle: "italic", fontSize: 17, lineHeight: 1.35, color: "#e9e6f5", letterSpacing: "-0.01em" }}>&ldquo;{s.q}&rdquo;</div>
+                          <div style={{ display: "flex", gap: 5, alignItems: "center", fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: "auto" }}>
+                            {s.minds.map((m) => <span key={m} style={{ width: 6, height: 6, borderRadius: "50%", display: "inline-block", background: m === "gpt" ? "#4edea3" : m === "claude" ? "#ff8a6b" : "#d0bcff", boxShadow: `0 0 4px ${m === "gpt" ? "#4edea3" : m === "claude" ? "#ff8a6b" : "#d0bcff"}` }} />)}
+                            <span style={{ marginLeft: 2 }}>{s.minds.length} mind{s.minds.length !== 1 ? "s" : ""} · {s.mode}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   </div>
                 </div>
               )}
@@ -1397,27 +1634,122 @@ export default function WorkspacePage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-[#d0bcff]/30" />
                         </span>
                       </div>
-                      {streamBlocks.length > 0 ? (
-                        <div className="space-y-2">
-                          {streamBlocks.map((block) => (
-                            <div
-                              key={block.phase}
-                              className={`rounded-xl border p-3 ${phaseAccentClass(block.phase)}`}
-                            >
-                              <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <span className="text-[10px] uppercase tracking-wide text-[#d0bcff] font-mono">
-                                  {block.label}
-                                </span>
-                                {block.text ? <CopyTextButton text={block.text} label="Copy" /> : null}
+                      {streamBlocks.length > 0 ? (() => {
+                        const isChainMode = flow.mode === "chain";
+                        const chainPhases = new Set(["chain1","chain2","chain3"]);
+                        const botBlocks = isChainMode ? [] : streamBlocks.filter((b) => ["bot1","bot2","bot3"].includes(b.phase));
+                        const chainBlocks = isChainMode ? streamBlocks.filter((b) => chainPhases.has(b.phase)) : [];
+                        const otherBlocks = streamBlocks.filter((b) => !["bot1","bot2","bot3"].includes(b.phase) && !chainPhases.has(b.phase));
+                        return (
+                          <div className="space-y-2.5">
+                            {/* Chain mode: sequential full-width cards */}
+                            {chainBlocks.length > 0 && chainBlocks.map((block) => {
+                              const color = phaseColor(block.phase);
+                              return (
+                                <div key={block.phase} style={{ border: `1px solid ${color}40`, borderRadius: 12, background: "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: `0 0 20px -6px ${color}30` }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#e9e6f5" }}>
+                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
+                                      <span style={{ fontWeight: 500 }}>{block.label}</span>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      {block.text && <CopyTextButton text={block.text} label="Copy" />}
+                                      <span style={{ color }}>● live</span>
+                                    </div>
+                                  </div>
+                                  <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.6, color: "#dae2fd", maxHeight: 300, overflow: "hidden" }}>
+                                    {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {botBlocks.length > 0 && (
+                              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(botBlocks.length, 3)}, 1fr)`, gap: 8 }}>
+                                {botBlocks.map((block) => {
+                                  const color = phaseColor(block.phase);
+                                  const ws = slotWaiting[block.phase];
+                                  const isSkipped = ws === "skipped";
+                                  const isTimedOut = ws === "timed_out";
+                                  const isWaiting = ws === "waiting";
+                                  const slotModel = models[block.phase as "bot1" | "bot2" | "bot3"] ?? "";
+                                  const slowModel = isSlowStartModel(slotModel);
+                                  const waitLabel = getSlotTimeoutMs(slotModel) / 1000;
+                                  const headerStatusColor = isSkipped ? "#6b7280" : isTimedOut ? "#f59e0b" : color;
+                                  const headerStatusText = isSkipped ? "○ skipped" : isTimedOut ? "⏱ still waiting" : "● live";
+                                  return (
+                                    <div key={block.phase} style={{ border: `1px solid ${isSkipped ? "rgba(255,255,255,.06)" : isTimedOut ? "rgba(245,158,11,.35)" : `${color}40`}`, borderRadius: 12, background: isTimedOut ? "rgba(245,158,11,.04)" : "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: isSkipped || isTimedOut ? "none" : `0 0 20px -6px ${color}30` }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 7, color: isSkipped ? "#6b7280" : "#e9e6f5" }}>
+                                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: isSkipped ? "#6b7280" : color, boxShadow: isSkipped ? "none" : `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
+                                          <span style={{ fontWeight: 500 }}>{block.label}</span>
+                                        </div>
+                                        <span style={{ color: headerStatusColor }}>{headerStatusText}</span>
+                                      </div>
+                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: isTimedOut ? "none" : 200, overflow: "hidden" }}>
+                                        {isSkipped ? (
+                                          <span style={{ color: "#6b7280", fontStyle: "italic" }}>Skipped by you.</span>
+                                        ) : isTimedOut ? (
+                                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                            <span style={{ color: "#f59e0b", fontSize: 11.5 }}>
+                                              {slowModel
+                                                ? `GPT and Gemini models can take up to ${waitLabel}s to start — still waiting.`
+                                                : "Still waiting… taking longer than expected."}
+                                            </span>
+                                            <div style={{ display: "flex", gap: 6 }}>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleWaitMore(block.phase)}
+                                                style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid rgba(245,158,11,.4)", background: "rgba(245,158,11,.1)", color: "#f59e0b", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.04em", cursor: "pointer" }}
+                                              >
+                                                Wait {waitLabel}s more
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleSkipSlot(block.phase)}
+                                                style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#9dadcd", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.04em", cursor: "pointer" }}
+                                              >
+                                                Skip {block.label.split(" — ")[0]}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
+                                            {isWaiting && !block.text && slowModel && (
+                                              <div style={{ marginTop: 8, fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#6b6889", letterSpacing: "0.04em" }}>
+                                                GPT &amp; Gemini typically take 15–25s to start.
+                                              </div>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <p className="text-xs text-[#dae2fd]/90 whitespace-pre-wrap font-mono leading-relaxed">
-                                {block.text || "Waiting…"}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-[#cbc3d7]/70">Waiting for first tokens…</p>
+                            )}
+                            {otherBlocks.map((block) => (
+                              <div key={block.phase} style={{ border: "1px solid rgba(208,188,255,.2)", borderRadius: 12, background: "rgba(208,188,255,.03)", overflow: "hidden" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 9, color: "#e9e6f5" }}>
+                                    <span style={{ width: 20, height: 20, borderRadius: "50%", border: "1px solid #d0bcff", display: "grid", placeItems: "center", fontSize: 10, color: "#d0bcff", flexShrink: 0 }}>Σ</span>
+                                    <span>{block.label}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    {block.text && <CopyTextButton text={block.text} label="Copy" />}
+                                    <span style={{ color: "#d0bcff" }}>● synthesising</span>
+                                  </div>
+                                </div>
+                                <div style={{ padding: "14px 20px", fontSize: 15, lineHeight: 1.6, color: "#e9e6f5", letterSpacing: "-0.005em", fontFamily: "'Fraunces', Georgia, serif" }}>
+                                  {block.text || <span style={{ color: "#6b6889", fontFamily: "Manrope, sans-serif", fontSize: 13 }}>Reading transcripts…</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })() : (
+                        <p className="text-sm text-[#cbc3d7]/70">Starting up…</p>
                       )}
                     </div>
                   </div>
@@ -1436,10 +1768,11 @@ export default function WorkspacePage() {
               <div className="max-w-5xl mx-auto space-y-2">
                 {/* Mind pills — compact model status */}
                 <div className="flex flex-wrap items-center gap-1.5 px-1">
-                  {flow.mode === "super" ? (
+                  {flow.mode === "super" || flow.mode === "chain" ? (
                     BOT_SLOTS.map((slot, i) => {
                       const enabled = flow[`${slot}Enabled`];
                       const pillColors = ["border-l-[rgba(139,92,246,0.5)]", "border-l-[rgba(6,182,212,0.5)]", "border-l-[rgba(34,197,94,0.5)]"];
+                      const stepLabel = flow.mode === "chain" ? `Step ${i + 1}` : `Mind ${i + 1}`;
                       return (
                         <button
                           key={slot}
@@ -1450,7 +1783,7 @@ export default function WorkspacePage() {
                           }`}
                         >
                           <span className={`w-1 h-1 rounded-full ${enabled ? "bg-[#4edea3]" : "bg-[#494454]"}`} />
-                          Mind {i + 1}: {modelLabel(models[slot]).split("—")[0].trim()}
+                          {stepLabel}: {modelLabel(models[slot]).split("—")[0].trim()}
                         </button>
                       );
                     })
@@ -1505,15 +1838,15 @@ export default function WorkspacePage() {
                           color: "#340080",
                           boxShadow: "0 14px 36px rgba(160,120,255,0.22)",
                         }}
-                        aria-label={flow.mode === "super" ? "Run orchestration" : "Send message"}
+                        aria-label={flow.mode === "quick" ? "Send message" : "Run orchestration"}
                       >
                         <BrandGlyph className="h-[1.05rem] w-[1.05rem] sm:h-[1.15rem] sm:w-[1.15rem]" />
-                        <span className="hidden sm:inline">{flow.mode === "super" ? "Run Neural Mob" : "Send"}</span>
+                        <span className="hidden sm:inline">{flow.mode === "quick" ? "Send" : flow.mode === "chain" ? "Run Chain" : "Run Neural Mob"}</span>
                       </button>
                     </div>
                     <div className="flex items-center justify-between gap-4 px-4 py-2 border-t border-white/6">
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
-                        {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : `Quick mode`}
+                        {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : `Quick mode`}
                       </span>
                       <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
                     </div>

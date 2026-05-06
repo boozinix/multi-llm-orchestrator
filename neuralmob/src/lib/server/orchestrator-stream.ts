@@ -7,10 +7,14 @@ import {
   buildMerge12SystemPrompt,
   buildMerge12UserPrompt,
   buildQuickModeSystemPrompt,
+  buildChainFirstSystemPrompt,
+  buildChainReviewerSystemPrompt,
+  buildChainReviewerUserPrompt,
   classifyQueryComplexity,
 } from "../prompts";
 import type { UserProviderKeys } from "../provider-keys";
 import type { BotRunOutput, CompletionUsage, FlowConfig, HistoryMessage, ModelConfig, UsageLine } from "../types";
+import { registerSlotSkipper } from "./run-registry";
 
 export type StreamPhase =
   | "quick"
@@ -19,9 +23,13 @@ export type StreamPhase =
   | "bot3"
   | "merge12"
   | "merge123"
-  | "merge_chain";
+  | "merge_chain"
+  | "chain1"
+  | "chain2"
+  | "chain3";
 
 export type StreamEvent =
+  | { type: "run_id"; runId: string }
   | { type: "status"; message: string }
   | { type: "phase_start"; phase: StreamPhase; label: string }
   | { type: "token"; phase: StreamPhase; delta: string }
@@ -34,6 +42,8 @@ interface StreamInput {
   prompt: string;
   history: HistoryMessage[];
   forceOpenRouter?: boolean;
+  /** Identifies this run in the skip registry so individual slots can be skipped. */
+  runId?: string;
 }
 
 const STREAM_PHASE_TIMEOUT_MS = Number(process.env.STREAM_PHASE_TIMEOUT_MS ?? 45000);
@@ -159,13 +169,30 @@ export async function runSuperOrchestratorStream(
     const label = `Mind ${n} — ${modelLabel(model)}`;
     const sys = buildIndependentSystemPrompt(n, complexity);
     const botCtx = { systemPrompt: sys, history, userPrompt: prompt };
-    return tryRunPhase(
+
+    // Create a skip promise: if the user clicks "Skip Mind X", this resolves early.
+    let skipResolve!: () => void;
+    const skipPromise = new Promise<null>((resolve) => {
+      skipResolve = () => resolve(null);
+    });
+    if (input.runId) {
+      registerSlotSkipper(input.runId, slotId, skipResolve);
+    }
+
+    const phasePromise = tryRunPhase(
       slotId,
       label,
       streamModel(providerKeys, model, sys, history, prompt, orOpts),
       emit,
       botCtx
     ).then((got) => ({ slotId, model, got }));
+
+    const skipRacePromise = skipPromise.then(() => {
+      emit({ type: "status", message: `${label} skipped by user.` });
+      return { slotId, model, got: null as null };
+    });
+
+    return Promise.race([phasePromise, skipRacePromise]);
   });
 
   const results = await Promise.all(botPromises);
@@ -272,6 +299,70 @@ export async function runSuperOrchestratorStream(
   } else {
     finalAnswer = bot1Out ?? bot2Out ?? bot3Out ?? "";
   }
+
+  return { finalAnswer, botOutputs, usageLines };
+}
+
+export async function runChainOrchestratorStream(
+  input: StreamInput,
+  emit: (e: StreamEvent) => void
+): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
+  const { providerKeys, flow, models, prompt, history } = input;
+  const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const complexity = classifyQueryComplexity(prompt);
+  const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
+  if (ordered.length === 0) throw new Error("No bot slots enabled");
+
+  const chainPhases = ["chain1", "chain2", "chain3"] as const;
+  const botOutputs: BotRunOutput[] = [];
+  const usageLines: UsageLine[] = [];
+  let previousAnswer = "";
+
+  for (let i = 0; i < ordered.length; i++) {
+    const slotId = ordered[i];
+    const model = models[slotId];
+    const phase = chainPhases[i];
+    const stepNum = i + 1;
+
+    const isFirst = i === 0;
+    const sys = isFirst
+      ? buildChainFirstSystemPrompt(complexity)
+      : buildChainReviewerSystemPrompt(stepNum, complexity);
+    const userPrompt = isFirst
+      ? prompt
+      : buildChainReviewerUserPrompt(prompt, previousAnswer);
+    const label = isFirst
+      ? `Step ${stepNum} — ${modelLabel(model)}`
+      : `Step ${stepNum} — ${modelLabel(model)} (reviewing)`;
+
+    emit({ type: "status", message: `${label}…` });
+
+    const ctx = { systemPrompt: sys, history: isFirst ? history : [], userPrompt };
+    const got = await tryRunPhase(
+      phase,
+      label,
+      streamModel(providerKeys, model, sys, isFirst ? history : [], userPrompt, orOpts),
+      emit,
+      ctx
+    );
+
+    if (got) {
+      const trimmed = got.text.trim();
+      previousAnswer = trimmed;
+      botOutputs.push({ slotId, model, output: trimmed });
+      usageLines.push({
+        model,
+        promptTokens: got.usage.promptTokens,
+        completionTokens: got.usage.completionTokens,
+      });
+    } else if (i === 0) {
+      throw new Error("First model in chain failed. Cannot continue.");
+    }
+    // If a reviewer fails, we continue with the previous answer
+  }
+
+  const finalAnswer = previousAnswer;
+  if (!finalAnswer) throw new Error("All chain steps failed.");
 
   return { finalAnswer, botOutputs, usageLines };
 }

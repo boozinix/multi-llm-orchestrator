@@ -89,7 +89,7 @@ export const DEFAULT_FLOW: FlowConfig = {
 export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefined): FlowConfig {
   const d = DEFAULT_FLOW;
   if (!input) return { ...d };
-  const mode = input.mode === "quick" || input.mode === "super" ? input.mode : d.mode;
+  const mode = input.mode === "quick" || input.mode === "chain" || input.mode === "super" ? input.mode : d.mode;
   const primarySlot =
     input.primarySlot === "bot1" || input.primarySlot === "bot2" || input.primarySlot === "bot3"
       ? input.primarySlot

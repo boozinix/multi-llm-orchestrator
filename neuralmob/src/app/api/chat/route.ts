@@ -24,9 +24,10 @@ import { resolveChatProviderKeys } from "@/lib/server/chat-keys";
 import { FREE_MODEL_SET, calculateCostCents, estimateWorstCaseRunReserveCents } from "@/lib/pricing";
 import { modelsRequiredForFlow } from "@/lib/provider-keys";
 import type { UsageLine } from "@/lib/types";
-import { runQuickOrchestrator, runSuperOrchestrator } from "@/lib/server/orchestrator";
-import { runQuickOrchestratorStream, runSuperOrchestratorStream } from "@/lib/server/orchestrator-stream";
+import { runQuickOrchestrator, runSuperOrchestrator, runChainOrchestrator } from "@/lib/server/orchestrator";
+import { runQuickOrchestratorStream, runSuperOrchestratorStream, runChainOrchestratorStream } from "@/lib/server/orchestrator-stream";
 import type { StreamEvent } from "@/lib/server/orchestrator-stream";
+import { createRunEntry, removeRunEntry } from "@/lib/server/run-registry";
 import { isShowcaseMode } from "@/lib/server/showcase";
 import {
   findMissingProviderKeys,
@@ -235,7 +236,10 @@ export async function POST(req: NextRequest) {
     reservationId = reservation.id;
   }
 
-  const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter };
+  const runId = crypto.randomUUID();
+  createRunEntry(runId);
+
+  const orchestratorInput = { providerKeys, flow, models, prompt, history, forceOpenRouter, runId };
 
   if (useStream) {
     const encoder = new TextEncoder();
@@ -245,11 +249,15 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
         };
         try {
+          // Emit runId first so the client can reference it for skip requests.
+          send({ type: "run_id", runId });
           const emit = (e: StreamEvent) => send(e);
           const result =
             flow.mode === "quick"
               ? await runQuickOrchestratorStream(orchestratorInput, emit)
-              : await runSuperOrchestratorStream(orchestratorInput, emit);
+              : flow.mode === "chain"
+                ? await runChainOrchestratorStream(orchestratorInput, emit)
+                : await runSuperOrchestratorStream(orchestratorInput, emit);
 
           await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
           const allMessages = await getMessages(convId);
@@ -277,6 +285,7 @@ export async function POST(req: NextRequest) {
           }
           send({ type: "error", message: clientSafeModelError(err) });
         } finally {
+          removeRunEntry(runId);
           controller.close();
         }
       },
@@ -295,6 +304,8 @@ export async function POST(req: NextRequest) {
   try {
     if (flow.mode === "quick") {
       result = await runQuickOrchestrator(orchestratorInput);
+    } else if (flow.mode === "chain") {
+      result = await runChainOrchestrator(orchestratorInput);
     } else {
       result = await runSuperOrchestrator(orchestratorInput);
     }
@@ -302,8 +313,10 @@ export async function POST(req: NextRequest) {
     if (reservationId) {
       await releaseCreditReservation(userRow.id, reservationId);
     }
+    removeRunEntry(runId);
     return NextResponse.json({ error: clientSafeModelError(err) }, { status: 502 });
   }
+  removeRunEntry(runId);
 
   await addMessage(convId, "assistant", result.finalAnswer, result.botOutputs);
   const allMessages = await getMessages(convId);

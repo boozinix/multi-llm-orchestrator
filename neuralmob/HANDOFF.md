@@ -1,63 +1,90 @@
-# NeuralMob Handoff — 2026-04-15
+# NeuralMob Handoff — 2026-04-17
 
-## Commit
-`2adca7b` on `main`
+## Branch
+`feature/claude-design-ux` — based off `main`, not yet merged
+
+## Latest commit
+`f1c8779` (centering fix pending commit as `6`)
 
 ---
 
 ## What was completed this session
 
-### Backend
-- **Parallel streaming** (`orchestrator-stream.ts`): all bot slots now fire with `Promise.all` instead of sequential `for...await`. Time = max(T1,T2,T3) instead of T1+T2+T3.
-- **Adaptive prompts** (`prompts.ts`): `classifyQueryComplexity(query)` returns `'trivial' | 'simple' | 'complex'`. Trivial = ~15 token prompt, simple = ~25 token, complex = full original prompts. No extra LLM call needed.
+### Design handoff implementation
+Three pages from `UX/design_handoff_neural_mob/pages/` (home.html, chat.html, settings.html) were fully implemented into the Next.js app.
 
-### UI changes
-- Animated mesh background (`body::after`, `mesh-drift` 20s keyframe)
-- Desktop top bar removed (`lg:hidden`) — Guide moved into sidebar nav
-- Sidebar: original dark gradient (`rgba(11,19,38,0.94)` → `rgba(9,16,30,0.98)`) — do NOT change this
-- NAVIGATE / HISTORY labels: `text-xs font-mono tracking-[0.2em] uppercase text-[#d0bcff]` (pink)
-- Nav items (Chat, API Keys, Settings, Guide): `text-[11px]`
-- History items: `text-[11px]`
-- "Bot" renamed to "Mind" everywhere in display strings (internal types unchanged: `bot1Enabled`, `BotRunOutput` etc.)
-- Mind pills in composer: `text-[9px]`, emoji/suffix stripped with `.split("—")[0].trim()`
-- Hero welcome state: Fraunces serif heading, `h-full flex-col items-center justify-center pb-8`
-- FlowDiagram: node glow pulse (`<animate>`), output ring pulse, edge glow trail, `flow-edge-active` CSS class
-- CopyTextButton: SVG clipboard icon (no text)
+### globals.css
+- Added `:root` design token block: `--nm-navy`, `--nm-navy-2`, `--nm-ink`, `--nm-ink-dim`, `--nm-ink-faint`, `--nm-violet`, `--nm-violet-dim`, `--nm-teal`, `--nm-coral`, `--nm-line`, `--nm-line-2`
+- Updated `.bot-pill-1/2/3` border colors → teal(`#4edea3`) / coral(`#ff8a6b`) / violet(`#d0bcff`)
 
----
+### workspace/page.tsx
+- **Idle/home state**: greeting (JetBrains Mono, time-aware), Fraunces serif heading "What should *the mob* think about today?", mode toggle (Quick/Super) with 2px solid borders + violet fill on selected, 4 prompt suggestion cards with 2px borders
+- **Stream lanes**: bot blocks render as 3-column grid with color-coded borders (teal/coral/violet), Σ synthesis as full-width block
+- **SideNav**: NM logomark, Fraunces "Neural Mob" brand, dashed separator, history items with relative timestamps from `c.updatedAt`
+- **Port**: dev server now on `3040` (package.json updated)
 
-## Outstanding issue (what triggered end of session)
+### settings/page.tsx
+- Full board layout replacing old card/accordion design
+- Provider status table with inline accordion (click "Edit"/"Add" to expand key input)
+- 2-col grid: routing card (OpenRouter toggle) + billing card (balance + top-up)
+- Model assignments table: 4 rows (bot1/2/3/synth) with color-coded selects
+- Keys/BYOK receipt table with inline expand-on-click rows
+- Privacy footer with § icon
+- All existing state preserved: `draft`, `showSecrets`, `saved`, `usage`, `billing`, `openAccordion`, `topupLoading`, `freeModelIds`, `showcaseMode`, `models`, `modelGroups`
+- All handlers preserved: `handleSave`, `handleDiscard`, `handleSignOut`, `handleTopUp`
 
-**Sidebar nav item font size looks too large on device.**
-
-The code says `text-[11px]` for Chat/API Keys/Settings/Guide but the user's screenshots show them rendering large (~18-20px visually). Root cause is **not yet diagnosed**.
-
-Possible causes to investigate in the next session:
-1. `button { font: inherit; }` in `globals.css` — buttons inherit body font. Check if the `h1` headline font rule (`font-family: var(--font-family-headline)`) is somehow cascading into the sidebar since the `h1` is a sibling inside the same `<aside>`.
-2. The `font-semibold` / `font-medium` on the buttons combined with Manrope rendering larger than expected at 11px.
-3. The `py-2` padding making items feel visually large even if text is correct size.
-4. Screenshots may be from an older deployed Vercel build (not the current local code). Ask user to hard-refresh or redeploy.
-
-**Recommended first step in next session:** Ask user to open DevTools on the sidebar nav button and inspect the computed `font-size`. If it says 11px, the issue is visual perception (padding/icon size) not actual font size. If it says something larger, trace the cascade.
+### Landing page (page.tsx)
+- Orchestra landing: animated hero card, modes section, proof section, pricing section
+- `.landing-u` underline animation in globals.css
 
 ---
 
-## Files to know
+## Model color system
+| Slot | Model | Color | Hex |
+|------|-------|-------|-----|
+| bot1 | GPT | Teal | `#4edea3` |
+| bot2 | Claude | Coral | `#ff8a6b` |
+| bot3 | Gemini | Violet | `#d0bcff` |
+
+---
+
+## Key files
 
 | File | Role |
 |------|------|
+| `src/app/page.tsx` | Orchestra landing page |
 | `src/app/workspace/page.tsx` | Main workspace UI (~1700 lines) |
-| `src/app/workspace/FlowDiagram.tsx` | SVG flow diagram |
-| `src/app/globals.css` | All custom CSS classes + theme tokens |
+| `src/app/settings/page.tsx` | Settings board |
+| `src/app/globals.css` | Design tokens + custom CSS |
 | `src/lib/constants.ts` | Model list, `modelLabel()`, defaults |
-| `src/lib/prompts.ts` | All system prompts + complexity classifier |
-| `src/lib/server/orchestrator-stream.ts` | Streaming orchestration (parallel) |
-| `src/lib/server/orchestrator.ts` | Non-streaming orchestration |
+| `src/lib/prompts.ts` | System prompts + complexity classifier |
+| `src/lib/server/orchestrator-stream.ts` | Parallel streaming orchestration |
+| `src/store/chat-store.ts` | Zustand chat state (`useChatStore`) |
+| `src/store/settings-store.ts` | Zustand settings state (`useSettingsStore`) |
+| `GIT_TRACKER.csv` | Commit log |
+| `PROGRESS_TRACKER.md` | Task completion status |
 
 ---
 
 ## Do not change
-- Sidebar background gradient (user has asked 5+ times)
-- `font: inherit` on buttons (needed for Tailwind text utilities to work)
+- Sidebar background gradient — user has asked 5+ times
+- `font: inherit` on buttons — needed for Tailwind text utilities to work
 - NAVIGATE/HISTORY label color `#d0bcff`
-- Internal TypeScript type names (`bot1`, `BotRunOutput`, etc.)
+- Internal TypeScript type names (`bot1`, `BotRunOutput`, `slotId`, etc.)
+- `.env.local` — never commit
+
+---
+
+## Dev server
+```bash
+cd neuralmob
+npm run dev   # runs on http://localhost:3040
+```
+
+---
+
+## Next steps
+- [ ] Test workspace streaming with a real run (verify lane-style blocks render)
+- [ ] Test settings page save/discard/sign-out
+- [ ] Merge `feature/claude-design-ux` → `main` when approved
+- [ ] Deploy to Vercel (only when explicitly instructed)
