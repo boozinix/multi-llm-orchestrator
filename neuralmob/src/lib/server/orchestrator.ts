@@ -56,10 +56,12 @@ async function safeCallModel(
   history: HistoryMessage[],
   userPrompt: string
 ): Promise<{ text: string; usage: { promptTokens: number; completionTokens: number } } | null> {
+  const outputTokens = input.flow.outputMode === "advanced" ? 8192 : 2000;
   try {
     const { text, usage } = await withTimeout(
       callModel(input.providerKeys, model, systemPrompt, history, userPrompt, {
         forceOpenRouter: input.forceOpenRouter,
+        outputTokens,
       }),
       MODEL_CALL_TIMEOUT_MS,
       model
@@ -224,14 +226,14 @@ export async function runChainOrchestrator(input: OrchestratorInput): Promise<Or
       ? prompt
       : buildChainReviewerUserPrompt(prompt, previousAnswer);
 
-    const got = await safeCallModel(input, model, sys, isFirst ? history : [], userPrompt);
+    const got = await safeCallModel(input, model, sys, history, userPrompt);
 
     if (got) {
       previousAnswer = got.text;
       botOutputs.push({ slotId, model, output: got.text });
       usageLines.push({ model, promptTokens: got.usage.promptTokens, completionTokens: got.usage.completionTokens });
-    } else if (i === 0) {
-      throw new Error("First model in chain failed. Cannot continue.");
+    } else {
+      throw new Error(`Step ${i + 1} (${model}) failed or timed out. Chain stopped.`);
     }
   }
 

@@ -24,6 +24,19 @@ const LEGACY_MODEL_ALIASES: Record<string, string> = {
   "google/gemini-2.5-pro-preview": "google/gemini-2.5-pro",
   "google/gemini-2.5-flash-preview": "google/gemini-2.5-flash",
   "mistralai/mistral-small-3.1": "mistralai/mistral-small-3.1-24b-instruct",
+  // Upgraded to newer equivalents
+  "anthropic/claude-sonnet-4-5": "anthropic/claude-sonnet-4.6",
+  "anthropic/claude-opus-4": "anthropic/claude-opus-4.7",
+  "anthropic/claude-haiku-3-5": "anthropic/claude-haiku-4.5",
+  "openai/gpt-5": "openai/gpt-5.4",
+  "openai/gpt-5.1": "openai/gpt-5.4",
+  "openai/gpt-4.1": "openai/gpt-5.4-mini",
+  "x-ai/grok-3": "x-ai/grok-4.3",
+  "x-ai/grok-3-mini": "x-ai/grok-4.3",
+  "google/gemini-2.5-pro": "google/gemini-3.1-pro-preview",
+  "google/gemini-2.5-flash": "google/gemini-3.1-flash-lite-preview",
+  "deepseek/deepseek-chat": "deepseek/deepseek-v4-pro",
+  "deepseek/deepseek-reasoner": "deepseek/deepseek-v4-flash",
 };
 
 function canonicalModelId(value: string | undefined): string | undefined {
@@ -34,23 +47,22 @@ function canonicalModelId(value: string | undefined): string | undefined {
 /** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
 export const OPENROUTER_MODELS: ModelOption[] = [
   // Anthropic
-  { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5 — 🥇 Flagship" },
-  { value: "anthropic/claude-opus-4", label: "Claude 4 Opus — 🧠 Deep reasoning" },
-  { value: "anthropic/claude-haiku-3-5", label: "Claude 3.5 Haiku — ⚡ Fast/cheap merge" },
+  { value: "anthropic/claude-opus-4.7", label: "Claude Opus 4.7 — 🧠 Deep reasoning" },
+  { value: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6 — 🥇 Flagship" },
+  { value: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5 — ⚡ Fast/cheap" },
   // OpenAI
-  { value: "openai/gpt-5", label: "GPT-5 — 🥇 Flagship" },
-  { value: "openai/gpt-5.1", label: "GPT-5.1 — 🔁 Latest iteration" },
-  { value: "openai/gpt-4.1", label: "GPT-4.1 — Reliable fallback" },
+  { value: "openai/gpt-5.5", label: "GPT-5.5 — 🥇 Latest flagship" },
+  { value: "openai/gpt-5.4", label: "GPT-5.4 — ⚖️ Balanced" },
+  { value: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini — ⚡ Fast/cheap" },
   // xAI
-  { value: "x-ai/grok-3", label: "Grok 3 — 🥇 Flagship" },
-  { value: "x-ai/grok-3-mini", label: "Grok 3 Mini — ⚡ Fast" },
+  { value: "x-ai/grok-4.3", label: "Grok 4.3 — 🔍 Reasoning" },
+  { value: "x-ai/grok-4.20", label: "Grok 4.20 — 2M context" },
   // Google
   { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro — 🥇 Flagship" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro — Stable fallback" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash — ⚡ Fast/cheap merge" },
+  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite — ⚡ Fast/cheap" },
   // DeepSeek
-  { value: "deepseek/deepseek-chat", label: "DeepSeek V3 — 💰 Cheap + analytical" },
-  { value: "deepseek/deepseek-reasoner", label: "DeepSeek Reasoner — 🧮 Math/logic specialist" },
+  { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro — 💰 Analytical" },
+  { value: "deepseek/deepseek-v4-flash", label: "DeepSeek V4 Flash — 💰 Cheapest" },
   // Alibaba (Qwen)
   { value: "qwen/qwen3-235b-a22b", label: "Qwen 3 235B — 🌏 Chinese diversity" },
   { value: "qwen/qwen3-30b-a3b", label: "Qwen 3 30B — ⚡ Cheap Qwen fast" },
@@ -62,18 +74,18 @@ export const OPENROUTER_MODELS: ModelOption[] = [
 ];
 
 export const DEFAULT_MODELS: ModelConfig = {
-  bot1: "openai/gpt-5",
-  bot2: "anthropic/claude-sonnet-4-5",
+  bot1: "openai/gpt-5.4",
+  bot2: "anthropic/claude-sonnet-4.6",
   bot3: "google/gemini-3.1-pro-preview",
-  synth: "anthropic/claude-haiku-3-5",
+  synth: "anthropic/claude-haiku-4.5",
 };
 
 /** Defaults when free-tier model allowlist applies (must stay within FREE_MODELS). */
 export const DEFAULT_MODELS_FREE_TIER: ModelConfig = {
-  bot1: "deepseek/deepseek-chat",
-  bot2: "google/gemini-2.5-flash",
+  bot1: "deepseek/deepseek-v4-flash",
+  bot2: "google/gemini-3.1-flash-lite-preview",
   bot3: "mistralai/mistral-small-3.1-24b-instruct",
-  synth: "google/gemini-2.5-flash",
+  synth: "google/gemini-3.1-flash-lite-preview",
 };
 
 export const DEFAULT_FLOW: FlowConfig = {
@@ -84,6 +96,7 @@ export const DEFAULT_FLOW: FlowConfig = {
   bot3Enabled: true,
   merge12Enabled: true,
   merge123Enabled: true,
+  outputMode: "simple",
 };
 
 export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefined): FlowConfig {
@@ -105,6 +118,7 @@ export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefine
     (input.merge123Enabled !== undefined ? Boolean(input.merge123Enabled) : d.merge123Enabled) &&
     merge12Enabled &&
     bot3Enabled;
+  const outputMode = input.outputMode === "simple" || input.outputMode === "advanced" ? input.outputMode : d.outputMode;
 
   return {
     mode,
@@ -114,6 +128,7 @@ export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefine
     bot3Enabled,
     merge12Enabled,
     merge123Enabled,
+    outputMode,
   };
 }
 

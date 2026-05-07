@@ -119,22 +119,27 @@ type UsageViewState = {
   free_runs_remaining?: number;
 };
 
-function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary: string | null } {
+function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary: string | null; usdAmount?: string } {
   const mode = u.mode ?? "daily";
   if (mode === "free_credits") {
     const usd = ((u.available_credit_cents ?? u.credit_balance_cents ?? 0) / 100).toFixed(2);
     return {
       primary: `$${usd} free credit`,
       secondary: usd === "0.00" ? "Top up to continue" : "Low-cost models only",
+      usdAmount: usd,
     };
   }
   if (mode === "paid_credits") {
     const usd = ((u.available_credit_cents ?? u.credit_balance_cents ?? 0) / 100).toFixed(2);
     const reserved = ((u.reserved_credit_cents ?? 0) / 100).toFixed(2);
-    return { primary: `$${usd} credits`, secondary: reserved === "0.00" ? null : `$${reserved} reserved` };
+    return {
+      primary: `$${usd} credits`,
+      secondary: reserved === "0.00" ? null : `$${reserved} reserved`,
+      usdAmount: usd,
+    };
   }
   if (mode === "owner_unlimited") {
-    return { primary: "Unlimited", secondary: null };
+    return { primary: "Unlimited", secondary: null, usdAmount: "∞" };
   }
   return {
     primary: `${u.runs}/${u.runLimit} runs`,
@@ -143,12 +148,20 @@ function usagePrimarySecondary(u: UsageViewState): { primary: string; secondary:
 }
 
 function usageBarPercent(u: UsageViewState): number {
-  if (u.mode === "owner_unlimited") return 100;
+  if (u.mode === "owner_unlimited") return 0; // 0% used (infinite)
   if (u.mode === "free_credits" || u.mode === "paid_credits") {
-    return (u.available_credit_cents ?? u.credit_balance_cents ?? 0) > 0 ? 100 : 0;
+    // For credits, we don't have total_credit, so show 50% by default (unknown usage)
+    return 50;
   }
   if (u.runLimit > 0) return Math.min(100, (u.runs / u.runLimit) * 100);
   return 0;
+}
+
+/** Determine progress bar color based on usage percentage (0-100%) */
+function usageBarColor(percentUsed: number): string {
+  if (percentUsed < 30) return "linear-gradient(90deg, #4edea3 0%, #10b981 100%)"; // Green
+  if (percentUsed < 70) return "linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)"; // Yellow
+  return "linear-gradient(90deg, #ff6b6b 0%, #ef4444 100%)"; // Red
 }
 
 type StreamBlock = {
@@ -320,17 +333,22 @@ function SideNav({
         })}
       </div>
 
-      {/* Usage bar */}
+      {/* Billing card */}
       <div className="mt-3 space-y-2">
         <div className="app-panel rounded-xl p-3 shimmer-edge">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[0.68rem] font-mono tracking-[0.2em] uppercase text-[#b9c5df]/66">Usage</span>
-            <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>{usagePrimary}</span>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-[0.68rem] font-mono tracking-[0.2em] uppercase text-[#b9c5df]/66">Credits</span>
+            {usagePrimarySecondary(usage).usdAmount && (
+              <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: runPct < 30 ? "#4edea3" : runPct < 70 ? "#f59e0b" : "#ef4444" }}>$</span>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#e9e6f5", fontFamily: "JetBrains Mono, monospace" }}>{usagePrimarySecondary(usage).usdAmount}</span>
+              </div>
+            )}
           </div>
           <div className="h-1.5 w-full bg-[#2d3449] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all usage-bar-fill"
-              style={{ width: `${runPct}%`, background: "linear-gradient(90deg, #d0bcff 0%, #a078ff 56%, #7b5de9 100%)", boxShadow: "0 0 12px 2px rgba(160,120,255,0.3)" }}
+              style={{ width: `${Math.max(5, runPct)}%`, background: usageBarColor(runPct), boxShadow: `0 0 8px 1px ${runPct < 30 ? "rgba(78,222,163,0.25)" : runPct < 70 ? "rgba(245,158,11,0.25)" : "rgba(239,68,68,0.25)"}` }}
             />
           </div>
           {usageSecondary && (
@@ -405,9 +423,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             </div>
           )}
 
-          <div className="pt-2 border-t border-[#494454]/10 space-y-2">
+          <div className="mt-1 rounded-xl p-3 sm:p-4 space-y-2" style={{ background: "rgba(208,188,255,0.06)", border: "1px solid rgba(208,188,255,0.18)" }}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[15px] sm:text-base font-medium text-[#d0bcff]">Final Answer</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>Final Answer</p>
               <CopyTextButton text={msg.content} label="Copy final" />
             </div>
             <p className="text-[#dae2fd] leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">{msg.content}</p>
@@ -765,6 +783,7 @@ export default function WorkspacePage() {
   const lastConversationIdRef = useRef<string | null>(null);
   const hasPromptedTourRef = useRef(false);
   const userScrolledUpRef = useRef(false);
+  const isProgrammaticScroll = useRef(false);
 
   const loadUsage = useCallback(async () => {
     try {
@@ -852,6 +871,7 @@ export default function WorkspacePage() {
     const root = messagesScrollRef.current;
     if (!root) return;
     const onScroll = () => {
+      if (isProgrammaticScroll.current) return; // ignore programmatic scrolls
       const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
       userScrolledUpRef.current = fromBottom > 140;
     };
@@ -932,7 +952,7 @@ export default function WorkspacePage() {
   );
 
   const messageListBottomInset = useMemo(() => {
-    const fixedNavInset = isCompactViewport ? 76 : 24;
+    const fixedNavInset = isCompactViewport ? 96 : 40;
     return `calc(${composerHeight + fixedNavInset}px + env(safe-area-inset-bottom))`;
   }, [composerHeight, isCompactViewport]);
 
@@ -983,7 +1003,12 @@ export default function WorkspacePage() {
     lastConversationIdRef.current = activeConversationId;
 
     const scrollToEnd = (behavior: ScrollBehavior) => {
-      messagesEndRef.current?.scrollIntoView({ block: "end", behavior });
+      const root = messagesScrollRef.current;
+      if (!root) return;
+      isProgrammaticScroll.current = true;
+      root.scrollTo({ top: root.scrollHeight, behavior });
+      // Reset flag after the scroll event has fired
+      requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
     };
 
     if (convChanged) {
@@ -997,12 +1022,10 @@ export default function WorkspacePage() {
     const root = messagesScrollRef.current;
     if (!root) return;
 
-    // During active streaming, always follow the bottom — DOM growth doesn't fire a
-    // scroll event so fromBottom silently grows beyond the threshold without the user
-    // having actually scrolled up.
+    // During active streaming, follow the bottom only if the user hasn't scrolled up.
     const activeStreaming = Boolean(isLoading && (streamingPreview || streamingStatus));
     if (activeStreaming) {
-      scrollToEnd("auto");
+      if (!userScrolledUpRef.current) scrollToEnd("auto");
       return;
     }
 
@@ -1177,6 +1200,8 @@ export default function WorkspacePage() {
       };
       // Object holder: TS does not narrow `let` assigned inside nested functions.
       const streamResult: { payload: DonePayload | null } = { payload: null };
+      // Track stream-level errors without throwing (so partial content is preserved)
+      let streamError: string | null = null;
 
       const BOT_PHASES = new Set(["bot1", "bot2", "bot3"]);
 
@@ -1254,7 +1279,8 @@ export default function WorkspacePage() {
           });
         }
         if (typ === "error") {
-          throw new Error(String(evt.message ?? "Stream error"));
+          streamError = String(evt.message ?? "Stream error");
+          return; // don't throw — preserves partial content already in streamBlocks
         }
         if (typ === "done") {
           const cid = evt.conversationId;
@@ -1280,6 +1306,14 @@ export default function WorkspacePage() {
       }
       if (buffer.trim()) {
         for (const block of buffer.split("\n\n")) processSseBlock(block);
+      }
+
+      if (streamError) {
+        setError(streamError);
+        setStreamingPreview("");
+        setStreamingStatus("");
+        // Keep streamBlocks so any partial content (e.g. Claude's output) stays visible
+        return;
       }
 
       if (!streamResult.payload) {
@@ -1643,26 +1677,77 @@ export default function WorkspacePage() {
                         return (
                           <div className="space-y-2.5">
                             {/* Chain mode: sequential full-width cards */}
-                            {chainBlocks.length > 0 && chainBlocks.map((block) => {
-                              const color = phaseColor(block.phase);
-                              return (
-                                <div key={block.phase} style={{ border: `1px solid ${color}40`, borderRadius: 12, background: "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: `0 0 20px -6px ${color}30` }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#e9e6f5" }}>
-                                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
-                                      <span style={{ fontWeight: 500 }}>{block.label}</span>
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                      {block.text && <CopyTextButton text={block.text} label="Copy" />}
-                                      <span style={{ color }}>● live</span>
-                                    </div>
-                                  </div>
-                                  <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.6, color: "#dae2fd", maxHeight: 300, overflow: "hidden" }}>
-                                    {block.text || <span style={{ color: "#6b6889" }}>Waiting…</span>}
-                                  </div>
-                                </div>
+                            {chainBlocks.length > 0 && (() => {
+                              // Determine how many chain steps are expected based on enabled bots
+                              const expectedChainPhases = (["chain1","chain2","chain3"] as const).filter(
+                                (_, i) => flow[`bot${i+1}Enabled` as "bot1Enabled"|"bot2Enabled"|"bot3Enabled"]
                               );
-                            })}
+                              return (
+                                <>
+                                  {/* Step progress bar */}
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 4px 2px", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                    {expectedChainPhases.flatMap((phase, idx) => {
+                                      const ws = slotWaiting[phase];
+                                      const isDone = ws === "done";
+                                      const isActive = !isDone && chainBlocks.some((b) => b.phase === phase);
+                                      const c = phaseColor(phase);
+                                      const connector = idx > 0 ? (
+                                        <span key={`sep-${phase}`} style={{ flex: 1, height: 1, background: isDone ? "rgba(208,188,255,.25)" : "rgba(208,188,255,.08)", borderRadius: 1 }} />
+                                      ) : null;
+                                      const pill = (
+                                        <span key={phase} style={{ display: "flex", alignItems: "center", gap: 4, color: isDone ? c : isActive ? c : "#4a4d63" }}>
+                                          {isDone ? (
+                                            <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1px solid ${c}`, display: "grid", placeItems: "center", fontSize: 9, color: c }}>✓</span>
+                                          ) : isActive ? (
+                                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: c, boxShadow: `0 0 6px ${c}`, display: "inline-block", animation: "pulse 1.2s ease-in-out infinite" }} />
+                                          ) : (
+                                            <span style={{ width: 6, height: 6, borderRadius: "50%", border: "1px solid #4a4d63", display: "inline-block" }} />
+                                          )}
+                                          <span>Step {idx + 1}</span>
+                                        </span>
+                                      );
+                                      return connector ? [connector, pill] : [pill];
+                                    })}
+                                  </div>
+                                  {/* Chain step cards */}
+                                  {chainBlocks.map((block) => {
+                                    const color = phaseColor(block.phase);
+                                    const ws = slotWaiting[block.phase];
+                                    const isDone = ws === "done";
+                                    const isStreaming = !isDone;
+                                    const borderColor = isDone ? `${color}28` : `${color}55`;
+                                    const headerBg = isDone ? "rgba(255,255,255,.008)" : "rgba(255,255,255,.015)";
+                                    return (
+                                      <div key={block.phase} style={{ border: `1px solid ${borderColor}`, borderRadius: 12, background: headerBg, boxShadow: isDone ? "none" : `0 0 20px -6px ${color}25` }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 7, color: isDone ? "#8b90a8" : "#e9e6f5" }}>
+                                            {isDone ? (
+                                              <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1px solid ${color}80`, display: "grid", placeItems: "center", fontSize: 9, color: `${color}99`, flexShrink: 0 }}>✓</span>
+                                            ) : (
+                                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, display: "inline-block", flexShrink: 0, animation: isStreaming ? "pulse 1.2s ease-in-out infinite" : undefined }} />
+                                            )}
+                                            <span style={{ fontWeight: 500, color: isDone ? "#8b90a8" : "#e9e6f5" }}>{block.label}</span>
+                                          </div>
+                                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            {block.text && <CopyTextButton text={block.text} label="Copy" />}
+                                            {isDone ? (
+                                              <span style={{ color: `${color}80` }}>✓ done</span>
+                                            ) : isStreaming ? (
+                                              <span style={{ color, animation: "pulse 1.5s ease-in-out infinite" }}>● streaming</span>
+                                            ) : (
+                                              <span style={{ color: "#4a4d63" }}>○ waiting</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.65, color: isDone ? "#9aa0bb" : "#dae2fd", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                          {block.text || <span style={{ color: "#6b6889", fontStyle: "italic" }}>Waiting for previous step…</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </>
+                              );
+                            })()}
 
                             {botBlocks.length > 0 && (
                               <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(botBlocks.length, 3)}, 1fr)`, gap: 8 }}>
@@ -1678,7 +1763,7 @@ export default function WorkspacePage() {
                                   const headerStatusColor = isSkipped ? "#6b7280" : isTimedOut ? "#f59e0b" : color;
                                   const headerStatusText = isSkipped ? "○ skipped" : isTimedOut ? "⏱ still waiting" : "● live";
                                   return (
-                                    <div key={block.phase} style={{ border: `1px solid ${isSkipped ? "rgba(255,255,255,.06)" : isTimedOut ? "rgba(245,158,11,.35)" : `${color}40`}`, borderRadius: 12, background: isTimedOut ? "rgba(245,158,11,.04)" : "rgba(255,255,255,.012)", overflow: "hidden", boxShadow: isSkipped || isTimedOut ? "none" : `0 0 20px -6px ${color}30` }}>
+                                    <div key={block.phase} style={{ border: `1px solid ${isSkipped ? "rgba(255,255,255,.06)" : isTimedOut ? "rgba(245,158,11,.35)" : `${color}40`}`, borderRadius: 12, background: isTimedOut ? "rgba(245,158,11,.04)" : "rgba(255,255,255,.012)", overflow: "clip", boxShadow: isSkipped || isTimedOut ? "none" : `0 0 20px -6px ${color}30` }}>
                                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(208,188,255,.06)", fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 7, color: isSkipped ? "#6b7280" : "#e9e6f5" }}>
                                           <span style={{ width: 6, height: 6, borderRadius: "50%", background: isSkipped ? "#6b7280" : color, boxShadow: isSkipped ? "none" : `0 0 5px ${color}`, display: "inline-block", flexShrink: 0 }} />
@@ -1686,7 +1771,7 @@ export default function WorkspacePage() {
                                         </div>
                                         <span style={{ color: headerStatusColor }}>{headerStatusText}</span>
                                       </div>
-                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: isTimedOut ? "none" : 200, overflow: "hidden" }}>
+                                      <div style={{ padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55, color: "#a7a2c2", minHeight: 56, maxHeight: isTimedOut ? "none" : 200, overflowY: "auto" }}>
                                         {isSkipped ? (
                                           <span style={{ color: "#6b7280", fontStyle: "italic" }}>Skipped by you.</span>
                                         ) : isTimedOut ? (
@@ -1763,7 +1848,7 @@ export default function WorkspacePage() {
             <div
               ref={composerRef}
               className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-6"
-              style={{ background: "linear-gradient(to top, #0b1326 70%, transparent)" }}
+              style={{ background: "linear-gradient(to top, #0b1326 88%, transparent)" }}
             >
               <div className="max-w-5xl mx-auto space-y-2">
                 {/* Mind pills — compact model status */}
@@ -1771,18 +1856,20 @@ export default function WorkspacePage() {
                   {flow.mode === "super" || flow.mode === "chain" ? (
                     BOT_SLOTS.map((slot, i) => {
                       const enabled = flow[`${slot}Enabled`];
-                      const pillColors = ["border-l-[rgba(139,92,246,0.5)]", "border-l-[rgba(6,182,212,0.5)]", "border-l-[rgba(34,197,94,0.5)]"];
+                      const dotColors = ["#4edea3", "#ff8a6b", "#d0bcff"];
                       const stepLabel = flow.mode === "chain" ? `Step ${i + 1}` : `Mind ${i + 1}`;
+                      const dotColor = dotColors[i];
                       return (
                         <button
                           key={slot}
                           type="button"
                           onClick={() => setFlow({ [`${slot}Enabled`]: !enabled })}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium border-l-2 transition-all active:scale-[0.97] ${pillColors[i]} ${
-                            enabled ? "app-panel-soft text-[#cbc3d7]" : "bg-[#131b2e]/50 text-[#6b7280] border-l-[#494454]/40"
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all active:scale-[0.97] ${
+                            enabled ? "app-panel-soft text-[#cbc3d7]" : "bg-[#131b2e]/50 text-[#6b7280]"
                           }`}
+                          style={enabled ? { border: `1px solid ${dotColor}40` } : { border: "1px solid rgba(73,68,84,0.4)" }}
                         >
-                          <span className={`w-1 h-1 rounded-full ${enabled ? "bg-[#4edea3]" : "bg-[#494454]"}`} />
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: enabled ? dotColor : "#494454", boxShadow: enabled ? `0 0 4px ${dotColor}` : "none" }} />
                           {stepLabel}: {modelLabel(models[slot]).split("—")[0].trim()}
                         </button>
                       );
@@ -1848,7 +1935,24 @@ export default function WorkspacePage() {
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                         {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : `Quick mode`}
                       </span>
-                      <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center rounded-full border border-white/10 overflow-hidden" style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                          {(["simple", "advanced"] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setFlow({ outputMode: m })}
+                              className="px-2.5 py-0.5 text-[10px] transition-colors"
+                              style={flow.outputMode === m
+                                ? { background: "rgba(208,188,255,0.18)", color: "#d0bcff" }
+                                : { color: "#7d89a7" }}
+                            >
+                              {m === "simple" ? "Simple" : "Advanced"}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
+                      </div>
                     </div>
                   </div>
                 </form>

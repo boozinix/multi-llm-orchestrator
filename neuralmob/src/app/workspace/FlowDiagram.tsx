@@ -4,9 +4,11 @@ import type { FlowConfig, ModelConfig } from "@/lib/types";
 import { modelLabel } from "@/lib/constants";
 
 const W = 264;
-const NW = 78; // node width
-const NH = 36; // node height
-const NR = 7;  // border radius
+const NW = 78;   // node width (super/quick)
+const NH = 36;   // node height (super/quick)
+const NR = 9;    // border radius
+const CNW = 192; // chain node width — full-width since single column
+const CNH = 44;  // chain node height — slightly taller for readability
 
 // Fixed X centres for the 3 bot columns
 const BX = [40, 132, 224];
@@ -17,6 +19,8 @@ interface N {
   id: string;
   cx: number;
   cy: number;
+  w?: number; // override node width (defaults to NW)
+  h?: number; // override node height (defaults to NH)
   label: string;
   sub: string;
   type: NType;
@@ -29,9 +33,9 @@ interface E {
   dashed?: boolean;
 }
 
-function cubicPath(x1: number, y1: number, x2: number, y2: number): string {
-  const sy = y1 + NH / 2 + 2;
-  const ey = y2 - NH / 2 - 6; // leave space for arrowhead
+function cubicPath(x1: number, y1: number, x2: number, y2: number, h1 = NH, h2 = NH): string {
+  const sy = y1 + h1 / 2 + 2;
+  const ey = y2 - h2 / 2 - 6; // leave space for arrowhead
   const my = (sy + ey) / 2;
   return `M ${x1} ${sy} C ${x1} ${my}, ${x2} ${my}, ${x2} ${ey}`;
 }
@@ -53,27 +57,27 @@ function buildLayout(flow: FlowConfig, models: ModelConfig): { nodes: N[]; edges
   if (flow.mode === "chain") {
     const slots = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
     const cx = W / 2;
-    let cy = 26;
-    const step = 80;
+    let cy = CNH / 2 + 10;
+    const step = CNH + 36;
 
     slots.forEach((slot, i) => {
       const m = models[slot];
-      const sub = i === 0 ? "first pass" : "reviewing";
-      nodes.push({ id: slot, cx, cy, label: modelLabel(m), sub: `step ${i + 1} · ${sub}`, type: "bot", active: true });
+      const sub = i === 0 ? `step ${i + 1} · first pass` : `step ${i + 1} · reviewing`;
+      nodes.push({ id: slot, cx, cy, w: CNW, h: CNH, label: modelLabel(m), sub, type: "bot", active: true });
       cy += step;
     });
 
-    nodes.push({ id: "out", cx, cy, label: "Final Output", sub: "refined", type: "out", active: slots.length > 0 });
+    nodes.push({ id: "out", cx, cy, w: CNW, h: CNH, label: "Final Output", sub: "refined", type: "out", active: slots.length > 0 });
 
     for (let i = 0; i < slots.length; i++) {
       const to = i < slots.length - 1 ? slots[i + 1] : "out";
       edges.push({ from: slots[i], to });
     }
     if (slots.length === 0) {
-      nodes.push({ id: "out", cx, cy: 26, label: "Output", sub: "no minds", type: "out", active: false });
+      nodes.push({ id: "out", cx, cy: CNH / 2 + 10, w: CNW, h: CNH, label: "Output", sub: "no minds", type: "out", active: false });
     }
 
-    return { nodes, edges, svgH: cy + 38 };
+    return { nodes, edges, svgH: cy + CNH / 2 + 14 };
   }
 
   /* ── SUPER MODE ── */
@@ -147,6 +151,8 @@ function buildLayout(flow: FlowConfig, models: ModelConfig): { nodes: N[]; edges
 }
 
 function NodeRect({ n }: { n: N }) {
+  const nw = n.w ?? NW;
+  const nh = n.h ?? NH;
   const isOut = n.type === "out";
   const isMerge = n.type === "merge";
 
@@ -175,8 +181,8 @@ function NodeRect({ n }: { n: N }) {
         <ellipse
           cx={n.cx}
           cy={n.cy}
-          rx={NW / 2 + 6}
-          ry={NH / 2 + 4}
+          rx={nw / 2 + 6}
+          ry={nh / 2 + 4}
           fill={glowColor}
           opacity={0.08}
           style={{ filter: "blur(8px)" }}
@@ -190,10 +196,10 @@ function NodeRect({ n }: { n: N }) {
         </ellipse>
       )}
       <rect
-        x={n.cx - NW / 2}
-        y={n.cy - NH / 2}
-        width={NW}
-        height={NH}
+        x={n.cx - nw / 2}
+        y={n.cy - nh / 2}
+        width={nw}
+        height={nh}
         rx={NR}
         fill={fill}
         stroke={stroke}
@@ -202,10 +208,10 @@ function NodeRect({ n }: { n: N }) {
       {/* Glow ring for output */}
       {isOut && n.active && (
         <rect
-          x={n.cx - NW / 2}
-          y={n.cy - NH / 2}
-          width={NW}
-          height={NH}
+          x={n.cx - nw / 2}
+          y={n.cy - nh / 2}
+          width={nw}
+          height={nh}
           rx={NR}
           fill="none"
           stroke="#d0bcff"
@@ -222,23 +228,25 @@ function NodeRect({ n }: { n: N }) {
       )}
       <text
         x={n.cx}
-        y={n.cy - (4)}
+        y={n.cy - 5}
         textAnchor="middle"
         dominantBaseline="middle"
         fill={labelColor}
-        fontSize={9}
+        fontSize={nw > 100 ? 10 : 9}
         fontWeight={600}
         fontFamily="Inter, sans-serif"
       >
-        {n.label.length > 11 ? n.label.slice(0, 11) + "…" : n.label}
+        {nw > 100
+          ? (n.label.length > 24 ? n.label.slice(0, 24) + "…" : n.label)
+          : (n.label.length > 11 ? n.label.slice(0, 11) + "…" : n.label)}
       </text>
       <text
         x={n.cx}
-        y={n.cy + 8}
+        y={n.cy + 9}
         textAnchor="middle"
         dominantBaseline="middle"
         fill={subColor}
-        fontSize={7}
+        fontSize={nw > 100 ? 8 : 7}
         fontWeight={500}
         fontFamily="JetBrains Mono, monospace"
         letterSpacing={0.5}
@@ -280,7 +288,7 @@ export function FlowDiagram({ flow, models }: { flow: FlowConfig; models: ModelC
         const dst = nodeMap[e.to];
         if (!src || !dst) return null;
         const active = src.active && dst.active && !e.dashed;
-        const d = cubicPath(src.cx, src.cy, dst.cx, dst.cy);
+        const d = cubicPath(src.cx, src.cy, dst.cx, dst.cy, src.h ?? NH, dst.h ?? NH);
         return (
           <g key={i}>
             {/* Glow trail for active edges */}

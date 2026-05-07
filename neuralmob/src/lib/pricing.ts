@@ -11,35 +11,39 @@ import type { FlowConfig, HistoryMessage, ModelConfig } from "./types";
 
 /** USD per 1M tokens (input / output). Fallback when API does not return cost. */
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "anthropic/claude-sonnet-4-5": { input: 3.0, output: 15.0 },
-  "anthropic/claude-opus-4": { input: 15.0, output: 75.0 },
-  "anthropic/claude-haiku-3-5": { input: 0.8, output: 4.0 },
-  "openai/gpt-5": { input: 2.5, output: 10.0 },
-  "openai/gpt-5.1": { input: 2.5, output: 10.0 },
-  "openai/gpt-4.1": { input: 2.0, output: 8.0 },
+  // Anthropic
+  "anthropic/claude-opus-4.7": { input: 5.0, output: 25.0 },
+  "anthropic/claude-sonnet-4.6": { input: 3.0, output: 15.0 },
+  "anthropic/claude-haiku-4.5": { input: 1.0, output: 5.0 },
+  // OpenAI
+  "openai/gpt-5.5": { input: 5.0, output: 30.0 },
+  "openai/gpt-5.4": { input: 2.5, output: 15.0 },
+  "openai/gpt-5.4-mini": { input: 0.75, output: 4.5 },
+  // xAI
+  "x-ai/grok-4.3": { input: 1.25, output: 2.5 },
+  "x-ai/grok-4.20": { input: 1.25, output: 2.5 },
+  // Google
   "google/gemini-3.1-pro-preview": { input: 2.0, output: 12.0 },
-  "google/gemini-2.5-pro": { input: 1.25, output: 10.0 },
-  "google/gemini-2.5-pro-preview": { input: 1.25, output: 10.0 },
-  "google/gemini-2.5-flash": { input: 0.3, output: 2.5 },
-  "google/gemini-2.5-flash-preview": { input: 0.3, output: 2.5 },
-  "deepseek/deepseek-chat": { input: 0.27, output: 1.1 },
-  "deepseek/deepseek-reasoner": { input: 0.55, output: 2.19 },
+  "google/gemini-3.1-flash-lite-preview": { input: 0.25, output: 1.5 },
+  // DeepSeek
+  "deepseek/deepseek-v4-pro": { input: 0.435, output: 0.87 },
+  "deepseek/deepseek-v4-flash": { input: 0.14, output: 0.28 },
+  // Alibaba (Qwen)
   "qwen/qwen3-235b-a22b": { input: 0.38, output: 1.55 },
   "qwen/qwen3-30b-a3b": { input: 0.1, output: 0.3 },
+  // Moonshot
   "moonshotai/kimi-k2": { input: 0.6, output: 2.5 },
+  // Mistral
   "mistralai/mistral-large-3": { input: 2.0, output: 6.0 },
   "mistralai/mistral-small-3.1": { input: 0.03, output: 0.11 },
   "mistralai/mistral-small-3.1-24b-instruct": { input: 0.03, output: 0.11 },
-  "x-ai/grok-3": { input: 3.0, output: 15.0 },
-  "x-ai/grok-3-mini": { input: 0.3, output: 0.5 },
 };
 
 /** Free tier may only use these OpenRouter model IDs. */
 export const FREE_MODELS = [
-  "deepseek/deepseek-chat",
-  "x-ai/grok-3-mini",
-  "google/gemini-2.5-flash",
-  "openai/gpt-4.1",
+  "deepseek/deepseek-v4-flash",
+  "google/gemini-3.1-flash-lite-preview",
+  "openai/gpt-5.4-mini",
   "mistralai/mistral-small-3.1-24b-instruct",
 ] as const;
 

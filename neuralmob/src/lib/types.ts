@@ -15,6 +15,7 @@ export interface FlowConfig {
   bot3Enabled: boolean;
   merge12Enabled: boolean;
   merge123Enabled: boolean;
+  outputMode: "simple" | "advanced";
 }
 
 export interface ChatMessage {

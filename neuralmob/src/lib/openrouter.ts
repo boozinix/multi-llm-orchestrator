@@ -54,6 +54,10 @@ function finalizeUsage(
 
 // ── Anthropic model ID mapping (OpenRouter slug → direct Anthropic API ID) ──
 const ANTHROPIC_IDS: Record<string, string> = {
+  "claude-opus-4.7": "claude-opus-4-7-20260416",
+  "claude-sonnet-4.6": "claude-sonnet-4-6-20260217",
+  "claude-haiku-4.5": "claude-haiku-4-5-20251001",
+  // Legacy
   "claude-opus-4-5": "claude-opus-4-5",
   "claude-opus-4": "claude-opus-4-20250514",
   "claude-sonnet-4-5": "claude-sonnet-4-5",
@@ -72,7 +76,8 @@ const DEEPSEEK_IDS: Record<string, string> = {
   "deepseek-r1": "deepseek-reasoner",
 };
 
-const OUTPUT_CAP = 2048;
+const SIMPLE_OUTPUT_CAP = 2000;
+const ADVANCED_OUTPUT_CAP = 8192;
 
 /** Newer OpenAI chat models reject `max_tokens`; they require `max_completion_tokens`. */
 function openAiSlugUsesMaxCompletionTokens(slug: string): boolean {
@@ -96,13 +101,14 @@ function parseOpenRouterModel(openRouterModel: string): { provider: string; slug
 /** Token limit fields for chat.completions.create (provider-specific). */
 function outputLimitParams(
   openRouterModel: string,
-  forceMaxCompletionTokens?: boolean
+  forceMaxCompletionTokens?: boolean,
+  outputCap: number = SIMPLE_OUTPUT_CAP
 ): { max_tokens: number } | { max_completion_tokens: number } {
   const { provider, slug } = parseOpenRouterModel(openRouterModel);
   if (provider === "openai" && (forceMaxCompletionTokens || openAiSlugUsesMaxCompletionTokens(slug))) {
-    return { max_completion_tokens: OUTPUT_CAP };
+    return { max_completion_tokens: outputCap };
   }
-  return { max_tokens: OUTPUT_CAP };
+  return { max_tokens: outputCap };
 }
 
 function errorMessage(err: unknown): string {
@@ -139,6 +145,8 @@ function clientOpenRouter(openRouterModel: string, keys: UserProviderKeys): {
 export type ModelRoutingOptions = {
   /** When true (or in production), every model id is called via OpenRouter. */
   forceOpenRouter?: boolean;
+  /** Max output tokens for this call. Defaults to SIMPLE_OUTPUT_CAP (2000). */
+  outputTokens?: number;
 };
 
 // ── Build an OpenAI-SDK client for any provider ──────────────────────────────
@@ -168,6 +176,8 @@ function clientForModel(
     }
 
     case "anthropic": {
+      const anthropicId = ANTHROPIC_IDS[slug];
+      if (!anthropicId) return clientOpenRouter(openRouterModel, keys);
       const key = resolvedKeyForProvider(keys, "anthropic");
       return {
         client: new OpenAI({
@@ -177,11 +187,14 @@ function clientForModel(
             "anthropic-version": "2023-06-01",
           },
         }),
-        modelId: ANTHROPIC_IDS[slug] ?? slug,
+        modelId: anthropicId,
       };
     }
 
     case "x-ai": {
+      // New Grok models (4.x) may not exist on the direct xAI API yet — fall back to OpenRouter
+      const XAI_DIRECT_IDS = new Set(["grok-3", "grok-3-mini", "grok-2", "grok-2-mini", "grok-beta"]);
+      if (!XAI_DIRECT_IDS.has(slug)) return clientOpenRouter(openRouterModel, keys);
       const key = resolvedKeyForProvider(keys, "xai");
       return {
         client: new OpenAI({
@@ -193,13 +206,15 @@ function clientForModel(
     }
 
     case "deepseek": {
+      const directId = DEEPSEEK_IDS[slug];
+      if (!directId) return clientOpenRouter(openRouterModel, keys);
       const key = resolvedKeyForProvider(keys, "deepseek");
       return {
         client: new OpenAI({
           baseURL: "https://api.deepseek.com/v1",
           apiKey: key,
         }),
-        modelId: DEEPSEEK_IDS[slug] ?? slug,
+        modelId: directId,
       };
     }
 
@@ -276,11 +291,13 @@ export async function callModel(
   ];
   const { client, modelId } = clientForModel(openRouterModel, keys, routing);
 
+  const outputCap = routing.outputTokens ?? SIMPLE_OUTPUT_CAP;
+
   async function createOnce(forceCompletion: boolean) {
     return client.chat.completions.create({
       model: modelId,
       messages,
-      ...outputLimitParams(openRouterModel, forceCompletion),
+      ...outputLimitParams(openRouterModel, forceCompletion, outputCap),
     });
   }
 
@@ -311,7 +328,7 @@ export async function callModel(
       const response = await fallback.chat.completions.create({
         model: openRouterModel,
         messages,
-        ...outputLimitParams(openRouterModel),
+        ...outputLimitParams(openRouterModel, false, outputCap),
       });
       const text = response.choices[0]?.message?.content?.trim() ?? "";
       const usage = finalizeUsage(text, usageFromApiResponse(response), systemPrompt, history, userPrompt);
@@ -348,6 +365,8 @@ export async function* streamModel(
   ];
   const { client, modelId } = clientForModel(openRouterModel, keys, routing);
 
+  const outputCap = routing.outputTokens ?? SIMPLE_OUTPUT_CAP;
+
   async function* streamChat(
     c: OpenAI,
     apiModel: string,
@@ -358,7 +377,7 @@ export async function* streamModel(
       model: apiModel,
       messages,
       stream: true as const,
-      ...outputLimitParams(fullModelIdForLimits, forceCompletion),
+      ...outputLimitParams(fullModelIdForLimits, forceCompletion, outputCap),
     };
     let stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
     try {

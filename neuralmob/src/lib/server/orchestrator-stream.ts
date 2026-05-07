@@ -46,7 +46,9 @@ interface StreamInput {
   runId?: string;
 }
 
-const STREAM_PHASE_TIMEOUT_MS = Number(process.env.STREAM_PHASE_TIMEOUT_MS ?? 45000);
+const STREAM_PHASE_TIMEOUT_MS = Number(process.env.STREAM_PHASE_TIMEOUT_MS ?? 120000);
+// Chain steps (especially reasoning models) need longer — default 3 minutes
+const CHAIN_PHASE_TIMEOUT_MS = Number(process.env.CHAIN_PHASE_TIMEOUT_MS ?? 180000);
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   if (!Number.isFinite(ms) || ms <= 0) return promise;
@@ -65,6 +67,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
+/** Wraps a generator so it stops yielding once `aborted.value` is true. */
+async function* guardedGen(
+  source: AsyncGenerator<string, CompletionUsage | null, unknown>,
+  aborted: { value: boolean }
+): AsyncGenerator<string, CompletionUsage | null, unknown> {
+  for await (const token of source) {
+    if (aborted.value) return null;
+    yield token;
+  }
+  return null;
+}
+
 function finalizeStreamUsage(
   raw: CompletionUsage | null,
   systemPrompt: string,
@@ -81,13 +95,29 @@ async function tryRunPhase(
   label: string,
   gen: AsyncGenerator<string, CompletionUsage | null, unknown>,
   emit: (e: StreamEvent) => void,
-  ctx: { systemPrompt: string; history: HistoryMessage[]; userPrompt: string }
+  ctx: { systemPrompt: string; history: HistoryMessage[]; userPrompt: string },
+  timeoutMs: number = STREAM_PHASE_TIMEOUT_MS
 ): Promise<{ text: string; usage: CompletionUsage } | null> {
+  const aborted = { value: false };
+  // Capture tokens as they stream so we can salvage partial output on timeout
+  let partialText = "";
+  const capturingEmit = (e: StreamEvent) => {
+    if (e.type === "token" && e.phase === phase) partialText += e.delta;
+    emit(e);
+  };
+  const guarded = guardedGen(gen, aborted);
   try {
-    return await withTimeout(runPhase(phase, label, gen, emit, ctx), STREAM_PHASE_TIMEOUT_MS, label);
+    return await withTimeout(runPhase(phase, label, guarded, capturingEmit, ctx), timeoutMs, label);
   } catch (err) {
+    aborted.value = true; // stop the ghost stream from emitting more tokens
     const msg = err instanceof Error ? err.message : "model call failed";
-    emit({ type: "status", message: `${label} failed, skipping. (${msg})` });
+    // If we captured partial text, use it — don't discard what was already streamed
+    if (partialText.trim()) {
+      const usage = finalizeStreamUsage(null, ctx.systemPrompt, ctx.history, ctx.userPrompt, partialText);
+      try { emit({ type: "phase_end", phase, text: partialText }); } catch { /* stream may be closed */ }
+      return { text: partialText, usage };
+    }
+    try { emit({ type: "status", message: `${label} failed, skipping. (${msg})` }); } catch { /* stream may already be closed */ }
     return null;
   }
 }
@@ -126,7 +156,8 @@ export async function runQuickOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const model = models[flow.primarySlot];
   const label = `Quick — ${modelLabel(model)}`;
@@ -151,7 +182,8 @@ export async function runSuperOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
@@ -308,7 +340,8 @@ export async function runChainOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter };
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
@@ -337,13 +370,14 @@ export async function runChainOrchestratorStream(
 
     emit({ type: "status", message: `${label}…` });
 
-    const ctx = { systemPrompt: sys, history: isFirst ? history : [], userPrompt };
+    const ctx = { systemPrompt: sys, history, userPrompt };
     const got = await tryRunPhase(
       phase,
       label,
-      streamModel(providerKeys, model, sys, isFirst ? history : [], userPrompt, orOpts),
+      streamModel(providerKeys, model, sys, history, userPrompt, orOpts),
       emit,
-      ctx
+      ctx,
+      CHAIN_PHASE_TIMEOUT_MS
     );
 
     if (got) {
@@ -355,10 +389,9 @@ export async function runChainOrchestratorStream(
         promptTokens: got.usage.promptTokens,
         completionTokens: got.usage.completionTokens,
       });
-    } else if (i === 0) {
-      throw new Error("First model in chain failed. Cannot continue.");
+    } else {
+      throw new Error(`Step ${stepNum} (${modelLabel(model)}) failed or timed out. Chain stopped.`);
     }
-    // If a reviewer fails, we continue with the previous answer
   }
 
   const finalAnswer = previousAnswer;
