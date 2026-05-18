@@ -7,4 +7,4 @@ save_number,datetime,branch,commit_hash,changes_summary
 6,2026-04-17 00:00,feature/claude-design-ux,1524fc0,fix: workspace idle content centering — maxWidth 780 wrapper with mx-auto; PROGRESS_TRACKER + HANDOFF updated
 7,2026-04-28 00:00,feature/claude-design-ux,9e632b0,feat: slow-bot timeout UX — per-model wait timers + skip mechanic + scroll fix + auth-chrome landing fix
 8,2026-05-03 00:00,feature/claude-design-ux,69cfac4,feat: chain mode — sequential review orchestration with complexity-aware prompts + 3-way mode toggle
-9,2026-05-18 00:00,feature/claude-design-ux,TBD,fix: scroll lock during streaming + Gemini cutoff on Vercel (maxDuration 300)
+9,2026-05-18 00:00,feature/claude-design-ux,cfd72c4,fix: scroll lock during streaming + Gemini cutoff on Vercel (maxDuration 300)
