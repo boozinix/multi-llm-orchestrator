@@ -41,6 +41,9 @@ import type { HistoryMessage } from "@/lib/types";
 import { clientSafeModelError } from "@/lib/server/client-safe-error";
 import { hitRateLimit } from "@/lib/server/rate-limit";
 
+// Allow up to 5 minutes for streaming responses — Gemini and chain mode can take 2-3 min.
+export const maxDuration = 300;
+
 const KEY_FIELD = z.preprocess(
   (v) => (v == null ? "" : String(v).trim()),
   z.string().max(2048, "API key field too long")

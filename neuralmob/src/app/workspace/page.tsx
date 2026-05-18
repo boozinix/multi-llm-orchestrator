@@ -870,13 +870,25 @@ export default function WorkspacePage() {
   useEffect(() => {
     const root = messagesScrollRef.current;
     if (!root) return;
+    // Use wheel/touchstart to detect user scroll intent immediately — these are
+    // never programmatic and fire before the scroll event, avoiding race conditions
+    // with requestAnimationFrame-based flag resets.
+    const onWheel = () => { userScrolledUpRef.current = true; };
+    const onTouchStart = () => { userScrolledUpRef.current = true; };
     const onScroll = () => {
-      if (isProgrammaticScroll.current) return; // ignore programmatic scrolls
+      if (isProgrammaticScroll.current) return;
       const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
-      userScrolledUpRef.current = fromBottom > 140;
+      // Un-set the flag when the user scrolls back near the bottom
+      if (fromBottom <= 80) userScrolledUpRef.current = false;
     };
+    root.addEventListener("wheel", onWheel, { passive: true });
+    root.addEventListener("touchstart", onTouchStart, { passive: true });
     root.addEventListener("scroll", onScroll, { passive: true });
-    return () => root.removeEventListener("scroll", onScroll);
+    return () => {
+      root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("touchstart", onTouchStart);
+      root.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -1007,8 +1019,10 @@ export default function WorkspacePage() {
       if (!root) return;
       isProgrammaticScroll.current = true;
       root.scrollTo({ top: root.scrollHeight, behavior });
-      // Reset flag after the scroll event has fired
-      requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
+      // Reset flag after two frames so late scroll events are still suppressed
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
+      });
     };
 
     if (convChanged) {
@@ -1022,19 +1036,31 @@ export default function WorkspacePage() {
     const root = messagesScrollRef.current;
     if (!root) return;
 
-    // During active streaming, follow the bottom only if the user hasn't scrolled up.
-    const activeStreaming = Boolean(isLoading && (streamingPreview || streamingStatus));
-    if (activeStreaming) {
-      if (!userScrolledUpRef.current) scrollToEnd("auto");
-      return;
-    }
-
     const thresholdPx = 200;
     const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
     if (fromBottom <= thresholdPx) {
       scrollToEnd("smooth");
     }
-  }, [activeConversationId, messages, streamingPreview, streamingStatus, isLoading, slotWaiting]);
+  }, [activeConversationId, messages, streamingStatus, isLoading, slotWaiting]);
+
+  /** During active streaming, follow the bottom via rAF loop (not on every token). */
+  useEffect(() => {
+    if (!isLoading) return;
+    let raf = 0;
+    const tick = () => {
+      if (!userScrolledUpRef.current) {
+        const root = messagesScrollRef.current;
+        if (root) {
+          isProgrammaticScroll.current = true;
+          root.scrollTop = root.scrollHeight;
+          isProgrammaticScroll.current = false;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isLoading]);
 
   async function selectConversation(id: string) {
     setHistoryOpen(false);
@@ -1739,7 +1765,7 @@ export default function WorkspacePage() {
                                             )}
                                           </div>
                                         </div>
-                                        <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.65, color: isDone ? "#9aa0bb" : "#dae2fd", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                        <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.65, color: isDone ? "#9aa0bb" : "#dae2fd", whiteSpace: "pre-wrap", wordBreak: "break-word", ...(isDone ? {} : { maxHeight: 300, overflowY: "auto" as const }) }}>
                                           {block.text || <span style={{ color: "#6b6889", fontStyle: "italic" }}>Waiting for previous step…</span>}
                                         </div>
                                       </div>

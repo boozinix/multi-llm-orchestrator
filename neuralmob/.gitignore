@@ -53,3 +53,4 @@ PROJECT_FULL_SOURCE.md
 
 # clerk configuration (can include secrets)
 /.clerk/
+test-results/
