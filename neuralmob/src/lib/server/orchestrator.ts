@@ -56,7 +56,7 @@ async function safeCallModel(
   history: HistoryMessage[],
   userPrompt: string
 ): Promise<{ text: string; usage: { promptTokens: number; completionTokens: number } } | null> {
-  const outputTokens = input.flow.outputMode === "advanced" ? 8192 : 2000;
+  const outputTokens = input.flow.outputMode === "advanced" ? 8192 : 4096;
   try {
     const { text, usage } = await withTimeout(
       callModel(input.providerKeys, model, systemPrompt, history, userPrompt, {

@@ -76,7 +76,7 @@ const DEEPSEEK_IDS: Record<string, string> = {
   "deepseek-r1": "deepseek-reasoner",
 };
 
-const SIMPLE_OUTPUT_CAP = 2000;
+const SIMPLE_OUTPUT_CAP = 4096;
 const ADVANCED_OUTPUT_CAP = 8192;
 
 /** Newer OpenAI chat models reject `max_tokens`; they require `max_completion_tokens`. */
@@ -107,6 +107,14 @@ function outputLimitParams(
   const { provider, slug } = parseOpenRouterModel(openRouterModel);
   if (provider === "openai" && (forceMaxCompletionTokens || openAiSlugUsesMaxCompletionTokens(slug))) {
     return { max_completion_tokens: outputCap };
+  }
+  // Gemini 2.5+ models have extended thinking enabled by default. Thinking tokens count
+  // toward the max_tokens budget before any visible output is generated. With a low cap
+  // (e.g. 2000-4096), Gemini can exhaust the budget on reasoning and produce only 1-2
+  // sentences of visible output. Force a minimum of 16000 so thinking has room to run
+  // AND the actual answer has enough tokens.
+  if (provider === "google") {
+    return { max_tokens: Math.max(outputCap, 16000) };
   }
   return { max_tokens: outputCap };
 }
@@ -145,7 +153,7 @@ function clientOpenRouter(openRouterModel: string, keys: UserProviderKeys): {
 export type ModelRoutingOptions = {
   /** When true (or in production), every model id is called via OpenRouter. */
   forceOpenRouter?: boolean;
-  /** Max output tokens for this call. Defaults to SIMPLE_OUTPUT_CAP (2000). */
+  /** Max output tokens for this call. Defaults to SIMPLE_OUTPUT_CAP (4096). */
   outputTokens?: number;
 };
 

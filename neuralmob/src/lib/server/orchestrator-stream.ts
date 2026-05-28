@@ -156,7 +156,7 @@ export async function runQuickOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
   const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const model = models[flow.primarySlot];
@@ -182,7 +182,7 @@ export async function runSuperOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
   const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
@@ -340,7 +340,7 @@ export async function runChainOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 2000;
+  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
   const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
