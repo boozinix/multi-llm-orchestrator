@@ -7,6 +7,8 @@ export interface ModelConfig {
   synth: string;
 }
 
+export type ReasoningEffort = "low" | "medium" | "high";
+
 export interface FlowConfig {
   mode: "quick" | "chain" | "super";
   primarySlot: BotSlotId;
@@ -16,6 +18,10 @@ export interface FlowConfig {
   merge12Enabled: boolean;
   merge123Enabled: boolean;
   outputMode: "simple" | "advanced";
+  /** Fast=low, Regular=medium, Pro=high. Maps to OpenRouter reasoning.effort. */
+  reasoningEffort: ReasoningEffort;
+  /** Appends :online suffix to model IDs to activate OpenRouter web plugin. Off by default (adds cost). */
+  webSearchEnabled: boolean;
 }
 
 export interface ChatMessage {

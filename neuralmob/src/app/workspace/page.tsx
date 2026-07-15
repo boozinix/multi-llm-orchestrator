@@ -1961,7 +1961,39 @@ export default function WorkspacePage() {
                       <span className="text-[10px] text-[#d0bcff]" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                         {flow.mode === "super" ? `${enabledCount} model${enabledCount !== 1 ? "s" : ""} active` : flow.mode === "chain" ? `Chain · ${enabledCount} step${enabledCount !== 1 ? "s" : ""}` : `Quick mode`}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div
+                          className="flex items-center rounded-full border border-white/10 overflow-hidden"
+                          style={{ fontFamily: "JetBrains Mono, monospace" }}
+                          title="Reasoning effort: Fast = minimal thinking (cheapest); Regular = balanced; Pro = maximum deliberation (some models bill extra reasoning tokens)"
+                        >
+                          {(["low", "medium", "high"] as const).map((eff) => (
+                            <button
+                              key={eff}
+                              type="button"
+                              onClick={() => setFlow({ reasoningEffort: eff })}
+                              className="px-2.5 py-0.5 text-[10px] transition-colors"
+                              style={flow.reasoningEffort === eff
+                                ? { background: "rgba(208,188,255,0.18)", color: "#d0bcff" }
+                                : { color: "#7d89a7" }}
+                            >
+                              {eff === "low" ? "Fast" : eff === "medium" ? "Regular" : "Pro"}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFlow({ webSearchEnabled: !flow.webSearchEnabled })}
+                          className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] transition-colors"
+                          style={{
+                            fontFamily: "JetBrains Mono, monospace",
+                            background: flow.webSearchEnabled ? "rgba(208,188,255,0.18)" : "transparent",
+                            color: flow.webSearchEnabled ? "#d0bcff" : "#7d89a7",
+                          }}
+                          title="When on, appends :online to model IDs so answers are grounded in live web results (adds cost per call)."
+                        >
+                          {flow.webSearchEnabled ? "🌐 Web on" : "🌐 Web off"}
+                        </button>
                         <div className="flex items-center rounded-full border border-white/10 overflow-hidden" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                           {(["simple", "advanced"] as const).map((m) => (
                             <button
@@ -1977,7 +2009,7 @@ export default function WorkspacePage() {
                             </button>
                           ))}
                         </div>
-                        <span className="text-[10px] text-[#7d89a7]">↵ Send  ⇧↵ Newline</span>
+                        <span className="text-[10px] text-[#7d89a7] hidden sm:inline">↵ Send  ⇧↵ Newline</span>
                       </div>
                     </div>
                   </div>

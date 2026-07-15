@@ -1,4 +1,35 @@
 # Progress Tracker
+Last updated: 2026-07-15 10:15
+
+## Current session — Latest Models Refresh + Web Search + Pro/Regular (2026-07-15)
+Branch: `sandbox/latest-models-refresh` (git worktree at `../neuralmob-models-sandbox`)
+Plan: `plans/2026-07-15_09-34_latest-models-refresh.md`
+
+### Chunks
+- [x] Chunk 1 — Live-verified roster; wrote `docs/MODEL_ROSTER_2026-07-15.md`.
+- [x] Chunk 2 — `constants.ts` rewritten: `ModelOption.tier`, 19 verified `OPENROUTER_MODELS`, additive `LEGACY_MODEL_ALIASES` (fabricated IDs from prior sessions mapped to closest verified successors), new `DEFAULT_MODELS` + free-tier defaults, `GROUPED_MODELS` gains z-ai + minimax groups, tier-sort helper, `modelTier()` helper.
+- [x] Chunk 3 — `types.ts`: `ReasoningEffort` type + `FlowConfig.reasoningEffort` + `FlowConfig.webSearchEnabled`. `settings-store.ts`: fields + setters + merge migration. `constants.ts::normalizeFlowConfig` normalizes both.
+- [x] Chunk 4 — `openrouter.ts::ModelRoutingOptions` gains `reasoningEffort` + `webSearch`; `reasoningParam()` helper adds `reasoning: { effort }` to every chat body; threaded via `orOpts` through all six orchestrator entrypoints (`runQuickOrchestrator`, `runSuperOrchestrator`, `runChainOrchestrator` + streaming variants).
+- [x] Chunk 5 — `applyWebSearchSuffix()` appends `:online` only when routing via OpenRouter (never on direct-provider fallbacks). Wired into `callModel`, `streamModel`, and both OpenRouter fallback branches.
+- [x] Chunk 6 — Tier badges present in every label (🥇⚖️💰🌏); each provider group sorted flagship→experimental via `byTier`.
+- [x] Chunk 7 — Workspace run-controls row: Fast/Regular/Pro segmented control + 🌐 Web on/off toggle, both wired to `setFlow` (persists via zustand). Kept Simple/Advanced control alongside.
+- [ ] Chunk 8 — QA smoke: quick + super + chain, (Regular no-web) and (Pro web-on); push to sandbox branch → Vercel auto-preview; user reviews preview URL.
+
+### Verification so far
+- `tsc --noEmit` on sandbox — clean, no errors.
+- Not yet: dev server smoke, real model call, Vercel preview push.
+
+### Notes
+- Do NOT git-commit or deploy without explicit user go-ahead.
+- Legacy alias map MUST remain additive so returning users' saved model IDs still resolve.
+- `:online` costs extra per call — OFF by default.
+- Reasoning-token surcharges exist on Anthropic thinking tiers and OpenAI `-pro` variants — surface in tooltip only, don't recompute pricing.
+- Next.js in this repo has breaking changes (see `neuralmob/AGENTS.md`) — check `node_modules/next/dist/docs/` before any router/handler changes.
+- DeepSeek + Meta-Llama excluded this pass (not returned by live catalog). Re-verify via `curl … | jq` before adding.
+
+---
+
+## Previous session — Chain Mode Feature (2026-05-03)
 Last updated: 2026-05-03 00:45
 
 ## Branch: feature/claude-design-ux

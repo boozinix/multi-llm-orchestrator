@@ -1,8 +1,12 @@
 import type { FlowConfig, ModelConfig } from "./types";
 
+export type ModelTier = "flagship" | "balanced" | "budget" | "experimental";
+
 export type ModelOption = {
   value: string;
   label: string;
+  tier: ModelTier;
+  reasoningHint?: "always-on" | "optional" | "none";
 };
 
 export type PickerModelOption = ModelOption & {
@@ -20,23 +24,44 @@ export type PickerModelGroup = {
   models: PickerModelOption[];
 };
 
+/**
+ * Legacy → verified aliases. ADDITIVE ONLY — never delete entries or returning users
+ * with saved settings will silently reset to defaults.
+ * All right-hand-side IDs verified live on OpenRouter /api/v1/models on 2026-07-15.
+ * See docs/MODEL_ROSTER_2026-07-15.md.
+ */
 const LEGACY_MODEL_ALIASES: Record<string, string> = {
-  "google/gemini-2.5-pro-preview": "google/gemini-2.5-pro",
-  "google/gemini-2.5-flash-preview": "google/gemini-2.5-flash",
-  "mistralai/mistral-small-3.1": "mistralai/mistral-small-3.1-24b-instruct",
-  // Upgraded to newer equivalents
-  "anthropic/claude-sonnet-4-5": "anthropic/claude-sonnet-4.6",
-  "anthropic/claude-opus-4": "anthropic/claude-opus-4.7",
-  "anthropic/claude-haiku-3-5": "anthropic/claude-haiku-4.5",
-  "openai/gpt-5": "openai/gpt-5.4",
-  "openai/gpt-5.1": "openai/gpt-5.4",
-  "openai/gpt-4.1": "openai/gpt-5.4-mini",
-  "x-ai/grok-3": "x-ai/grok-4.3",
+  "google/gemini-2.5-pro-preview": "google/gemini-3.5-flash",
+  "google/gemini-2.5-flash-preview": "google/gemini-3.1-flash-lite",
+  "mistralai/mistral-small-3.1": "mistralai/mistral-medium-3.5",
+  "mistralai/mistral-small-3.1-24b-instruct": "mistralai/mistral-medium-3.5",
+  "mistralai/mistral-large-3": "mistralai/mistral-medium-3.5",
+  "anthropic/claude-sonnet-4-5": "anthropic/claude-sonnet-5",
+  "anthropic/claude-opus-4": "anthropic/claude-opus-4.8",
+  "anthropic/claude-haiku-3-5": "anthropic/claude-sonnet-5",
+  "openai/gpt-5": "openai/gpt-5.6-terra",
+  "openai/gpt-5.1": "openai/gpt-5.6-terra",
+  "openai/gpt-4.1": "openai/gpt-5.6-luna",
+  "x-ai/grok-3": "x-ai/grok-4.5",
   "x-ai/grok-3-mini": "x-ai/grok-4.3",
-  "google/gemini-2.5-pro": "google/gemini-3.1-pro-preview",
-  "google/gemini-2.5-flash": "google/gemini-3.1-flash-lite-preview",
-  "deepseek/deepseek-chat": "deepseek/deepseek-v4-pro",
-  "deepseek/deepseek-reasoner": "deepseek/deepseek-v4-flash",
+  "google/gemini-2.5-pro": "google/gemini-3.5-flash",
+  "google/gemini-2.5-flash": "google/gemini-3.1-flash-lite",
+  "deepseek/deepseek-chat": "z-ai/glm-5.2",
+  "deepseek/deepseek-reasoner": "z-ai/glm-5.2",
+  "anthropic/claude-opus-4.7": "anthropic/claude-opus-4.8",
+  "anthropic/claude-sonnet-4.6": "anthropic/claude-sonnet-5",
+  "anthropic/claude-haiku-4.5": "anthropic/claude-sonnet-5",
+  "openai/gpt-5.5": "openai/gpt-5.6-sol",
+  "openai/gpt-5.4": "openai/gpt-5.6-terra",
+  "openai/gpt-5.4-mini": "openai/gpt-5.6-luna",
+  "x-ai/grok-4.20": "x-ai/grok-4.5",
+  "google/gemini-3.1-pro-preview": "google/gemini-3.5-flash",
+  "google/gemini-3.1-flash-lite-preview": "google/gemini-3.1-flash-lite",
+  "deepseek/deepseek-v4-pro": "z-ai/glm-5.2",
+  "deepseek/deepseek-v4-flash": "minimax/minimax-m3",
+  "qwen/qwen3-235b-a22b": "qwen/qwen3.7-max",
+  "qwen/qwen3-30b-a3b": "qwen/qwen3.7-plus",
+  "moonshotai/kimi-k2": "moonshotai/kimi-k2.7-code",
 };
 
 function canonicalModelId(value: string | undefined): string | undefined {
@@ -44,48 +69,48 @@ function canonicalModelId(value: string | undefined): string | undefined {
   return LEGACY_MODEL_ALIASES[value] ?? value;
 }
 
-/** OpenRouter-style IDs; direct keys where supported, else OpenRouter. */
+/** Verified 2026-07-15 against https://openrouter.ai/api/v1/models. Re-verify per release. */
 export const OPENROUTER_MODELS: ModelOption[] = [
-  // Anthropic
-  { value: "anthropic/claude-opus-4.7", label: "Claude Opus 4.7 — 🧠 Deep reasoning" },
-  { value: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6 — 🥇 Flagship" },
-  { value: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5 — ⚡ Fast/cheap" },
-  // OpenAI
-  { value: "openai/gpt-5.5", label: "GPT-5.5 — 🥇 Latest flagship" },
-  { value: "openai/gpt-5.4", label: "GPT-5.4 — ⚖️ Balanced" },
-  { value: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini — ⚡ Fast/cheap" },
-  // xAI
-  { value: "x-ai/grok-4.3", label: "Grok 4.3 — 🔍 Reasoning" },
-  { value: "x-ai/grok-4.20", label: "Grok 4.20 — 2M context" },
-  // Google
-  { value: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro — 🥇 Flagship" },
-  { value: "google/gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite — ⚡ Fast/cheap" },
-  // DeepSeek
-  { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro — 💰 Analytical" },
-  { value: "deepseek/deepseek-v4-flash", label: "DeepSeek V4 Flash — 💰 Cheapest" },
-  // Alibaba (Qwen)
-  { value: "qwen/qwen3-235b-a22b", label: "Qwen 3 235B — 🌏 Chinese diversity" },
-  { value: "qwen/qwen3-30b-a3b", label: "Qwen 3 30B — ⚡ Cheap Qwen fast" },
-  // Moonshot
-  { value: "moonshotai/kimi-k2", label: "Kimi K2 — 🧮 Best math/agentic" },
-  // Mistral
-  { value: "mistralai/mistral-large-3", label: "Mistral Large 3 — 🇪🇺 EU/multilingual" },
-  { value: "mistralai/mistral-small-3.1-24b-instruct", label: "Mistral Small 3.1 — ⚡ Fast EU fallback" },
+  // Flagship
+  { value: "openai/gpt-5.6-sol-pro", label: "GPT-5.6 Sol Pro — 🥇 OpenAI top (Pro)", tier: "flagship", reasoningHint: "always-on" },
+  { value: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol — 🥇 OpenAI top", tier: "flagship", reasoningHint: "optional" },
+  { value: "anthropic/claude-opus-4.8", label: "Claude Opus 4.8 — 🥇 Anthropic flagship", tier: "flagship", reasoningHint: "optional" },
+  { value: "anthropic/claude-fable-5", label: "Claude Fable 5 — 🥇 Anthropic premium", tier: "flagship", reasoningHint: "optional" },
+  { value: "x-ai/grok-4.5", label: "Grok 4.5 — 🥇 xAI flagship", tier: "flagship", reasoningHint: "optional" },
+
+  // Balanced
+  { value: "openai/gpt-5.6-terra-pro", label: "GPT-5.6 Terra Pro — ⚖️ OpenAI balanced (Pro)", tier: "balanced", reasoningHint: "always-on" },
+  { value: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra — ⚖️ OpenAI balanced", tier: "balanced", reasoningHint: "optional" },
+  { value: "anthropic/claude-sonnet-5", label: "Claude Sonnet 5 — ⚖️ Anthropic balanced", tier: "balanced", reasoningHint: "optional" },
+  { value: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash — ⚖️ Google balanced", tier: "balanced", reasoningHint: "optional" },
+  { value: "x-ai/grok-4.3", label: "Grok 4.3 — ⚖️ 1M context bargain", tier: "balanced", reasoningHint: "optional" },
+  { value: "mistralai/mistral-medium-3.5", label: "Mistral Medium 3.5 — ⚖️ 🇪🇺 EU option", tier: "balanced", reasoningHint: "optional" },
+
+  // Budget
+  { value: "openai/gpt-5.6-luna-pro", label: "GPT-5.6 Luna Pro — 💰 OpenAI cheap (Pro)", tier: "budget", reasoningHint: "always-on" },
+  { value: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna — 💰 OpenAI cheap", tier: "budget", reasoningHint: "optional" },
+  { value: "google/gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite — 💰 Cheapest Google", tier: "budget", reasoningHint: "optional" },
+  { value: "qwen/qwen3.7-plus", label: "Qwen 3.7 Plus — 💰 🌏 Cheap Chinese", tier: "budget", reasoningHint: "optional" },
+  { value: "minimax/minimax-m3", label: "MiniMax M3 — 💰 🌏 Cheap + big context", tier: "budget", reasoningHint: "optional" },
+
+  // Experimental / Chinese
+  { value: "qwen/qwen3.7-max", label: "Qwen 3.7 Max — 🌏 Alibaba flagship", tier: "experimental", reasoningHint: "optional" },
+  { value: "moonshotai/kimi-k2.7-code", label: "Kimi K2.7 Code — 🌏 Code/agentic", tier: "experimental", reasoningHint: "optional" },
+  { value: "z-ai/glm-5.2", label: "GLM 5.2 — 🌏 Zhipu", tier: "experimental", reasoningHint: "optional" },
 ];
 
 export const DEFAULT_MODELS: ModelConfig = {
-  bot1: "openai/gpt-5.4",
-  bot2: "anthropic/claude-sonnet-4.6",
-  bot3: "google/gemini-3.1-pro-preview",
-  synth: "anthropic/claude-haiku-4.5",
+  bot1: "openai/gpt-5.6-terra",
+  bot2: "anthropic/claude-sonnet-5",
+  bot3: "google/gemini-3.5-flash",
+  synth: "anthropic/claude-opus-4.8",
 };
 
-/** Defaults when free-tier model allowlist applies (must stay within FREE_MODELS). */
 export const DEFAULT_MODELS_FREE_TIER: ModelConfig = {
-  bot1: "deepseek/deepseek-v4-flash",
-  bot2: "google/gemini-3.1-flash-lite-preview",
-  bot3: "mistralai/mistral-small-3.1-24b-instruct",
-  synth: "google/gemini-3.1-flash-lite-preview",
+  bot1: "google/gemini-3.1-flash-lite",
+  bot2: "qwen/qwen3.7-plus",
+  bot3: "minimax/minimax-m3",
+  synth: "google/gemini-3.1-flash-lite",
 };
 
 export const DEFAULT_FLOW: FlowConfig = {
@@ -97,6 +122,8 @@ export const DEFAULT_FLOW: FlowConfig = {
   merge12Enabled: true,
   merge123Enabled: true,
   outputMode: "simple",
+  reasoningEffort: "medium",
+  webSearchEnabled: false,
 };
 
 export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefined): FlowConfig {
@@ -119,6 +146,11 @@ export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefine
     merge12Enabled &&
     bot3Enabled;
   const outputMode = input.outputMode === "simple" || input.outputMode === "advanced" ? input.outputMode : d.outputMode;
+  const reasoningEffort =
+    input.reasoningEffort === "low" || input.reasoningEffort === "medium" || input.reasoningEffort === "high"
+      ? input.reasoningEffort
+      : d.reasoningEffort;
+  const webSearchEnabled = input.webSearchEnabled !== undefined ? Boolean(input.webSearchEnabled) : d.webSearchEnabled;
 
   return {
     mode,
@@ -129,6 +161,8 @@ export function normalizeFlowConfig(input: Partial<FlowConfig> | null | undefine
     merge12Enabled,
     merge123Enabled,
     outputMode,
+    reasoningEffort,
+    webSearchEnabled,
   };
 }
 
@@ -169,7 +203,6 @@ export function buildSelectableModelGroups(allowed: ReadonlySet<string> | null):
   }));
 }
 
-/** Clamp stored models to an allowlist (e.g. free tier). */
 export function clampModelConfigToAllowed(
   models: ModelConfig,
   allowed: ReadonlySet<string>,
@@ -184,18 +217,29 @@ export function clampModelConfigToAllowed(
   };
 }
 
+const TIER_ORDER: Record<ModelTier, number> = { flagship: 0, balanced: 1, budget: 2, experimental: 3 };
+function byTier(a: ModelOption, b: ModelOption): number {
+  return TIER_ORDER[a.tier] - TIER_ORDER[b.tier];
+}
+
 export const GROUPED_MODELS: ModelGroup[] = [
-  { group: "Anthropic", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("anthropic/")) },
-  { group: "OpenAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("openai/")) },
-  { group: "xAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("x-ai/")) },
-  { group: "Google", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("google/")) },
-  { group: "DeepSeek", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("deepseek/")) },
-  { group: "Alibaba (Qwen)", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("qwen/")) },
-  { group: "Moonshot", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("moonshotai/")) },
-  { group: "Mistral", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("mistralai/")) },
+  { group: "Anthropic", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("anthropic/")).sort(byTier) },
+  { group: "OpenAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("openai/")).sort(byTier) },
+  { group: "xAI", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("x-ai/")).sort(byTier) },
+  { group: "Google", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("google/")).sort(byTier) },
+  { group: "Alibaba (Qwen)", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("qwen/")).sort(byTier) },
+  { group: "Moonshot", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("moonshotai/")).sort(byTier) },
+  { group: "Zhipu (Z-AI)", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("z-ai/")).sort(byTier) },
+  { group: "MiniMax", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("minimax/")).sort(byTier) },
+  { group: "Mistral", models: OPENROUTER_MODELS.filter((m) => m.value.startsWith("mistralai/")).sort(byTier) },
 ];
 
 export function modelLabel(value: string): string {
   const canonical = canonicalModelId(value) ?? value;
   return OPENROUTER_MODELS.find((m) => m.value === canonical)?.label ?? canonical.split("/").pop() ?? canonical;
+}
+
+export function modelTier(value: string): ModelTier | undefined {
+  const canonical = canonicalModelId(value) ?? value;
+  return OPENROUTER_MODELS.find((m) => m.value === canonical)?.tier;
 }

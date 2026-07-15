@@ -157,7 +157,12 @@ export async function runQuickOrchestratorStream(
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
   const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
+  const orOpts = {
+    forceOpenRouter: input.forceOpenRouter,
+    outputTokens,
+    reasoningEffort: flow.reasoningEffort,
+    webSearch: flow.webSearchEnabled,
+  };
   const complexity = classifyQueryComplexity(prompt);
   const model = models[flow.primarySlot];
   const label = `Quick — ${modelLabel(model)}`;
@@ -183,7 +188,12 @@ export async function runSuperOrchestratorStream(
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
   const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
+  const orOpts = {
+    forceOpenRouter: input.forceOpenRouter,
+    outputTokens,
+    reasoningEffort: flow.reasoningEffort,
+    webSearch: flow.webSearchEnabled,
+  };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");
@@ -341,7 +351,12 @@ export async function runChainOrchestratorStream(
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
   const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
-  const orOpts = { forceOpenRouter: input.forceOpenRouter, outputTokens };
+  const orOpts = {
+    forceOpenRouter: input.forceOpenRouter,
+    outputTokens,
+    reasoningEffort: flow.reasoningEffort,
+    webSearch: flow.webSearchEnabled,
+  };
   const complexity = classifyQueryComplexity(prompt);
   const ordered = (["bot1", "bot2", "bot3"] as const).filter((s) => flow[`${s}Enabled`]);
   if (ordered.length === 0) throw new Error("No bot slots enabled");

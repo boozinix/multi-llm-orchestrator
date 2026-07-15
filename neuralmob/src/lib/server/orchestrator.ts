@@ -62,6 +62,8 @@ async function safeCallModel(
       callModel(input.providerKeys, model, systemPrompt, history, userPrompt, {
         forceOpenRouter: input.forceOpenRouter,
         outputTokens,
+        reasoningEffort: input.flow.reasoningEffort,
+        webSearch: input.flow.webSearchEnabled,
       }),
       MODEL_CALL_TIMEOUT_MS,
       model
@@ -104,6 +106,8 @@ export async function runQuickOrchestrator(input: OrchestratorInput): Promise<Or
   const { text, usage } = await withTimeout(
     callModel(providerKeys, model, buildQuickModeSystemPrompt(complexity), history, prompt, {
       forceOpenRouter: input.forceOpenRouter,
+      reasoningEffort: flow.reasoningEffort,
+      webSearch: flow.webSearchEnabled,
     }),
     MODEL_CALL_TIMEOUT_MS,
     model

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { CompletionUsage, HistoryMessage } from "./types";
+import type { CompletionUsage, HistoryMessage, ReasoningEffort } from "./types";
 import type { UserProviderKeys } from "./provider-keys";
 import { resolvedKeyForProvider } from "./provider-keys";
 
@@ -155,7 +155,23 @@ export type ModelRoutingOptions = {
   forceOpenRouter?: boolean;
   /** Max output tokens for this call. Defaults to SIMPLE_OUTPUT_CAP (4096). */
   outputTokens?: number;
+  /** OpenRouter unified reasoning param — Fast=low, Regular=medium, Pro=high. */
+  reasoningEffort?: ReasoningEffort;
+  /** Append `:online` to the model ID to activate OpenRouter web plugin for this call. */
+  webSearch?: boolean;
 };
+
+/** Only append `:online` when going through OpenRouter — direct-provider endpoints don't recognize it. */
+function applyWebSearchSuffix(modelId: string, viaOpenRouter: boolean, webSearch?: boolean): string {
+  if (!webSearch || !viaOpenRouter) return modelId;
+  if (modelId.endsWith(":online")) return modelId;
+  return `${modelId}:online`;
+}
+
+function reasoningParam(effort: ReasoningEffort | undefined): Record<string, unknown> {
+  if (!effort) return {};
+  return { reasoning: { effort } };
+}
 
 // ── Build an OpenAI-SDK client for any provider ──────────────────────────────
 function clientForModel(
@@ -298,14 +314,17 @@ export async function callModel(
     { role: "user", content: userPrompt },
   ];
   const { client, modelId } = clientForModel(openRouterModel, keys, routing);
+  const viaOpenRouter = process.env.NODE_ENV === "production" || Boolean(routing.forceOpenRouter);
+  const callModelId = applyWebSearchSuffix(modelId, viaOpenRouter, routing.webSearch);
 
   const outputCap = routing.outputTokens ?? SIMPLE_OUTPUT_CAP;
 
   async function createOnce(forceCompletion: boolean) {
     return client.chat.completions.create({
-      model: modelId,
+      model: callModelId,
       messages,
       ...outputLimitParams(openRouterModel, forceCompletion, outputCap),
+      ...reasoningParam(routing.reasoningEffort),
     });
   }
 
@@ -333,10 +352,12 @@ export async function callModel(
         );
       }
       const fallback = openRouterClient(keys);
+      const fallbackModelId = applyWebSearchSuffix(openRouterModel, true, routing.webSearch);
       const response = await fallback.chat.completions.create({
-        model: openRouterModel,
+        model: fallbackModelId,
         messages,
         ...outputLimitParams(openRouterModel, false, outputCap),
+        ...reasoningParam(routing.reasoningEffort),
       });
       const text = response.choices[0]?.message?.content?.trim() ?? "";
       const usage = finalizeUsage(text, usageFromApiResponse(response), systemPrompt, history, userPrompt);
@@ -372,6 +393,8 @@ export async function* streamModel(
     { role: "user", content: userPrompt },
   ];
   const { client, modelId } = clientForModel(openRouterModel, keys, routing);
+  const viaOpenRouter = process.env.NODE_ENV === "production" || Boolean(routing.forceOpenRouter);
+  const streamModelId = applyWebSearchSuffix(modelId, viaOpenRouter, routing.webSearch);
 
   const outputCap = routing.outputTokens ?? SIMPLE_OUTPUT_CAP;
 
@@ -386,6 +409,7 @@ export async function* streamModel(
       messages,
       stream: true as const,
       ...outputLimitParams(fullModelIdForLimits, forceCompletion, outputCap),
+      ...reasoningParam(routing.reasoningEffort),
     };
     let stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
     try {
@@ -410,18 +434,19 @@ export async function* streamModel(
 
   try {
     try {
-      return yield* delegateStream(streamChat(client, modelId, openRouterModel, false));
+      return yield* delegateStream(streamChat(client, streamModelId, openRouterModel, false));
     } catch (err) {
       const { provider } = parseOpenRouterModel(openRouterModel);
       if (provider === "openai" && isOpenAiMaxTokensUnsupportedError(err)) {
-        return yield* delegateStream(streamChat(client, modelId, openRouterModel, true));
+        return yield* delegateStream(streamChat(client, streamModelId, openRouterModel, true));
       }
       throw err;
     }
   } catch (err) {
     if (isModelNotFoundError(err) && openRouterFallbackEnabled()) {
       const fallback = openRouterClient(keys);
-      return yield* delegateStream(streamChat(fallback, openRouterModel, openRouterModel, false));
+      const fallbackModelId = applyWebSearchSuffix(openRouterModel, true, routing.webSearch);
+      return yield* delegateStream(streamChat(fallback, fallbackModelId, openRouterModel, false));
     }
     if (isModelNotFoundError(err) && !openRouterFallbackEnabled()) {
       throw new Error(
