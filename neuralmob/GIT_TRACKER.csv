@@ -8,3 +8,4 @@ save_number,datetime,branch,commit_hash,changes_summary
 7,2026-04-28 00:00,feature/claude-design-ux,9e632b0,feat: slow-bot timeout UX — per-model wait timers + skip mechanic + scroll fix + auth-chrome landing fix
 8,2026-05-03 00:00,feature/claude-design-ux,69cfac4,feat: chain mode — sequential review orchestration with complexity-aware prompts + 3-way mode toggle
 9,2026-05-18 00:00,feature/claude-design-ux,cfd72c4,fix: scroll lock during streaming + Gemini cutoff on Vercel (maxDuration 300)
+10,2026-07-15 10:20,sandbox/latest-models-refresh,ebf93cf,feat: latest models refresh (19 verified OpenRouter IDs + 4 tiers) + Pro/Regular reasoning-effort toggle + web-search :online toggle
