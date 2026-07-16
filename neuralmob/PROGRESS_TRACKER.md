@@ -13,11 +13,12 @@ Plan: `plans/2026-07-15_09-34_latest-models-refresh.md`
 - [x] Chunk 5 — `applyWebSearchSuffix()` appends `:online` only when routing via OpenRouter (never on direct-provider fallbacks). Wired into `callModel`, `streamModel`, and both OpenRouter fallback branches.
 - [x] Chunk 6 — Tier badges present in every label (🥇⚖️💰🌏); each provider group sorted flagship→experimental via `byTier`.
 - [x] Chunk 7 — Workspace run-controls row: Fast/Regular/Pro segmented control + 🌐 Web on/off toggle, both wired to `setFlow` (persists via zustand). Kept Simple/Advanced control alongside.
-- [ ] Chunk 8 — QA smoke: quick + super + chain, (Regular no-web) and (Pro web-on); push to sandbox branch → Vercel auto-preview; user reviews preview URL.
+- [x] Chunk 8 — Pushed sandbox → Vercel preview built READY (dpl_gSrFof3SEhFquHMVWF6AJ6jz1xSR); user reviewed & approved; merged into `feature/claude-design-ux` and fast-forwarded `main`.
 
-### Verification so far
-- `tsc --noEmit` on sandbox — clean, no errors.
-- Not yet: dev server smoke, real model call, Vercel preview push.
+### Verification
+- `tsc --noEmit` on sandbox — clean.
+- Vercel preview built + reviewed on `multibot-orchestrator-git-sandbox-lat-2c738c-boozinixs-projects.vercel.app`.
+- Merged to `feature/claude-design-ux` @ 4f59b4c → fast-forwarded to `main`.
 
 ### Notes
 - Do NOT git-commit or deploy without explicit user go-ahead.
