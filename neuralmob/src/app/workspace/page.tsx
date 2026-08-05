@@ -1048,12 +1048,17 @@ export default function WorkspacePage() {
     if (!isLoading) return;
     let raf = 0;
     const tick = () => {
+      // Reset from previous tick FIRST — scroll event from last tick has now fired
+      isProgrammaticScroll.current = false;
       if (!userScrolledUpRef.current) {
         const root = messagesScrollRef.current;
         if (root) {
-          isProgrammaticScroll.current = true;
+          isProgrammaticScroll.current = true; // stays true until next tick reset above
           root.scrollTop = root.scrollHeight;
-          isProgrammaticScroll.current = false;
+          // Do NOT reset to false here — the scroll event fires async, after this
+          // function returns. Resetting at the top of the next tick ensures the
+          // scroll handler still sees isProgrammaticScroll=true and skips clearing
+          // userScrolledUpRef, so the user can actually scroll up.
         }
       }
       raf = requestAnimationFrame(tick);
@@ -1677,7 +1682,7 @@ export default function WorkspacePage() {
                 <MessageBubble key={msg.id} msg={msg} />
               ))}
 
-              {isLoading && (
+              {(isLoading || streamBlocks.length > 0) && (
                 <div className="max-w-3xl mx-auto space-y-3">
                   <div className="flex gap-3 items-start">
                     <div className="w-8 h-8 rounded-lg bg-[#2d3449] animate-pulse flex-shrink-0 flex items-center justify-center mt-1">
