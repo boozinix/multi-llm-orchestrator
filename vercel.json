@@ -1,0 +1,8 @@
+{
+  "builds": [
+    {
+      "src": "neuralmob/package.json",
+      "use": "@vercel/next"
+    }
+  ]
+}
