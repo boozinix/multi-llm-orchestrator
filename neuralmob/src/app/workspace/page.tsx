@@ -875,19 +875,11 @@ export default function WorkspacePage() {
     // with requestAnimationFrame-based flag resets.
     const onWheel = () => { userScrolledUpRef.current = true; };
     const onTouchStart = () => { userScrolledUpRef.current = true; };
-    const onScroll = () => {
-      if (isProgrammaticScroll.current) return;
-      const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
-      // Un-set the flag when the user scrolls back near the bottom
-      if (fromBottom <= 80) userScrolledUpRef.current = false;
-    };
     root.addEventListener("wheel", onWheel, { passive: true });
     root.addEventListener("touchstart", onTouchStart, { passive: true });
-    root.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       root.removeEventListener("wheel", onWheel);
       root.removeEventListener("touchstart", onTouchStart);
-      root.removeEventListener("scroll", onScroll);
     };
   }, []);
 
@@ -1773,7 +1765,7 @@ export default function WorkspacePage() {
                                             )}
                                           </div>
                                         </div>
-                                        <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.65, color: isDone ? "#9aa0bb" : "#dae2fd", whiteSpace: "pre-wrap", wordBreak: "break-word", ...(isDone ? {} : { maxHeight: 300, overflowY: "auto" as const }) }}>
+                                        <div style={{ padding: "12px 16px", fontSize: 13.5, lineHeight: 1.65, color: isDone ? "#9aa0bb" : "#dae2fd", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                           {block.text || <span style={{ color: "#6b6889", fontStyle: "italic" }}>Waiting for previous step…</span>}
                                         </div>
                                       </div>
