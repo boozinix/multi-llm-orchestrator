@@ -157,7 +157,7 @@ export async function runQuickOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
+  const outputTokens = flow.outputMode === "advanced" ? 16384 : 8192;
   const orOpts = {
     forceOpenRouter: input.forceOpenRouter,
     outputTokens,
@@ -188,7 +188,7 @@ export async function runSuperOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
+  const outputTokens = flow.outputMode === "advanced" ? 16384 : 8192;
   const orOpts = {
     forceOpenRouter: input.forceOpenRouter,
     outputTokens,
@@ -351,7 +351,7 @@ export async function runChainOrchestratorStream(
   emit: (e: StreamEvent) => void
 ): Promise<{ finalAnswer: string; botOutputs: BotRunOutput[]; usageLines: UsageLine[] }> {
   const { providerKeys, flow, models, prompt, history } = input;
-  const outputTokens = flow.outputMode === "advanced" ? 8192 : 4096;
+  const outputTokens = flow.outputMode === "advanced" ? 16384 : 8192;
   const orOpts = {
     forceOpenRouter: input.forceOpenRouter,
     outputTokens,
