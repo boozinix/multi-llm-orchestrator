@@ -592,3 +592,42 @@ select option {
     padding-bottom: 1.5rem;
   }
 }
+
+/* ── Landing page responsive overrides (inline styles need !important to lose) ── */
+@media (max-width: 760px) {
+  .nm-nav { padding: 16px 20px !important; gap: 10px !important; }
+  .nm-nav-links { gap: 12px !important; font-size: 11px !important; }
+  .nm-nav-links kbd { display: none; }
+  .nm-container { padding: 0 20px !important; }
+  .nm-hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .nm-lane-grid { grid-template-columns: 1fr !important; }
+  .nm-mode-row { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .nm-mode-row > div:last-child { padding-left: 0 !important; border-left: none !important; flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+  .nm-proof-grid { grid-template-columns: 1fr !important; }
+  .nm-proof-grid > div { border-right: none !important; border-bottom: 1px solid rgba(208,188,255,.06); }
+  .nm-pricing-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .nm-footer { text-align: left !important; align-items: flex-start !important; }
+  .nm-footer > div:last-child { text-align: left !important; }
+  .nm-hero-title { font-size: 44px !important; line-height: 1.05 !important; }
+  .nm-section-title { font-size: 34px !important; }
+}
+@media (max-width: 420px) {
+  .nm-hero-title { font-size: 38px !important; }
+}
+
+/* ── Workspace mobile overrides ── */
+@media (max-width: 1023px) {
+  .nm-modes-mini { grid-template-columns: 1fr !important; }
+  .nm-modes-mini > button { border-right: none !important; border-bottom: 2px solid rgba(208,188,255,.35) !important; }
+  .nm-modes-mini > button:last-child { border-bottom: none !important; }
+  .nm-mind-strip {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  }
+  .nm-mind-strip::-webkit-scrollbar { display: none; }
+  .nm-mind-strip > * { flex-shrink: 0; }
+}

@@ -33,7 +33,8 @@ export type StreamEvent =
   | { type: "status"; message: string }
   | { type: "phase_start"; phase: StreamPhase; label: string }
   | { type: "token"; phase: StreamPhase; delta: string }
-  | { type: "phase_end"; phase: StreamPhase; text: string };
+  | { type: "phase_end"; phase: StreamPhase; text: string }
+  | { type: "error"; message: string };
 
 interface StreamInput {
   providerKeys: UserProviderKeys;
@@ -405,7 +406,14 @@ export async function runChainOrchestratorStream(
         completionTokens: got.usage.completionTokens,
       });
     } else {
-      throw new Error(`Step ${stepNum} (${modelLabel(model)}) failed or timed out. Chain stopped.`);
+      const errMsg = `Step ${stepNum} — ${modelLabel(model)} failed or timed out.`;
+      if (botOutputs.length > 0) {
+        // Prior steps completed — surface as a stream error and return partial results
+        // so the DB saves what succeeded and the client preserves visible content.
+        emit({ type: "error", message: `${errMsg} Showing results from completed steps.` });
+        break;
+      }
+      throw new Error(`${errMsg} Chain stopped.`);
     }
   }
 

@@ -101,12 +101,12 @@ export default function LandingPage() {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(208,188,255,.08), transparent 60%)", zIndex: 0 }} aria-hidden />
 
       {/* ── NAV ── */}
-      <nav style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10 }}>
+      <nav className="nm-nav" style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'Fraunces', Georgia, serif", fontWeight: 600, fontSize: 18 }}>
           <div style={{ width: 26, height: 26, borderRadius: 7, background: "linear-gradient(135deg, #d0bcff, #9d87d9)", display: "grid", placeItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#1a0f3a", letterSpacing: 0 }}>NM</div>
           Neural Mob
         </div>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+        <div className="nm-nav-links" style={{ display: "flex", gap: 24, alignItems: "center" }}>
           {["Modes", "Proof", "Pricing"].map((label) => (
             <a key={label} href={`#${label.toLowerCase()}`} style={{ color: "#a7a2c2", fontSize: 13, fontWeight: 500, textDecoration: "none" }}>{label}</a>
           ))}
@@ -122,11 +122,11 @@ export default function LandingPage() {
         {/* Gridlines */}
         <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(to right, rgba(208,188,255,.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(208,188,255,.06) 1px, transparent 1px)", backgroundSize: "80px 80px", maskImage: "radial-gradient(ellipse at 50% 30%, #000 30%, transparent 80%)" }} />
 
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", display: "grid", gridTemplateColumns: "1.05fr .95fr", gap: 56, alignItems: "center", position: "relative", zIndex: 1 }}>
+        <div className="nm-container nm-hero-grid" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", display: "grid", gridTemplateColumns: "1.05fr .95fr", gap: 56, alignItems: "center", position: "relative", zIndex: 1 }}>
 
           {/* Left — headline + CTA */}
           <div>
-            <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(60px, 8.6vw, 136px)", lineHeight: 0.9, letterSpacing: "-.035em", margin: "0 0 24px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
+            <h1 className="nm-hero-title" style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(60px, 8.6vw, 136px)", lineHeight: 0.9, letterSpacing: "-.035em", margin: "0 0 24px", color: "#e9e6f5", fontVariationSettings: '"opsz" 144' }}>
               Ask <span className="landing-u">once</span>.<br />
               Three minds <span style={{ fontStyle: "italic", fontWeight: 300 }}>answer</span>.
             </h1>
@@ -159,7 +159,7 @@ export default function LandingPage() {
             </div>
 
             {/* 3 model lanes */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+            <div className="nm-lane-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
               {LANES.map((lane) => (
                 <div
                   key={lane.key}
@@ -203,12 +203,12 @@ export default function LandingPage() {
 
       {/* ── MODES ── */}
       <section id="modes" style={{ padding: "120px 0 80px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px" }}>
-          <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(44px,6vw,92px)", lineHeight: .95, letterSpacing: "-.025em", margin: "0 0 56px", maxWidth: 900 }}>
+        <div className="nm-container" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px" }}>
+          <h2 className="nm-section-title" style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(44px,6vw,92px)", lineHeight: .95, letterSpacing: "-.025em", margin: "0 0 56px", maxWidth: 900 }}>
             Three modes.<br />Same three <em style={{ fontStyle: "italic", color: "#d0bcff" }}>minds</em>.
           </h2>
           {MODES.map((row) => (
-            <div key={row.n} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", borderTop: "1px solid rgba(208,188,255,.14)", padding: "36px 0", alignItems: "baseline" }}>
+            <div key={row.n} className="nm-mode-row" style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", borderTop: "1px solid rgba(208,188,255,.14)", padding: "36px 0", alignItems: "baseline" }}>
               <div style={{ display: "flex", gap: 24, alignItems: "baseline" }}>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#6b6889", width: 32, flexShrink: 0, letterSpacing: ".08em" }}>{row.n}</span>
                 <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "clamp(28px,3.6vw,48px)", lineHeight: 1.05, letterSpacing: "-.02em", color: "#e9e6f5" }}>{row.title}</div>
@@ -225,8 +225,8 @@ export default function LandingPage() {
 
       {/* ── PROOF ── */}
       <section id="proof" style={{ padding: "100px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px" }}>
-          <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(44px,6vw,92px)", lineHeight: .95, letterSpacing: "-.025em", margin: "0 0 40px", maxWidth: 760 }}>
+        <div className="nm-container" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px" }}>
+          <h2 className="nm-section-title" style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontStyle: "italic", fontSize: "clamp(44px,6vw,92px)", lineHeight: .95, letterSpacing: "-.025em", margin: "0 0 40px", maxWidth: 760 }}>
             One prompt.<br />Three <em style={{ color: "#4edea3" }}>different</em> answers.
           </h2>
           <div style={{ border: "1px solid rgba(208,188,255,.14)", borderRadius: 16, background: "#0e1830", overflow: "hidden" }}>
@@ -239,7 +239,7 @@ export default function LandingPage() {
             </div>
 
             {/* 3-cell grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)" }}>
+            <div className="nm-proof-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)" }}>
               {PROOF_CELLS.map((cell, i) => (
                 <div key={cell.name} style={{ padding: "22px 24px", borderRight: i < 2 ? "1px solid rgba(208,188,255,.06)" : undefined }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -266,7 +266,7 @@ export default function LandingPage() {
 
       {/* ── PRICING ── */}
       <section id="pricing" style={{ padding: "100px 0" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 72, alignItems: "center" }}>
+        <div className="nm-container nm-pricing-grid" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 72, alignItems: "center" }}>
           <div>
             <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 300, fontSize: "clamp(44px,6vw,92px)", lineHeight: .95, letterSpacing: "-.025em", margin: "0 0 16px" }}>
               Pay <em style={{ fontStyle: "italic", color: "#d0bcff" }}>tokens</em>.<br />Not platforms.
@@ -322,7 +322,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ padding: "56px 40px 36px", borderTop: "1px solid rgba(208,188,255,.14)", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
+      <footer className="nm-footer" style={{ padding: "56px 40px 36px", borderTop: "1px solid rgba(208,188,255,.14)", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'Fraunces', Georgia, serif", fontWeight: 600, fontSize: 18 }}>
             <div style={{ width: 26, height: 26, borderRadius: 7, background: "linear-gradient(135deg, #d0bcff, #9d87d9)", display: "grid", placeItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700, color: "#1a0f3a" }}>NM</div>

@@ -1338,7 +1338,9 @@ export default function WorkspacePage() {
         setError(streamError);
         setStreamingPreview("");
         setStreamingStatus("");
-        // Keep streamBlocks so any partial content (e.g. Claude's output) stays visible
+        // Keep streamBlocks — partial content (e.g. bot1/bot2 in chain mode) stays visible.
+        // Refresh conversation list in case partial results were persisted server-side.
+        loadConversations();
         return;
       }
 
@@ -1373,7 +1375,8 @@ export default function WorkspacePage() {
       setMessages(messagesSnapshot);
       setStreamingPreview("");
       setStreamingStatus("");
-      setStreamBlocks([]);
+      // Do NOT clear streamBlocks here — bot1/bot2 partial content should survive
+      // a bot3 crash or Vercel function timeout so the user doesn't lose streamed results.
     } finally {
       // Always clean up slot timers when a run ends
       Object.values(slotTimerRef.current).forEach((t) => t && clearTimeout(t));
@@ -1550,7 +1553,7 @@ export default function WorkspacePage() {
       <div className="flex flex-1 lg:ml-72 flex-col overflow-hidden min-h-0">
         {/* Mobile-only top bar — desktop has no header since sidebar covers everything */}
         <header className="lg:hidden flex items-center justify-between gap-2 px-3 sm:px-4 min-h-14 py-2 bg-[#0b1326]/90 backdrop-blur-xl z-40 border-b border-[#494454]/10 flex-shrink-0 safe-top">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-1 items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => setHistoryOpen(true)}
@@ -1628,7 +1631,7 @@ export default function WorkspacePage() {
 
                   {/* Modes mini row */}
                   <div style={{ margin: "24px 0 20px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
+                    <div className="nm-modes-mini" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: "2px solid rgba(208,188,255,.35)", borderRadius: 10, overflow: "hidden" }}>
                       {([
                         { label: "Quick", sub: "mode", kbd: "⌘Q", mode: "quick" as const, stat: "1 model · fast" },
                         { label: "Chain", sub: "review", kbd: "⌘C", mode: "chain" as const, stat: "sequential" },
@@ -1878,7 +1881,7 @@ export default function WorkspacePage() {
             >
               <div className="max-w-5xl mx-auto space-y-2">
                 {/* Mind pills — compact model status */}
-                <div className="flex flex-wrap items-center gap-1.5 px-1">
+                <div className="nm-mind-strip flex flex-wrap items-center gap-1.5 px-1">
                   {flow.mode === "super" || flow.mode === "chain" ? (
                     BOT_SLOTS.map((slot, i) => {
                       const enabled = flow[`${slot}Enabled`];
