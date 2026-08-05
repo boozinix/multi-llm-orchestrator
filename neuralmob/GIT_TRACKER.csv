@@ -10,3 +10,4 @@ save_number,datetime,branch,commit_hash,changes_summary
 9,2026-05-18 00:00,feature/claude-design-ux,cfd72c4,fix: scroll lock during streaming + Gemini cutoff on Vercel (maxDuration 300)
 10,2026-07-15 10:20,sandbox/latest-models-refresh,ebf93cf,feat: latest models refresh (19 verified OpenRouter IDs + 4 tiers) + Pro/Regular reasoning-effort toggle + web-search :online toggle
 10,2026-07-15 12:35,main,ceafeec,feat: latest models refresh (19 verified OpenRouter IDs + 4 tiers) + Pro/Regular reasoning-effort toggle + web-search :online toggle — merged from sandbox/latest-models-refresh
+11,2026-08-05 11:15,main,c5a643c,fix: preserve partial bot results on chain crash + mobile responsive layout (globals.css + page.tsx + workspace/page.tsx + orchestrator-stream.ts)
