@@ -1035,32 +1035,22 @@ export default function WorkspacePage() {
     }
   }, [activeConversationId, messages, streamingStatus, isLoading, slotWaiting]);
 
-  /** During active streaming, follow the bottom via rAF loop (not on every token). */
+  /** Scroll to bottom when streaming content updates — fires on content change, not 60fps. */
   useEffect(() => {
     if (!isLoading) return;
-    let raf = 0;
-    const tick = () => {
-      // Reset from previous tick FIRST — scroll event from last tick has now fired
-      isProgrammaticScroll.current = false;
-      if (!userScrolledUpRef.current) {
-        const root = messagesScrollRef.current;
-        if (root) {
-          isProgrammaticScroll.current = true; // stays true until next tick reset above
-          root.scrollTop = root.scrollHeight;
-          // Do NOT reset to false here — the scroll event fires async, after this
-          // function returns. Resetting at the top of the next tick ensures the
-          // scroll handler still sees isProgrammaticScroll=true and skips clearing
-          // userScrolledUpRef, so the user can actually scroll up.
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [isLoading]);
+    const root = messagesScrollRef.current;
+    if (!root) return;
+    // Re-enable auto-scroll if user has scrolled back near the bottom
+    const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
+    if (fromBottom < 120) userScrolledUpRef.current = false;
+    if (userScrolledUpRef.current) return;
+    root.scrollTop = root.scrollHeight;
+  }, [streamBlocks, streamingStatus, isLoading]);
 
   async function selectConversation(id: string) {
     setHistoryOpen(false);
+    setStreamBlocks([]);
+    userScrolledUpRef.current = false;
     setActiveConversation(id);
     try {
       const res = await fetch(`/api/conversations/${id}`);
