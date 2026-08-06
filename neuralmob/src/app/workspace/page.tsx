@@ -875,11 +875,20 @@ export default function WorkspacePage() {
     // with requestAnimationFrame-based flag resets.
     const onWheel = () => { userScrolledUpRef.current = true; };
     const onTouchStart = () => { userScrolledUpRef.current = true; };
+    const onScroll = () => {
+      if (isProgrammaticScroll.current) return;
+      const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
+      // Scrollbar drag or keyboard scroll: update flag based on position.
+      // > 120px from bottom = user scrolled up; <= 120px = back near bottom.
+      userScrolledUpRef.current = fromBottom > 120;
+    };
     root.addEventListener("wheel", onWheel, { passive: true });
     root.addEventListener("touchstart", onTouchStart, { passive: true });
+    root.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       root.removeEventListener("wheel", onWheel);
       root.removeEventListener("touchstart", onTouchStart);
+      root.removeEventListener("scroll", onScroll);
     };
   }, []);
 
@@ -1040,11 +1049,10 @@ export default function WorkspacePage() {
     if (!isLoading) return;
     const root = messagesScrollRef.current;
     if (!root) return;
-    // Re-enable auto-scroll if user has scrolled back near the bottom
-    const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight;
-    if (fromBottom < 120) userScrolledUpRef.current = false;
     if (userScrolledUpRef.current) return;
+    isProgrammaticScroll.current = true;
     root.scrollTop = root.scrollHeight;
+    requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
   }, [streamBlocks, streamingStatus, isLoading]);
 
   async function selectConversation(id: string) {
